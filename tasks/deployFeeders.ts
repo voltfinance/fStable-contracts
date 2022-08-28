@@ -21,7 +21,7 @@ import { getChain, getChainAddress, resolveToken } from "./utils/networkAddressF
 
 task("deployFeederPool", "Deploy Feeder Pool")
     .addParam("masset", "Token symbol of mAsset. eg mUSD", "mUSD", types.string)
-    .addParam("fasset", "Token symbol of Feeder Pool asset. eg GUSD, WBTC, PFRAX for Polygon", "alUSD", types.string)
+    .addParam("fdAsset", "Token symbol of Feeder Pool asset. eg GUSD, WBTC, PFRAX for Polygon", "alUSD", types.string)
     .addOptionalParam("a", "Amplitude coefficient (A)", 100, types.int)
     .addOptionalParam("min", "Minimum asset weight of the basket as a percentage. eg 10 for 10% of the basket.", 10, types.int)
     .addOptionalParam("max", "Maximum asset weight of the basket as a percentage. eg 90 for 90% of the basket.", 90, types.int)
@@ -31,7 +31,7 @@ task("deployFeederPool", "Deploy Feeder Pool")
         const chain = getChain(hre)
 
         const mAsset = resolveToken(taskArgs.masset, chain)
-        const fAsset = resolveToken(taskArgs.fasset, chain)
+        const fdAsset = resolveToken(taskArgs.fdAsset, chain)
 
         if (taskArgs.a < 10 || taskArgs.min > 5000) throw Error(`Invalid amplitude coefficient (A) ${taskArgs.a}`)
         if (taskArgs.min < 0 || taskArgs.min > 50) throw Error(`Invalid min limit ${taskArgs.min}`)
@@ -39,9 +39,9 @@ task("deployFeederPool", "Deploy Feeder Pool")
 
         const poolData: FeederData = {
             mAsset,
-            fAsset,
-            name: `${mAsset.symbol}/${fAsset.symbol} Feeder Pool`,
-            symbol: `fP${mAsset.symbol}/${fAsset.symbol}`,
+            fdAsset,
+            name: `${mAsset.symbol}/${fdAsset.symbol} Feeder Pool`,
+            symbol: `fP${mAsset.symbol}/${fdAsset.symbol}`,
             config: {
                 a: taskArgs.a,
                 limits: {
@@ -57,7 +57,7 @@ task("deployFeederPool", "Deploy Feeder Pool")
 
 task("deployNonPeggedFeederPool", "Deploy Non Pegged Feeder Pool")
     .addParam("masset", "Token symbol of mAsset. eg mUSD or PmUSD for Polygon", "mUSD", types.string)
-    .addParam("fasset", "Token symbol of Feeder Pool asset. eg GUSD, WBTC, PFRAX for Polygon", "alUSD", types.string)
+    .addParam("fdAsset", "Token symbol of Feeder Pool asset. eg GUSD, WBTC, PFRAX for Polygon", "alUSD", types.string)
     .addOptionalParam("a", "Amplitude coefficient (A)", 100, types.int)
     .addOptionalParam("min", "Minimum asset weight of the basket as a percentage. eg 10 for 10% of the basket.", 10, types.int)
     .addOptionalParam("max", "Maximum asset weight of the basket as a percentage. eg 90 for 90% of the basket.", 90, types.int)
@@ -67,20 +67,20 @@ task("deployNonPeggedFeederPool", "Deploy Non Pegged Feeder Pool")
         const chain = getChain(hre)
 
         const mAsset = resolveToken(taskArgs.masset, chain)
-        const fAsset = resolveToken(taskArgs.fasset, chain)
+        const fdAsset = resolveToken(taskArgs.fdAsset, chain)
 
         if (taskArgs.a < 10 || taskArgs.min > 5000) throw Error(`Invalid amplitude coefficient (A) ${taskArgs.a}`)
         if (taskArgs.min < 0 || taskArgs.min > 50) throw Error(`Invalid min limit ${taskArgs.min}`)
         if (taskArgs.max < 50 || taskArgs.max > 100) throw Error(`Invalid max limit ${taskArgs.min}`)
 
-        if (!fAsset.priceGetter) throw Error(`Token ${fAsset.symbol} does not have a priceGetter`)
+        if (!fdAsset.priceGetter) throw Error(`Token ${fdAsset.symbol} does not have a priceGetter`)
 
         const poolData: FeederData = {
             mAsset,
-            fAsset,
-            fAssetRedemptionPriceGetter: fAsset.priceGetter,
-            name: `${mAsset.symbol}/${fAsset.symbol} Feeder Pool`,
-            symbol: `fP${mAsset.symbol}/${fAsset.symbol}`,
+            fdAsset,
+            fdAssetRedemptionPriceGetter: fdAsset.priceGetter,
+            name: `${mAsset.symbol}/${fdAsset.symbol} Feeder Pool`,
+            symbol: `fP${mAsset.symbol}/${fdAsset.symbol}`,
             config: {
                 a: taskArgs.a,
                 limits: {
@@ -123,7 +123,7 @@ task("deployVault", "Deploy Feeder Pool with boosted dual vault")
     .addParam("boosted", "Rewards are boosted by staked MTA (vMTA)", undefined, types.boolean)
     .addParam(
         "stakingToken",
-        "Symbol of token that is being staked. Feeder Pool is just the fAsset. eg mUSD, MTA, GUSD, alUSD",
+        "Symbol of token that is being staked. Feeder Pool is just the fdAsset. eg mUSD, MTA, GUSD, alUSD",
         undefined,
         types.string,
     )

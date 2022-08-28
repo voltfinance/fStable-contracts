@@ -199,7 +199,7 @@ context("Unwrapper", () => {
         await validateAssetRedemption(config, musdHolder)
     })
 
-    it("imUSD redeem to fAsset via unwrapAndSend", async () => {
+    it("imUSD redeem to fdAsset via unwrapAndSend", async () => {
         const config = {
             router: alUSD.feederPool,
             input: mUSD.address,
@@ -335,7 +335,7 @@ context("Unwrapper", () => {
         await withdrawAndUnwrap(vmusdHolderAddress, mUSD.address, "musd", DAI.address)
     })
 
-    it.skip("imUSD Vault redeem to fAsset", async () => {
+    it.skip("imUSD Vault redeem to fdAsset", async () => {
         await withdrawAndUnwrap(vmusdHolderAddress, alUSD.feederPool, "musd", alUSD.address)
     })
 
@@ -426,7 +426,7 @@ context("Unwrapper", () => {
         await withdrawAndUnwrap(vmbtcHolderAddress, mBTC.address, "mbtc", WBTC.address)
     })
 
-    it("imBTC Vault redeem to fAsset", async () => {
+    it("imBTC Vault redeem to fdAsset", async () => {
         await withdrawAndUnwrap(vhbtcmbtcHolderAddress, HBTC.feederPool, "mbtc", HBTC.address)
     })
 

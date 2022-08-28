@@ -15,7 +15,7 @@ import { BassetPersonal } from "../../masset/MassetStructs.sol";
 /**
  * @title  Unwrapper
  * @author mStable
- * @notice Used to exchange interest-bearing mAssets or mAssets to base assets (bAssets) or Feeder Pool assets (fAssets).
+ * @notice Used to exchange interest-bearing mAssets or mAssets to base assets (bAssets) or Feeder Pool assets (fdAssets).
  * @dev    VERSION: 1.0
  *         DATE:    2022-01-31
  */
@@ -45,17 +45,17 @@ contract Unwrapper is IUnwrapper, ImmutableModule {
     }
 
     /**
-     * @notice Estimate units of bAssets or fAssets in exchange for interest-bearing mAssets or mAssets.
-     * @param _isBassetOut    `true` if `output` is a bAsset. `false` if `output` is a fAsset.
-     * @param _router         mAsset address if the `output` is a bAsset. Feeder Pool address if the `output` is a fAsset.
+     * @notice Estimate units of bAssets or fdAssets in exchange for interest-bearing mAssets or mAssets.
+     * @param _isBassetOut    `true` if `output` is a bAsset. `false` if `output` is a fdAsset.
+     * @param _router         mAsset address if the `output` is a bAsset. Feeder Pool address if the `output` is a fdAsset.
      * @param _input          Token address of either mAsset or interest-bearing mAsset. eg mUSD, imUSD, mBTC or imBTC.
      * @param _inputIsCredit  `true` if interest-beaing mAsset like imUSD or imBTC. `false` if mAsset like mUSD or mBTC.
-     * @param _output         Asset to receive in exchange for the `input` token. This can be a bAsset or a fAsset. For example:
-        - bAssets (USDC, DAI, sUSD or USDT) or fAssets (GUSD, BUSD, alUSD, FEI or RAI) for mUSD.
-        - bAssets (USDC, DAI or USDT) or fAsset FRAX for Polygon mUSD.
-        - bAssets (WBTC, sBTC or renBTC) or fAssets (HBTC or TBTCV2) for mainnet mBTC.
+     * @param _output         Asset to receive in exchange for the `input` token. This can be a bAsset or a fdAsset. For example:
+        - bAssets (USDC, DAI, sUSD or USDT) or fdAssets (GUSD, BUSD, alUSD, FEI or RAI) for mUSD.
+        - bAssets (USDC, DAI or USDT) or fdAsset FRAX for Polygon mUSD.
+        - bAssets (WBTC, sBTC or renBTC) or fdAssets (HBTC or TBTCV2) for mainnet mBTC.
      * @param _amount         Units of `input` token.
-     * @return outputQuantity Units of bAssets or fAssets received in exchange for inputs. This is to the same decimal places as the `output` token.
+     * @return outputQuantity Units of bAssets or fdAssets received in exchange for inputs. This is to the same decimal places as the `output` token.
      */
     function getUnwrapOutput(
         bool _isBassetOut,
@@ -79,17 +79,17 @@ contract Unwrapper is IUnwrapper, ImmutableModule {
     }
 
     /**
-     * @notice Swaps mAssets for either bAssets or fAssets.
+     * @notice Swaps mAssets for either bAssets or fdAssets.
      * Transfers mAssets to this Unwrapper contract and then either
      * 1. redeems mAsset tokens for bAsset tokens.
-     * 2. Swaps mAsset tokens for fAsset tokens using a Feeder Pool.
-     * @param _isBassetOut    `true` if `output` is a bAsset. `false` if `output` is a fAsset.
-     * @param _router         mAsset address if the `output` is a bAsset. Feeder Pool address if the `output` is a fAsset.
+     * 2. Swaps mAsset tokens for fdAsset tokens using a Feeder Pool.
+     * @param _isBassetOut    `true` if `output` is a bAsset. `false` if `output` is a fdAsset.
+     * @param _router         mAsset address if the `output` is a bAsset. Feeder Pool address if the `output` is a fdAsset.
      * @param _input          mAsset address
-     * @param _output         Asset to receive in exchange for the redeemed mAssets. This can be a bAsset or a fAsset. For example:
-        - bAssets (USDC, DAI, sUSD or USDT) or fAssets (GUSD, BUSD, alUSD, FEI or RAI) for mUSD.
-        - bAssets (USDC, DAI or USDT) or fAsset FRAX for Polygon mUSD.
-        - bAssets (WBTC, sBTC or renBTC) or fAssets (HBTC or TBTCV2) for mainnet mBTC.
+     * @param _output         Asset to receive in exchange for the redeemed mAssets. This can be a bAsset or a fdAsset. For example:
+        - bAssets (USDC, DAI, sUSD or USDT) or fdAssets (GUSD, BUSD, alUSD, FEI or RAI) for mUSD.
+        - bAssets (USDC, DAI or USDT) or fdAsset FRAX for Polygon mUSD.
+        - bAssets (WBTC, sBTC or renBTC) or fdAssets (HBTC or TBTCV2) for mainnet mBTC.
      * @param _amount         Units of mAssets that have been redeemed.
      * @param _minAmountOut   Minimum units of `output` tokens to be received by the beneficiary. This is to the same decimal places as the `output` token.
      * @param _beneficiary    Address to send `output` tokens to.
@@ -120,7 +120,7 @@ contract Unwrapper is IUnwrapper, ImmutableModule {
     }
 
     /**
-     * @notice Approve mAsset tokens to be transferred to mAsset or Feeder Pool contracts for `redeem` to bAssets or `swap` for fAssets.
+     * @notice Approve mAsset tokens to be transferred to mAsset or Feeder Pool contracts for `redeem` to bAssets or `swap` for fdAssets.
      * @param _spenders Address of mAssets and Feeder Pools that will `redeem` or `swap` the mAsset tokens.
      * @param _tokens   Address of the mAssets that will be redeemed or swapped.
      */

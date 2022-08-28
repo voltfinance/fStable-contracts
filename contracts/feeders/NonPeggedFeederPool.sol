@@ -26,8 +26,8 @@ import { FeederLogic } from "./FeederLogic.sol";
  * @title   NonPeggedFeederPool
  * @author  mStable, @stobiewan
 * @notice  Base contract for Feeder Pools (fPools) handling non-pegged stable assets with a redemption price. Feeder
-*          Pools are combined of 50/50 fAsset and mAsset. This supports efficient swaps into and out of mAssets and the
-*          bAssets in the mAsset basket (a.k.a mpAssets). There is 0 fee to trade from fAsset into mAsset, providing
+*          Pools are combined of 50/50 fdAsset and mAsset. This supports efficient swaps into and out of mAssets and the
+*          bAssets in the mAsset basket (a.k.a mpAssets). There is 0 fee to trade from fdAsset into mAsset, providing
 *          low cost on-ramps into mAssets.
  * @dev     VERSION: 1.0
  *          DATE:    2021-10-01
@@ -98,9 +98,9 @@ contract NonPeggedFeederPool is
     uint256 private constant F_INDEX = 1;
     uint256 private constant NUM_ASSETS = 2;
     uint256 private constant RAY = 10**27;
-    uint128 private fAssetBaseRatio;
+    uint128 private fdAssetBaseRatio;
     address public immutable override mAsset;
-    address public immutable fAssetRedemptionPriceGetter;
+    address public immutable fdAssetRedemptionPriceGetter;
 
     // Core data storage
     FeederData public data;
@@ -109,24 +109,24 @@ contract NonPeggedFeederPool is
      * @dev Constructor to set immutable bytecode
      * @param _nexus   Nexus address
      * @param _mAsset  Immutable mAsset address
-     * @param _mAsset  Immutable address of fAsset redemption price getter
+     * @param _mAsset  Immutable address of fdAsset redemption price getter
      */
     constructor(
         address _nexus,
         address _mAsset,
-        address _fAssetRedemptionPriceGetter
+        address _fdAssetRedemptionPriceGetter
     ) PausableModule(_nexus) {
         mAsset = _mAsset;
-        fAssetRedemptionPriceGetter = _fAssetRedemptionPriceGetter;
+        fdAssetRedemptionPriceGetter = _fdAssetRedemptionPriceGetter;
     }
 
     /**
      * @dev Basic initializer. Sets up core state and importantly provides infinite approvals to the mAsset pool
-     * to support the cross pool swaps. bAssetData and bAssetPersonal are always ordered [mAsset, fAsset].
+     * to support the cross pool swaps. bAssetData and bAssetPersonal are always ordered [mAsset, fdAsset].
      * @param _nameArg     Name of the fPool token (a.k.a. fpToken)
      * @param _symbolArg   Symbol of the fPool token
      * @param _mAsset      Details on the base mAsset
-     * @param _fAsset      Details on the attached fAsset
+     * @param _fdAsset      Details on the attached fdAsset
      * @param _mpAssets    Array of bAssets from the mAsset (to approve)
      * @param _config      Starting invariant config
      */
@@ -134,7 +134,7 @@ contract NonPeggedFeederPool is
         string calldata _nameArg,
         string calldata _symbolArg,
         BassetPersonal calldata _mAsset,
-        BassetPersonal calldata _fAsset,
+        BassetPersonal calldata _fdAsset,
         address[] calldata _mpAssets,
         BasicConfig memory _config
     ) public initializer {
@@ -143,15 +143,15 @@ contract NonPeggedFeederPool is
         _initializeReentrancyGuard();
 
         require(_mAsset.addr == mAsset, "mAsset incorrect");
-        fAssetBaseRatio = SafeCast.toUint128(10**(26 - IBasicToken(_fAsset.addr).decimals()));
+        fdAssetBaseRatio = SafeCast.toUint128(10**(26 - IBasicToken(_fdAsset.addr).decimals()));
         data.bAssetPersonal.push(
             BassetPersonal(_mAsset.addr, _mAsset.integrator, false, BassetStatus.Normal)
         );
         data.bAssetData.push(BassetData(1e8, 0));
         data.bAssetPersonal.push(
-            BassetPersonal(_fAsset.addr, _fAsset.integrator, _fAsset.hasTxFee, BassetStatus.Normal)
+            BassetPersonal(_fdAsset.addr, _fdAsset.integrator, _fdAsset.hasTxFee, BassetStatus.Normal)
         );
-        data.bAssetData.push(BassetData(fAssetBaseRatio, 0));
+        data.bAssetData.push(BassetData(fdAssetBaseRatio, 0));
         for (uint256 i = 0; i < _mpAssets.length; i++) {
             // Call will fail if bAsset does not exist
             IMasset(_mAsset.addr).getBasset(_mpAssets[i]);
@@ -195,7 +195,7 @@ contract NonPeggedFeederPool is
 
     /**
      * @notice Mint fpTokens with a single bAsset. This contract must have approval to spend the senders bAsset.
-     * Supports either fAsset, mAsset or mpAsset as input - with mpAssets used to mint mAsset before depositing.
+     * Supports either fdAsset, mAsset or mpAsset as input - with mpAssets used to mint mAsset before depositing.
      * @param _input                Address of the bAsset to deposit.
      * @param _inputQuantity        Quantity in input token units.
      * @param _minOutputQuantity    Minimum fpToken quantity to be minted. This protects against slippage.
@@ -229,7 +229,7 @@ contract NonPeggedFeederPool is
 
     /**
      * @notice Mint fpTokens with multiple bAssets. This contract must have approval to spend the senders bAssets.
-     * Supports only fAsset or mAsset as inputs.
+     * Supports only fdAsset or mAsset as inputs.
      * @param _inputs               Address of the bAssets to deposit.
      * @param _inputQuantities      Quantity in input token units.
      * @param _minOutputQuantity    Minimum fpToken quantity to be minted. This protects against slippage.
@@ -323,7 +323,7 @@ contract NonPeggedFeederPool is
     ****************************************/
 
     /**
-     * @notice Swaps two assets - either internally between fAsset<>mAsset, or between fAsset<>mpAsset by
+     * @notice Swaps two assets - either internally between fdAsset<>mAsset, or between fdAsset<>mpAsset by
      * first routing through the mAsset pool.
      * @param _input             Address of bAsset to deposit
      * @param _output            Address of bAsset to withdraw
@@ -387,7 +387,7 @@ contract NonPeggedFeederPool is
         Asset memory output = _getAsset(_output);
         require(_pathIsValid(input, output), "Invalid pair");
 
-        // Internal swap between fAsset and mAsset
+        // Internal swap between fdAsset and mAsset
         if (input.exists && output.exists) {
             (swapOutput, ) = FeederLogic.computeSwap(
                 _getMemBassetData(),
@@ -400,7 +400,7 @@ contract NonPeggedFeederPool is
             return swapOutput;
         }
 
-        // Swapping out of fAsset
+        // Swapping out of fdAsset
         if (input.exists) {
             // Swap into mAsset > Redeem into mpAsset
             (swapOutput, ) = FeederLogic.computeSwap(
@@ -413,9 +413,9 @@ contract NonPeggedFeederPool is
             );
             swapOutput = IMasset(mAsset).getRedeemOutput(_output, swapOutput);
         }
-        // Else we are swapping into fAsset
+        // Else we are swapping into fdAsset
         else {
-            // Mint mAsset from mp > Swap into fAsset here
+            // Mint mAsset from mp > Swap into fdAsset here
             swapOutput = IMasset(mAsset).getMintOutput(_input, _inputQuantity);
             (swapOutput, ) = FeederLogic.computeSwap(
                 _getMemBassetData(),
@@ -429,7 +429,7 @@ contract NonPeggedFeederPool is
     }
 
     /**
-     * @dev Checks if a given swap path is valid. Only fAsset<>mAsset & fAsset<>mpAsset swaps are supported.
+     * @dev Checks if a given swap path is valid. Only fdAsset<>mAsset & fdAsset<>mpAsset swaps are supported.
      */
     function _pathIsValid(Asset memory _in, Asset memory _out)
         internal
@@ -440,9 +440,9 @@ contract NonPeggedFeederPool is
         if (!_in.exists && !_out.exists) return false;
         // f/mAsset -> f/mAsset
         if (_in.exists && _out.exists) return true;
-        // fAsset -> mpAsset
+        // fdAsset -> mpAsset
         if (_in.exists && _in.idx == 1) return true;
-        // mpAsset -> fAsset
+        // mpAsset -> fdAsset
         if (_out.exists && _out.idx == 1) return true;
         // Path is into or out of mAsset - just use main pool for this
         return false;
@@ -454,7 +454,7 @@ contract NonPeggedFeederPool is
 
     /**
      * @notice Burns a specified quantity of the senders fpToken in return for a bAsset. The output amount is derived
-     * from the invariant. Supports redemption into either the fAsset, mAsset or assets in the mAsset basket.
+     * from the invariant. Supports redemption into either the fdAsset, mAsset or assets in the mAsset basket.
      * @param _output            Address of the bAsset to withdraw
      * @param _fpTokenQuantity   Quantity of LP Token to burn
      * @param _minOutputQuantity Minimum bAsset quantity to receive for the burnt fpToken. This protects against slippage.
@@ -504,7 +504,7 @@ contract NonPeggedFeederPool is
 
     /**
      * @dev Credits a recipient with a proportionate amount of bAssets, relative to current vault
-     * balance levels and desired fpToken quantity. Burns the fpToken as payment. Only fAsset & mAsset are supported in this path.
+     * balance levels and desired fpToken quantity. Burns the fpToken as payment. Only fdAsset & mAsset are supported in this path.
      * @param _inputQuantity        Quantity of fpToken to redeem
      * @param _minOutputQuantities  Min units of output to receive
      * @param _recipient            Address to credit the withdrawn bAssets
@@ -550,7 +550,7 @@ contract NonPeggedFeederPool is
 
     /**
      * @dev Credits a recipient with a certain quantity of selected bAssets, in exchange for burning the
-     *      relative fpToken quantity from the sender. Only fAsset & mAsset (0,1) are supported in this path.
+     *      relative fpToken quantity from the sender. Only fdAsset & mAsset (0,1) are supported in this path.
      * @param _outputs              Addresses of the bAssets to receive
      * @param _outputQuantities     Units of the bAssets to receive
      * @param _maxInputQuantity     Maximum fpToken quantity to burn for the received bAssets. This protects against slippage.
@@ -776,7 +776,7 @@ contract NonPeggedFeederPool is
     }
 
     function _getMemBassetData() internal view returns (BassetData[] memory bAssetData) {
-        if (fAssetRedemptionPriceGetter == address(0)) return data.bAssetData;
+        if (fdAssetRedemptionPriceGetter == address(0)) return data.bAssetData;
         bAssetData = new BassetData[](NUM_ASSETS);
         bAssetData[M_INDEX] = data.bAssetData[M_INDEX];
         bAssetData[F_INDEX].vaultBalance = data.bAssetData[F_INDEX].vaultBalance;
@@ -784,9 +784,9 @@ contract NonPeggedFeederPool is
     }
 
     function _getRatioFromRedemptionPrice() internal view returns (uint128 ratio) {
-        uint256 rp_ray = IFAssetRedemptionPriceGetter(fAssetRedemptionPriceGetter)
+        uint256 rp_ray = IFAssetRedemptionPriceGetter(fdAssetRedemptionPriceGetter)
         .snappedRedemptionPrice();
-        return SafeCast.toUint128((uint256(fAssetBaseRatio) * rp_ray + RAY / 2) / RAY);
+        return SafeCast.toUint128((uint256(fdAssetBaseRatio) * rp_ray + RAY / 2) / RAY);
     }
 
     /***************************************
@@ -930,10 +930,10 @@ contract NonPeggedFeederPool is
     }
 
     /**
-     * @dev Updates the value ratio of fAsset if rate source had been set.
+     * @dev Updates the value ratio of fdAsset if rate source had been set.
      */
     function _updateBassetData() internal {
-        if (fAssetRedemptionPriceGetter == address(0)) return;
+        if (fdAssetRedemptionPriceGetter == address(0)) return;
         data.bAssetData[F_INDEX].ratio = _getRatioFromRedemptionPrice();
     }
 }

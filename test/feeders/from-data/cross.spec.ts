@@ -96,8 +96,8 @@ describe("Cross swap - One basket many tests", () => {
 
         await mAssetDetails.mAsset.connect(sa.governor.signer).setFees(mAssetFees.swap, mAssetFees.redeem)
 
-        const fAsset = await mAssetMachine.loadBassetProxy("Feeder Asset", "fAST", 18)
-        const bAssets = [mAssetDetails.mAsset as MockERC20, fAsset]
+        const fdAsset = await mAssetMachine.loadBassetProxy("Feeder Asset", "fAST", 18)
+        const bAssets = [mAssetDetails.mAsset as MockERC20, fdAsset]
         fpAssetAddresses = bAssets.map((b) => b.address)
         mpAssetAddresses = mAssetDetails.bAssets.map((b) => b.address)
         mAsset = mAssetDetails.mAsset
@@ -199,7 +199,7 @@ describe("Cross swap - One basket many tests", () => {
                         if (testData.hardLimitError) {
                             it(`throws Max Weight error when swapping ${testData.inputQty.toString()} ${
                                 testData.inputIndex
-                            } for fAsset`, async () => {
+                            } for fdAsset`, async () => {
                                 await expect(
                                     feederPool.swap(
                                         mpAssetAddresses[testData.inputIndex],
@@ -218,7 +218,7 @@ describe("Cross swap - One basket many tests", () => {
                                 ).to.be.revertedWith("Exceeds weight limits")
                             })
                         } else {
-                            it(`swaps ${testData.inputQty.toString()} ${testData.inputIndex} for fAsset`, async () => {
+                            it(`swaps ${testData.inputQty.toString()} ${testData.inputIndex} for fdAsset`, async () => {
                                 const expectedOutput = await feederPool.getSwapOutput(
                                     mpAssetAddresses[testData.inputIndex],
                                     fpAssetAddresses[1],
@@ -238,7 +238,7 @@ describe("Cross swap - One basket many tests", () => {
                         break
                     case "swap_fp_to_mp":
                         if (testData.hardLimitError) {
-                            it(`throws Max Weight error when swapping ${testData.inputQty.toString()} fAsset for ${
+                            it(`throws Max Weight error when swapping ${testData.inputQty.toString()} fdAsset for ${
                                 testData.outputIndex
                             }`, async () => {
                                 await expect(
@@ -259,7 +259,7 @@ describe("Cross swap - One basket many tests", () => {
                                 ).to.be.revertedWith("Exceeds weight limits")
                             })
                         } else {
-                            it(`swaps ${testData.inputQty.toString()} fAsset for ${testData.outputIndex}`, async () => {
+                            it(`swaps ${testData.inputQty.toString()} fdAsset for ${testData.outputIndex}`, async () => {
                                 const expectedOutput = await feederPool.getSwapOutput(
                                     fpAssetAddresses[1],
                                     mpAssetAddresses[testData.outputIndex],

@@ -1589,13 +1589,13 @@ contract SavingsContract_imusd_mainnet_22 is
      * @param _amount         Units to redeem (either underlying or credit amount).
      * @param _isCreditAmt    `true` if `amount` is in credits. eg imUSD. `false` if `amount` is in underlying. eg mUSD.
      * @param _minAmountOut   Minimum amount of `output` tokens to unwrap for. This is to the same decimal places as the `output` token.
-     * @param _output         Asset to receive in exchange for the redeemed mAssets. This can be a bAsset or a fAsset. For example:
-        - bAssets (USDC, DAI, sUSD or USDT) or fAssets (GUSD, BUSD, alUSD, FEI or RAI) for mainnet imUSD Vault.
-        - bAssets (USDC, DAI or USDT) or fAsset FRAX for Polygon imUSD Vault.
-        - bAssets (WBTC, sBTC or renBTC) or fAssets (HBTC or TBTCV2) for mainnet imBTC Vault.
+     * @param _output         Asset to receive in exchange for the redeemed mAssets. This can be a bAsset or a fdAsset. For example:
+        - bAssets (USDC, DAI, sUSD or USDT) or fdAssets (GUSD, BUSD, alUSD, FEI or RAI) for mainnet imUSD Vault.
+        - bAssets (USDC, DAI or USDT) or fdAsset FRAX for Polygon imUSD Vault.
+        - bAssets (WBTC, sBTC or renBTC) or fdAssets (HBTC or TBTCV2) for mainnet imBTC Vault.
      * @param _beneficiary    Address to send `output` tokens to.
-     * @param _router         mAsset address if the output is a bAsset. Feeder Pool address if the output is a fAsset.
-     * @param _isBassetOut    `true` if `output` is a bAsset. `false` if `output` is a fAsset.
+     * @param _router         mAsset address if the output is a bAsset. Feeder Pool address if the output is a fdAsset.
+     * @param _isBassetOut    `true` if `output` is a bAsset. `false` if `output` is a fdAsset.
      * @return creditsBurned  Units of credits burned from sender. eg imUSD or imBTC.
      * @return massetReturned Units of the underlying mAssets that were redeemed or swapped for the output tokens. eg mUSD or mBTC.
      * @return outputQuantity Units of `output` tokens sent to the beneficiary.

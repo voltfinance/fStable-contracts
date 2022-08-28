@@ -449,7 +449,7 @@ describe("BoostedVault", async () => {
         await assertRewardsAssigned(beforeData, afterData, isExistingStaker)
 
         // 4. Expect token transfer
-        //    StakingToken balance of sender is reduced, as the staked token is unwrapped to a bAsset or fAsset
+        //    StakingToken balance of sender is reduced, as the staked token is unwrapped to a bAsset or fdAsset
         expect(beforeData.tokenBalance.sender).to.be.eq(afterData.tokenBalance.sender)
         //    Withdraws from the actual rewards wrapper token
         expect(beforeData.boostBalance.raw.sub(withdrawAmount)).to.be.eq(afterData.boostBalance.raw)

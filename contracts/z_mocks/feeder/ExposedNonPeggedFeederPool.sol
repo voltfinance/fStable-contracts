@@ -8,6 +8,6 @@ contract ExposedNonPeggedFeederPool is NonPeggedFeederPool {
     constructor(
         address _nexus,
         address _mAsset,
-        address _fAssetRedemptionPrice
-    ) NonPeggedFeederPool(_nexus, _mAsset, _fAssetRedemptionPrice) {}
+        address _fdAssetRedemptionPrice
+    ) NonPeggedFeederPool(_nexus, _mAsset, _fdAssetRedemptionPrice) {}
 }

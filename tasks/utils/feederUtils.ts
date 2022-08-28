@@ -41,8 +41,8 @@ interface Config {
 
 export interface FeederData {
     mAsset: Token
-    fAsset: Token
-    fAssetRedemptionPriceGetter?: string
+    fdAsset: Token
+    fdAssetRedemptionPriceGetter?: string
     name: string
     symbol: string
     config: Config
@@ -93,10 +93,10 @@ export const deployFeederPool = async (signer: Signer, feederData: FeederData, h
     let impl: FeederPool | NonPeggedFeederPool
     let fpConstructorArgs: Array<string>
 
-    if (feederData.fAssetRedemptionPriceGetter) {
-        // Update fAssetRedemptionPriceGetter price oracle
-        await IRedemptionPriceSnap__factory.connect(feederData.fAssetRedemptionPriceGetter, signer).updateSnappedPrice()
-        fpConstructorArgs = [getChainAddress("Nexus", chain), feederData.mAsset.address, feederData.fAssetRedemptionPriceGetter]
+    if (feederData.fdAssetRedemptionPriceGetter) {
+        // Update fdAssetRedemptionPriceGetter price oracle
+        await IRedemptionPriceSnap__factory.connect(feederData.fdAssetRedemptionPriceGetter, signer).updateSnappedPrice()
+        fpConstructorArgs = [getChainAddress("Nexus", chain), feederData.mAsset.address, feederData.fdAssetRedemptionPriceGetter]
         impl = await deployContract(new NonPeggedFeederPool__factory(linkedAddress, signer), "NonPeggedFeederPool", fpConstructorArgs)
     } else {
         fpConstructorArgs = [getChainAddress("Nexus", chain), feederData.mAsset.address]
@@ -120,8 +120,8 @@ export const deployFeederPool = async (signer: Signer, feederData: FeederData, h
 
     console.log(`mpAssets. count = ${mpAssets.length}, list: `, mpAssets)
     console.log(
-        `Initializing FeederPool with: ${feederData.name}, ${feederData.symbol}, mAsset ${feederData.mAsset.address}, fAsset ${
-            feederData.fAsset.address
+        `Initializing FeederPool with: ${feederData.name}, ${feederData.symbol}, mAsset ${feederData.mAsset.address}, fdAsset ${
+            feederData.fdAsset.address
         }, A: ${feederData.config.a.toString()}, min: ${formatEther(feederData.config.limits.min)}, max: ${formatEther(
             feederData.config.limits.max,
         )}`,
@@ -136,8 +136,8 @@ export const deployFeederPool = async (signer: Signer, feederData: FeederData, h
             status: 0,
         },
         {
-            addr: feederData.fAsset.address,
-            integrator: feederData.fAsset.integrator || ZERO_ADDRESS,
+            addr: feederData.fdAsset.address,
+            integrator: feederData.fdAsset.integrator || ZERO_ADDRESS,
             hasTxFee: false,
             status: 0,
         },
@@ -274,7 +274,7 @@ export const deployVault = async (
 //     // Log minted amount
 //     const mAssetAmount = formatEther(await feederData.pool.totalSupply())
 //     console.log(
-//         `Minted ${mAssetAmount} fpToken from ${formatEther(scaledTestQty)} Units for each [mAsset, fAsset]. gas used ${
+//         `Minted ${mAssetAmount} fpToken from ${formatEther(scaledTestQty)} Units for each [mAsset, fdAsset]. gas used ${
 //             receiptMint.gasUsed
 //         }`,
 //     )
@@ -290,10 +290,10 @@ export const deployVault = async (
 //     const len = feederPools.length
 //     // eslint-disable-next-line
 //     for (let i = 0; i < len; i++) {
-//         const [[{ addr: massetAddr }, { addr: fassetAddr }]] = await feederPools[i].getBassets()
+//         const [[{ addr: massetAddr }, { addr: fdAssetAddr }]] = await feederPools[i].getBassets()
 //         const masset = Masset__factory.connect(massetAddr, sender)
 //         const [bassets] = await masset.getBassets()
-//         const assets = [massetAddr, fassetAddr, ...bassets.map(({ addr }) => addr)]
+//         const assets = [massetAddr, fdAssetAddr, ...bassets.map(({ addr }) => addr)]
 
 //         // Make the approval in one tx
 //         const approveTx = await feederWrapper["approve(address,address,address[])"](feederPools[i].address, vaults[i].address, assets)
@@ -325,14 +325,14 @@ export const deployVault = async (
 //         feederLibs.feederLogic = feederLogic.address
 //     }
 
-//     // 2.2   For each fAsset
-//     //        - fetch fAsset & mAsset
+//     // 2.2   For each fdAsset
+//     //        - fetch fdAsset & mAsset
 //     const data: FeederData[] = []
 
 //     // eslint-disable-next-line
 //     for (const pair of pairs) {
 //         const mAssetContract = MV2__factory.connect(pair.mAsset.address, deployer)
-//         const fAssetContract = MockERC20__factory.connect(pair.fAsset.address, deployer)
+//         const fdAssetContract = MockERC20__factory.connect(pair.fdAsset.address, deployer)
 //         const deployedMasset: DeployedFasset = {
 //             integrator: ZERO_ADDRESS,
 //             txFee: false,
@@ -343,16 +343,16 @@ export const deployVault = async (
 //         const deployedFasset: DeployedFasset = {
 //             integrator: ZERO_ADDRESS,
 //             txFee: false,
-//             contract: fAssetContract,
-//             address: pair.fAsset.address,
-//             symbol: pair.fAsset.symbol,
+//             contract: fdAssetContract,
+//             address: pair.fdAsset.address,
+//             symbol: pair.fdAsset.symbol,
 //         }
 //         data.push({
 //             ...feederLibs,
 //             nexus: addresses.nexus,
 //             proxyAdmin: addresses.proxyAdmin,
 //             mAsset: deployedMasset,
-//             fAsset: deployedFasset,
+//             fdAsset: deployedFasset,
 //             aToken: pair.aToken,
 //             name: `${deployedMasset.symbol}/${deployedFasset.symbol} Feeder Pool`,
 //             symbol: `fP${deployedMasset.symbol}/${deployedFasset.symbol}`,
@@ -378,7 +378,7 @@ export const deployVault = async (
 //         poolData.pool = feederPool
 
 //         // Mint initial supply
-//         // await mint(deployer, [poolData.mAsset, poolData.fAsset], poolData)
+//         // await mint(deployer, [poolData.mAsset, poolData.fdAsset], poolData)
 
 //         // Rewards Contract
 //         if (addresses.boostDirector) {
@@ -414,8 +414,8 @@ export const deployVault = async (
 //                 [addresses.nexus, poolData.pool.address, addresses.aave, DEAD_ADDRESS],
 //             )
 
-//             const initTx = await integration.initialize([poolData.fAsset.address], [poolData.aToken])
-//             await logTxDetails(initTx, `Initializing pToken ${poolData.aToken} for bAsset ${poolData.fAsset.address}...`)
+//             const initTx = await integration.initialize([poolData.fdAsset.address], [poolData.aToken])
+//             await logTxDetails(initTx, `Initializing pToken ${poolData.aToken} for bAsset ${poolData.fdAsset.address}...`)
 //         }
 //     }
 

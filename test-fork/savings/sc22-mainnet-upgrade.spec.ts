@@ -242,14 +242,14 @@ context("SavingContract Vault4626 upgrades", () => {
                 await redeemAndUnwrap(imusdHolderAddress, musdAddress, "musd", daiAddress)
             })
 
-            it.skip("mUSD contract redeem to fAsset", async () => {
+            it.skip("mUSD contract redeem to fdAsset", async () => {
                 await redeemAndUnwrap(imusdHolderAddress, alusdFeederPool, "musd", alusdAddress)
             })
             it("mBTC contract redeem to bAsset", async () => {
                 await redeemAndUnwrap(imbtcHolderAddress, mbtcAddress, "mbtc", wbtcAddress)
             })
 
-            it.skip("mBTC contract redeem to fAsset", async () => {
+            it.skip("mBTC contract redeem to fdAsset", async () => {
                 await redeemAndUnwrap(imbtcHolderAddress, hbtcFeederPool, "mbtc", hbtcAddress)
             })
             // credits
@@ -257,14 +257,14 @@ context("SavingContract Vault4626 upgrades", () => {
                 await redeemAndUnwrap(imusdHolderAddress, musdAddress, "musd", daiAddress, true)
             })
 
-            it("imUSD contract redeem to fAsset", async () => {
+            it("imUSD contract redeem to fdAsset", async () => {
                 await redeemAndUnwrap(imusdHolderAddress, alusdFeederPool, "musd", alusdAddress, true)
             })
             it("imBTC contract redeem to bAsset", async () => {
                 await redeemAndUnwrap(imbtcHolderAddress, mbtcAddress, "mbtc", wbtcAddress, true)
             })
 
-            it("imBTC contract redeem to fAsset", async () => {
+            it("imBTC contract redeem to fdAsset", async () => {
                 await redeemAndUnwrap(imbtcHolderAddress, hbtcFeederPool, "mbtc", hbtcAddress, true)
             })
         })

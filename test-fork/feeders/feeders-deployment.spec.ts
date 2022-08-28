@@ -50,7 +50,7 @@ interface DeployedFasset {
 
 interface Pair {
     mAsset: string
-    fAsset: string
+    fdAsset: string
     aToken: string
     priceCoeff: BN
     A: BN
@@ -58,7 +58,7 @@ interface Pair {
 
 interface FeederData {
     mAsset: DeployedFasset
-    fAsset: DeployedFasset
+    fdAsset: DeployedFasset
     aToken: string
     name: string
     symbol: string
@@ -120,8 +120,8 @@ const deployFeederPool = async (sender: Signer, addresses: CommonAddresses, feed
     const mpAssets = (await feederPoolFactory.attach(feederData.mAsset.address).getBassets())[0].map((p) => p[0])
     console.log(`mpAssets. count = ${mpAssets.length}, list: `, mpAssets)
     console.log(
-        `Initializing FeederPool with: ${feederData.name}, ${feederData.symbol}, mAsset ${feederData.mAsset.address}, fAsset ${
-            feederData.fAsset.contract.address
+        `Initializing FeederPool with: ${feederData.name}, ${feederData.symbol}, mAsset ${feederData.mAsset.address}, fdAsset ${
+            feederData.fdAsset.contract.address
         }, A: ${feederData.config.a.toString()}, min: ${formatEther(feederData.config.limits.min)}, max: ${formatEther(
             feederData.config.limits.max,
         )}`,
@@ -136,8 +136,8 @@ const deployFeederPool = async (sender: Signer, addresses: CommonAddresses, feed
             status: 0,
         },
         {
-            addr: feederData.fAsset.address,
-            integrator: feederData.fAsset.integrator,
+            addr: feederData.fdAsset.address,
+            integrator: feederData.fdAsset.integrator,
             hasTxFee: false,
             status: 0,
         },
@@ -202,7 +202,7 @@ const mint = async (sender: Signer, bAssets: DeployedFasset[], feederData: Feede
     // Log minted amount
     const mAssetAmount = formatEther(await feederData.pool.totalSupply())
     console.log(
-        `Minted ${mAssetAmount} fpToken from ${formatEther(scaledTestQty)} Units for each [mAsset, fAsset]. gas used ${
+        `Minted ${mAssetAmount} fpToken from ${formatEther(scaledTestQty)} Units for each [mAsset, fdAsset]. gas used ${
             receiptMint.gasUsed
         }`,
     )
@@ -272,10 +272,10 @@ const deployFeederWrapper = async (sender: Signer, feederPools: FeederPool[], va
     const len = feederPools.length
     // eslint-disable-next-line
     for (let i = 0; i < len; i++) {
-        const [[{ addr: massetAddr }, { addr: fassetAddr }]] = await feederPools[i].getBassets()
+        const [[{ addr: massetAddr }, { addr: fdAssetAddr }]] = await feederPools[i].getBassets()
         const masset = Masset__factory.connect(massetAddr, sender)
         const [bassets] = await masset.getBassets()
-        const assets = [massetAddr, fassetAddr, ...bassets.map(({ addr }) => addr)]
+        const assets = [massetAddr, fdAssetAddr, ...bassets.map(({ addr }) => addr)]
 
         // Make the approval in one tx
         const approveTx = await feederWrapper["approve(address,address,address[])"](feederPools[i].address, vaults[i].address, assets)
@@ -316,7 +316,7 @@ context("deploying feeder", () => {
             // mBTC / hBTC
             {
                 mAsset: "0x945facb997494cc2570096c74b5f66a3507330a1",
-                fAsset: "0x0316EB71485b0Ab14103307bf65a021042c6d380",
+                fdAsset: "0x0316EB71485b0Ab14103307bf65a021042c6d380",
                 aToken: ZERO_ADDRESS,
                 priceCoeff: simpleToExactAmount(58000),
                 A: BN.from(325),
@@ -324,7 +324,7 @@ context("deploying feeder", () => {
             // mBTC / tBTC
             {
                 mAsset: "0x945facb997494cc2570096c74b5f66a3507330a1",
-                fAsset: "0x8dAEBADE922dF735c38C80C7eBD708Af50815fAa",
+                fdAsset: "0x8dAEBADE922dF735c38C80C7eBD708Af50815fAa",
                 aToken: ZERO_ADDRESS,
                 priceCoeff: simpleToExactAmount(58000),
                 A: BN.from(175),
@@ -332,7 +332,7 @@ context("deploying feeder", () => {
             // mUSD / bUSD
             {
                 mAsset: "0xe2f2a5C287993345a840Db3B0845fbC70f5935a5",
-                fAsset: "0x4fabb145d64652a948d72533023f6e7a623c7c53",
+                fdAsset: "0x4fabb145d64652a948d72533023f6e7a623c7c53",
                 aToken: "0xa361718326c15715591c299427c62086f69923d9",
                 priceCoeff: simpleToExactAmount(1),
                 A: BN.from(500),
@@ -340,7 +340,7 @@ context("deploying feeder", () => {
             // mUSD / GUSD
             {
                 mAsset: "0xe2f2a5C287993345a840Db3B0845fbC70f5935a5",
-                fAsset: "0x056fd409e1d7a124bd7017459dfea2f387b6d5cd",
+                fdAsset: "0x056fd409e1d7a124bd7017459dfea2f387b6d5cd",
                 aToken: "0xD37EE7e4f452C6638c96536e68090De8cBcdb583",
                 priceCoeff: simpleToExactAmount(1),
                 A: BN.from(225),
@@ -384,14 +384,14 @@ context("deploying feeder", () => {
         )
         console.log(`imBTC vault deployed to ${imBTC.address}`)
 
-        // 2.2   For each fAsset
-        //        - fetch fAsset & mAsset
+        // 2.2   For each fdAsset
+        //        - fetch fdAsset & mAsset
         const data: FeederData[] = []
 
         // eslint-disable-next-line
         for (const pair of pairs) {
             const mAssetContract = await new MockERC20__factory(deployer).attach(pair.mAsset)
-            const fAssetContract = await new MockERC20__factory(deployer).attach(pair.fAsset)
+            const fdAssetContract = await new MockERC20__factory(deployer).attach(pair.fdAsset)
             const deployedMasset: DeployedFasset = {
                 integrator: ZERO_ADDRESS,
                 txFee: false,
@@ -402,13 +402,13 @@ context("deploying feeder", () => {
             const deployedFasset: DeployedFasset = {
                 integrator: ZERO_ADDRESS,
                 txFee: false,
-                contract: fAssetContract,
-                address: pair.fAsset,
-                symbol: await fAssetContract.symbol(),
+                contract: fdAssetContract,
+                address: pair.fdAsset,
+                symbol: await fdAssetContract.symbol(),
             }
             data.push({
                 mAsset: deployedMasset,
-                fAsset: deployedFasset,
+                fdAsset: deployedFasset,
                 aToken: pair.aToken,
                 name: `${deployedMasset.symbol}/${deployedFasset.symbol} Feeder Pool`,
                 symbol: `fP${deployedMasset.symbol}/${deployedFasset.symbol}`,
@@ -433,7 +433,7 @@ context("deploying feeder", () => {
             const feederPool = await deployFeederPool(deployer, addresses, poolData)
             poolData.pool = feederPool
             // Mint initial supply
-            await mint(deployer, [poolData.mAsset, poolData.fAsset], poolData)
+            await mint(deployer, [poolData.mAsset, poolData.fdAsset], poolData)
             // Rewards Contract
             const bal = await feederPool.balanceOf(await deployer.getAddress())
             const vault = await deployVault(
@@ -468,8 +468,8 @@ context("deploying feeder", () => {
                 await integration.deployTransaction.wait()
                 console.log(`Deployed integration to ${integration.address}`)
 
-                console.log(`Initializing pToken ${poolData.aToken} for bAsset ${poolData.fAsset.address}...`)
-                const init = await integration.initialize([poolData.fAsset.address], [poolData.aToken])
+                console.log(`Initializing pToken ${poolData.aToken} for bAsset ${poolData.fdAsset.address}...`)
+                const init = await integration.initialize([poolData.fdAsset.address], [poolData.aToken])
                 await init.wait()
             }
         }

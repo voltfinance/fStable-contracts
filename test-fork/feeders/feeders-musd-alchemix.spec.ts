@@ -134,7 +134,7 @@ context("alUSD Feeder Pool integration to Alchemix", () => {
             }
             const fpData: FeederData = {
                 mAsset: mUSD,
-                fAsset: alUSD,
+                fdAsset: alUSD,
                 name: "mUSD/alUSD Feeder Pool",
                 symbol: "fPmUSD/alUSD",
                 config,

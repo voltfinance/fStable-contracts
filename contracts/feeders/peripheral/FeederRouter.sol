@@ -9,8 +9,8 @@ pragma abicoder v2;
  *          Routes:
  *           1) multiMint and multiRedeem from fPool (fp) to mAsset pools (mp)
  *              e.g.
- *               - mintMulti (fAsset / mpAsset)
- *               - redeemExact (fAsset / mpAsset)
+ *               - mintMulti (fdAsset / mpAsset)
+ *               - redeemExact (fdAsset / mpAsset)
  *           2) swaps between all fPools (fp)
  *              e.g.
  *               - fp a -> fp b

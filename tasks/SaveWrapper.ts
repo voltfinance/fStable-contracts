@@ -29,7 +29,7 @@ task("SaveWrapper.deploy", "Deploy a new SaveWrapper")
 task("SaveWrapper.approveMasset", "Sets approvals for a new mAsset")
     .addParam("masset", "Token symbol of the mAsset. eg mUSD or mBTC", undefined, types.string, false)
     .addParam("bassets", "Comma separated symbols of the base assets. eg USDC,DAI,USDT,sUSD", undefined, types.string, false)
-    .addParam("fassets", "Comma separated symbols of the Feeder Pool assets. eg GUSD,BUSD,alUSD,FEI,HBTC", undefined, types.string, false)
+    .addParam("fdAssets", "Comma separated symbols of the Feeder Pool assets. eg GUSD,BUSD,alUSD,FEI,HBTC", undefined, types.string, false)
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
         const chain = getChain(hre)
@@ -43,21 +43,21 @@ task("SaveWrapper.approveMasset", "Sets approvals for a new mAsset")
         const bAssetSymbols = taskArgs.bassets.split(",")
         const bAssetAddresses = bAssetSymbols.map((symbol) => resolveAddress(symbol, chain))
 
-        const fAssetSymbols = taskArgs.fassets.split(",")
-        const fAssetAddresses = fAssetSymbols.map((symbol) => resolveAddress(symbol, chain, "address"))
-        const feederPoolAddresses = fAssetSymbols.map((symbol) => resolveAddress(symbol, chain, "feederPool"))
+        const fdAssetSymbols = taskArgs.fdAssets.split(",")
+        const fdAssetAddresses = fdAssetSymbols.map((symbol) => resolveAddress(symbol, chain, "address"))
+        const feederPoolAddresses = fdAssetSymbols.map((symbol) => resolveAddress(symbol, chain, "feederPool"))
 
         const tx = await wrapper["approve(address,address[],address[],address[],address,address)"](
             mAssetToken.address,
             bAssetAddresses,
             feederPoolAddresses,
-            fAssetAddresses,
+            fdAssetAddresses,
             mAssetToken.savings,
             mAssetToken.vault,
         )
         await logTxDetails(
             tx,
-            `SaveWrapper approve mAsset ${taskArgs.masset}, bAssets ${taskArgs.bassets} and feeder pools ${taskArgs.fassets}`,
+            `SaveWrapper approve mAsset ${taskArgs.masset}, bAssets ${taskArgs.bassets} and feeder pools ${taskArgs.fdAssets}`,
         )
     })
 

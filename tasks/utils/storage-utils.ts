@@ -65,22 +65,22 @@ export const dumpBassetStorage = async (
     }
 }
 
-// Get fAsset storage variables
+// Get fdAsset storage variables
 export const dumpFassetStorage = async (pool: FeederPool, bock: number): Promise<void> => {
     const override = {
         blockTag: bock,
     }
 
     console.log("\nbAssets")
-    const fAssets = await pool.getBassets(override)
-    fAssets.forEach(async (_, i) => {
+    const fdAssets = await pool.getBassets(override)
+    fdAssets.forEach(async (_, i) => {
         console.log(`bAsset with index ${i}`)
-        console.log(` Address    :`, fAssets[0][i].addr.toString())
-        console.log(` Integration:`, fAssets[0][i].integrator.toString())
-        console.log(` Tx fee     :`, fAssets[0][i].hasTxFee.toString())
-        console.log(` Status     :`, fAssets[0][i].status.toString())
-        console.log(` Ratio      :`, fAssets[1][i].ratio.toString())
-        console.log(` Vault      :`, fAssets[1][i].vaultBalance.toString())
+        console.log(` Address    :`, fdAssets[0][i].addr.toString())
+        console.log(` Integration:`, fdAssets[0][i].integrator.toString())
+        console.log(` Tx fee     :`, fdAssets[0][i].hasTxFee.toString())
+        console.log(` Status     :`, fdAssets[0][i].status.toString())
+        console.log(` Ratio      :`, fdAssets[1][i].ratio.toString())
+        console.log(` Vault      :`, fdAssets[1][i].vaultBalance.toString())
         console.log("\n")
     })
 }

@@ -418,7 +418,7 @@ describe("StakingRewardsWithPlatformToken", async () => {
         await assertRewardsAssigned(beforeData, afterData, isExistingStaker)
 
         // 4. Expect token transfer
-        //    StakingToken balance of sender is reduced, as the staked token is unwrapped to a bAsset or fAsset
+        //    StakingToken balance of sender is reduced, as the staked token is unwrapped to a bAsset or fdAsset
         expect(beforeData.senderStakingTokenBalance).to.be.eq(afterData.senderStakingTokenBalance)
         //    Withdraws from the actual rewards wrapper token
         expect(beforeData.userStakingBalance.sub(withdrawAmount)).to.be.eq(afterData.userStakingBalance)

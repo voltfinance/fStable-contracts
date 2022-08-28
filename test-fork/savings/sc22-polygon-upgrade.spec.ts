@@ -193,7 +193,7 @@ context("SavingContract Vault4626 upgrades", () => {
                 await redeemAndUnwrap(imusdHolderAddress, musdAddress, "musd", daiAddress)
             })
 
-            it("mUSD contract redeem to fAsset", async () => {
+            it("mUSD contract redeem to fdAsset", async () => {
                 await redeemAndUnwrap(imusdHolderAddress, fraxFeederPool, "musd", fraxAddress)
             })
             // credits
@@ -201,7 +201,7 @@ context("SavingContract Vault4626 upgrades", () => {
                 await redeemAndUnwrap(imusdHolderAddress, musdAddress, "musd", daiAddress, true)
             })
 
-            it("imUSD contract redeem to fAsset", async () => {
+            it("imUSD contract redeem to fdAsset", async () => {
                 await redeemAndUnwrap(imusdHolderAddress, fraxFeederPool, "musd", fraxAddress, true)
             })
         })

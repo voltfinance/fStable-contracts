@@ -70,7 +70,7 @@ library MassetLogic {
 
     /**
      * @notice Transfers tokens in, updates internal balances and computes the mAsset output.
-     * Only fAsset & mAsset are supported in this path.
+     * Only fdAsset & mAsset are supported in this path.
      * @param _data                 Masset storage state
      * @param _config               Core config for use in the invariant validator
      * @param _indices              Non-duplicate addresses of the bAssets to deposit for the minted mAsset.
@@ -117,7 +117,7 @@ library MassetLogic {
     ****************************************/
 
     /**
-     * @notice Swaps two assets - either internally between fAsset<>mAsset, or between fAsset<>mpAsset by
+     * @notice Swaps two assets - either internally between fdAsset<>mAsset, or between fdAsset<>mpAsset by
      * first routing through the mAsset pool.
      * @param _data              Masset storage state
      * @param _config            Core config for use in the invariant validator
@@ -185,7 +185,7 @@ library MassetLogic {
 
     /**
      * @notice Burns a specified quantity of the senders mAsset in return for a bAsset. The output amount is derived
-     * from the invariant. Supports redemption into either the fAsset, mAsset or assets in the mAsset basket.
+     * from the invariant. Supports redemption into either the fdAsset, mAsset or assets in the mAsset basket.
      * @param _data              Masset storage state
      * @param _config            Core config for use in the invariant validator
      * @param _output            Data on bAsset to withdraw
@@ -234,7 +234,7 @@ library MassetLogic {
 
     /**
      * @dev Credits a recipient with a proportionate amount of bAssets, relative to current vault
-     * balance levels and desired mAsset quantity. Burns the mAsset as payment. Only fAsset & mAsset are supported in this path.
+     * balance levels and desired mAsset quantity. Burns the mAsset as payment. Only fdAsset & mAsset are supported in this path.
      * @param _data                 Masset storage state
      * @param _config               Core config for use in the invariant validator
      * @param _inputQuantity        Quantity of mAsset to redeem
@@ -315,7 +315,7 @@ library MassetLogic {
 
     /**
      * @dev Credits a recipient with a certain quantity of selected bAssets, in exchange for burning the
-     *      relative mAsset quantity from the sender. Only fAsset & mAsset (0,1) are supported in this path.
+     *      relative mAsset quantity from the sender. Only fdAsset & mAsset (0,1) are supported in this path.
      * @param _data                 Masset storage state
      * @param _config               Core config for use in the invariant validator
      * @param _indices              Indices of the bAssets to receive

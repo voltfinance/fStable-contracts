@@ -66,7 +66,7 @@ library FeederLogic {
 
     /**
      * @notice Transfers tokens in, updates internal balances and computes the fpToken output.
-     * Only fAsset & mAsset are supported in this path.
+     * Only fdAsset & mAsset are supported in this path.
      * @param _data                 Feeder pool storage state
      * @param _config               Core config for use in the invariant validator
      * @param _indices              Non-duplicate addresses of the bAssets to deposit for the minted fpToken.
@@ -114,7 +114,7 @@ library FeederLogic {
     ****************************************/
 
     /**
-     * @notice Swaps two assets - either internally between fAsset<>mAsset, or between fAsset<>mpAsset by
+     * @notice Swaps two assets - either internally between fdAsset<>mAsset, or between fdAsset<>mpAsset by
      * first routing through the mAsset pool.
      * @param _data              Feeder pool storage state
      * @param _config            Core config for use in the invariant validator
@@ -145,7 +145,7 @@ library FeederLogic {
             _inputQuantity
         );
         // 1. [f/mAsset ->][ f/mAsset]               : Y - normal in, SWAP, normal out
-        // 3. [mpAsset -> mAsset][ -> fAsset]        : Y - mint in  , SWAP, normal out
+        // 3. [mpAsset -> mAsset][ -> fdAsset]        : Y - mint in  , SWAP, normal out
         if (_output.exists) {
             (swapOutput, localFee) = _swapLocal(
                 _data,
@@ -157,7 +157,7 @@ library FeederLogic {
                 _recipient
             );
         }
-        // 2. [fAsset ->][ mAsset][ -> mpAsset]      : Y - normal in, SWAP, mpOut
+        // 2. [fdAsset ->][ mAsset][ -> mpAsset]      : Y - normal in, SWAP, mpOut
         else {
             address mAsset = _data.bAssetPersonal[0].addr;
             (swapOutput, localFee) = _swapLocal(
@@ -184,7 +184,7 @@ library FeederLogic {
 
     /**
      * @notice Burns a specified quantity of the senders fpToken in return for a bAsset. The output amount is derived
-     * from the invariant. Supports redemption into either the fAsset, mAsset or assets in the mAsset basket.
+     * from the invariant. Supports redemption into either the fdAsset, mAsset or assets in the mAsset basket.
      * @param _data              Feeder pool storage state
      * @param _config            Core config for use in the invariant validator
      * @param _output            Data on bAsset to withdraw
@@ -232,7 +232,7 @@ library FeederLogic {
 
     /**
      * @dev Credits a recipient with a proportionate amount of bAssets, relative to current vault
-     * balance levels and desired fpToken quantity. Burns the fpToken as payment. Only fAsset & mAsset are supported in this path.
+     * balance levels and desired fpToken quantity. Burns the fpToken as payment. Only fdAsset & mAsset are supported in this path.
      * @param _data                 Feeder pool storage state
      * @param _config               Core config for use in the invariant validator
      * @param _inputQuantity        Quantity of fpToken to redeem
@@ -292,7 +292,7 @@ library FeederLogic {
 
     /**
      * @dev Credits a recipient with a certain quantity of selected bAssets, in exchange for burning the
-     *      relative fpToken quantity from the sender. Only fAsset & mAsset (0,1) are supported in this path.
+     *      relative fpToken quantity from the sender. Only fdAsset & mAsset (0,1) are supported in this path.
      * @param _data                 Feeder pool storage state
      * @param _config               Core config for use in the invariant validator
      * @param _indices              Indices of the bAssets to receive
@@ -348,7 +348,7 @@ library FeederLogic {
     ****************************************/
 
     /**
-     * @dev Transfers an asset in and updates vault balance. Supports fAsset, mAsset and mpAsset.
+     * @dev Transfers an asset in and updates vault balance. Supports fdAsset, mAsset and mpAsset.
      * Transferring an mpAsset requires first a mint in the main pool, and consequent depositing of
      * the mAsset.
      */
@@ -359,7 +359,7 @@ library FeederLogic {
         Asset memory _input,
         uint256 _inputQuantity
     ) internal returns (AssetData memory inputData) {
-        // fAsset / mAsset transfers
+        // fdAsset / mAsset transfers
         if (_input.exists) {
             BassetPersonal memory personal = _data.bAssetPersonal[_input.idx];
             uint256 amt = _depositTokens(
@@ -419,7 +419,7 @@ library FeederLogic {
     }
 
     /**
-     * @dev Performs a swap between fAsset and mAsset. If the output is an mAsset, do not
+     * @dev Performs a swap between fdAsset and mAsset. If the output is an mAsset, do not
      * charge the swap fee.
      */
     function _swapLocal(
@@ -457,7 +457,7 @@ library FeederLogic {
     }
 
     /**
-     * @dev Performs a local redemption into either fAsset or mAsset.
+     * @dev Performs a local redemption into either fdAsset or mAsset.
      */
     function _redeemLocal(
         FeederData storage _data,

@@ -1717,7 +1717,7 @@ const runSetup = async (
     if (feederMachine) {
         // approve tokens for router
         const routers = [fDetails.pool.address, fDetails.pool.address]
-        const tokens = [masset.address, fDetails.fAsset.address]
+        const tokens = [masset.address, fDetails.fdAsset.address]
         await unwrapperContract.connect(sa.governor.signer).approve(routers, tokens)
     }
 
@@ -1983,7 +1983,7 @@ describe("SavingsContract with Unwrapper", async () => {
                 })
             })
         })
-        context("masset/imAsset to fAsset", async () => {
+        context("masset/imAsset to fdAsset", async () => {
             // Deploy saving contract and mock savings manager.
             before("init contract", async () => {
                 const accounts = await ethers.getSigners()
@@ -1999,31 +1999,31 @@ describe("SavingsContract with Unwrapper", async () => {
                     isCreditAmt: false,
                     isBassetOut: true,
                     beneficiary: alice,
-                    output: fDetails.fAsset, // fAsset,
+                    output: fDetails.fdAsset, // fdAsset,
                     router: fDetails.pool, // fPool,
                 }
             })
-            it("should redeem mAsset to fAsset", async () => {
+            it("should redeem mAsset to fdAsset", async () => {
                 // Given a N amount of mAsset (isCreditAmt = false)
                 config = {
                     ...config,
                     isCreditAmt: false,
                     isBassetOut: false,
                     amount: deposit,
-                    output: fDetails.fAsset, // fAsset,
+                    output: fDetails.fdAsset, // fdAsset,
                     router: fDetails.pool, // fPool,
                 }
-                // When it redeems and unwraps to a fAsset
+                // When it redeems and unwraps to a fdAsset
                 await validateAssetRedemption(config)
             })
-            it("should redeem imAsset to fAsset", async () => {
+            it("should redeem imAsset to fdAsset", async () => {
                 // Given a N amount of imAsset (isCreditAmt = true)
                 config = {
                     ...config,
                     isCreditAmt: true,
                     isBassetOut: false,
                     amount: credits,
-                    output: fDetails.fAsset, // fAsset,
+                    output: fDetails.fdAsset, // fdAsset,
                     router: fDetails.pool, // fPool,
                 }
                 // When it redeems and unwraps to a bAsset
@@ -2031,33 +2031,33 @@ describe("SavingsContract with Unwrapper", async () => {
                 // Then N * exchange rate  bAsset must be redeem to the beneficiary
             })
             context("fails", async () => {
-                it("to redeem mAsset to fAsset with wrong isBassetOut argument", async () => {
-                    // Given a N amount of fAsset (isCreditAmt = false)
+                it("to redeem mAsset to fdAsset with wrong isBassetOut argument", async () => {
+                    // Given a N amount of fdAsset (isCreditAmt = false)
                     config = {
                         ...config,
                         amount: deposit,
                         isCreditAmt: false,
                         isBassetOut: true,
-                        output: fDetails.fAsset, // fAsset,
+                        output: fDetails.fdAsset, // fdAsset,
                         router: fDetails.pool, // fPool,
                     }
 
-                    // When it redeems and unwraps to a fAsset
+                    // When it redeems and unwraps to a fdAsset
                     // Then it fails as it is an invalid asset
                     await expect(validateAssetRedemption(config)).to.be.revertedWith("ERC20: burn amount exceeds balance")
                 })
-                it("to redeem imAsset to fAsset with wrong isBassetOut argument", async () => {
+                it("to redeem imAsset to fdAsset with wrong isBassetOut argument", async () => {
                     // Given a N amount of mAsset (isCreditAmt = true)
                     config = {
                         ...config,
                         isCreditAmt: true,
                         amount: credits,
                         isBassetOut: true,
-                        output: fDetails.fAsset, // fAsset,
+                        output: fDetails.fdAsset, // fdAsset,
                         router: fDetails.pool, // fPool,
                     }
 
-                    // When it redeems and unwraps to a fAsset
+                    // When it redeems and unwraps to a fdAsset
                     // Then it fails as it is an invalid asset
                     await expect(validateAssetRedemption(config)).to.be.revertedWith("ERC20: burn amount exceeds balance")
                 })
@@ -2070,13 +2070,13 @@ describe("SavingsContract with Unwrapper", async () => {
                         isCreditAmt: true,
                         isBassetOut: false,
                         amount: dataBefore.balances.userCredits.add(1),
-                        output: fDetails.fAsset, // fAsset,
+                        output: fDetails.fdAsset, // fdAsset,
                         router: fDetails.pool, // fPool,
                     }
                     // When it redeems more credits that its balance
                     await expect(validateAssetRedemption(config)).to.be.revertedWith("ERC20: burn amount exceeds balance")
                 })
-                it("to redeem fAsset that exceeds balance", async () => {
+                it("to redeem fdAsset that exceeds balance", async () => {
                     // Given a N amount of imAsset (isCreditAmt = false)
                     const dataBefore = await getOutputData(savingsContract, config.beneficiary, config.output)
                     config = {
@@ -2084,7 +2084,7 @@ describe("SavingsContract with Unwrapper", async () => {
                         isCreditAmt: false,
                         isBassetOut: false,
                         amount: dataBefore.balances.user.add(1),
-                        output: fDetails.fAsset, // fAsset,
+                        output: fDetails.fdAsset, // fdAsset,
                         router: fDetails.pool, // fPool,
                     }
                     // When it redeems more mAsset that its balance
@@ -2097,7 +2097,7 @@ describe("SavingsContract with Unwrapper", async () => {
                         isCreditAmt: false,
                         isBassetOut: false,
                         amount: deposit,
-                        output: fDetails.pool, // fAsset,
+                        output: fDetails.pool, // fdAsset,
                         router: fDetails.mAsset, // fPool,
                     }
                     // When it redeems more mAsset that its balance

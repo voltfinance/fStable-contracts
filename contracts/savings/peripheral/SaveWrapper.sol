@@ -15,7 +15,7 @@ import { ImmutableModule } from "../../shared/ImmutableModule.sol";
 // FLOWS
 // 0 - mAsset -> Savings Vault
 // 1 - bAsset -> Save/Savings Vault via Mint
-// 2 - fAsset -> Save/Savings Vault via Feeder Pool
+// 2 - fdAsset -> Save/Savings Vault via Feeder Pool
 // 3 - ETH    -> Save/Savings Vault via Uniswap
 contract SaveWrapper is ImmutableModule {
     using SafeERC20 for IERC20;
@@ -103,13 +103,13 @@ contract SaveWrapper is ImmutableModule {
     }
 
     /**
-     * @dev 2. Swaps fAsset for mAsset and then deposits to Save/Savings Vault
+     * @dev 2. Swaps fdAsset for mAsset and then deposits to Save/Savings Vault
      * @param _mAsset             mAsset address
      * @param _save               Save address
      * @param _vault              Boosted Savings Vault address
      * @param _feeder             Feeder Pool address
-     * @param _fAsset             fAsset address
-     * @param _fAssetQuantity     Quantity of fAsset sent
+     * @param _fdAsset             fdAsset address
+     * @param _fdAssetQuantity     Quantity of fdAsset sent
      * @param _minOutputQuantity  Min amount of mAsset to be swapped and deposited
      * @param _stake              Deposit the imAsset in the Savings Vault?
      */
@@ -118,8 +118,8 @@ contract SaveWrapper is ImmutableModule {
         address _save,
         address _vault,
         address _feeder,
-        address _fAsset,
-        uint256 _fAssetQuantity,
+        address _fdAsset,
+        uint256 _fdAssetQuantity,
         uint256 _minOutputQuantity,
         bool _stake
     ) external {
@@ -128,8 +128,8 @@ contract SaveWrapper is ImmutableModule {
             _save,
             _vault,
             _feeder,
-            _fAsset,
-            _fAssetQuantity,
+            _fdAsset,
+            _fdAssetQuantity,
             _minOutputQuantity,
             _stake,
             address(0)
@@ -137,13 +137,13 @@ contract SaveWrapper is ImmutableModule {
     }
 
     /**
-     * @dev 2. Swaps fAsset for mAsset and then deposits to Save/Savings Vault
+     * @dev 2. Swaps fdAsset for mAsset and then deposits to Save/Savings Vault
      * @param _mAsset             mAsset address
      * @param _save               Save address
      * @param _vault              Boosted Savings Vault address
      * @param _feeder             Feeder Pool address
-     * @param _fAsset             fAsset address
-     * @param _fAssetQuantity     Quantity of fAsset sent
+     * @param _fdAsset             fdAsset address
+     * @param _fdAssetQuantity     Quantity of fdAsset sent
      * @param _minOutputQuantity  Min amount of mAsset to be swapped and deposited
      * @param _stake              Deposit the imAsset in the Savings Vault?
      * @param _referrer       Referrer address for this deposit.
@@ -153,8 +153,8 @@ contract SaveWrapper is ImmutableModule {
         address _save,
         address _vault,
         address _feeder,
-        address _fAsset,
-        uint256 _fAssetQuantity,
+        address _fdAsset,
+        uint256 _fdAssetQuantity,
         uint256 _minOutputQuantity,
         bool _stake,
         address _referrer
@@ -164,8 +164,8 @@ contract SaveWrapper is ImmutableModule {
             _save,
             _vault,
             _feeder,
-            _fAsset,
-            _fAssetQuantity,
+            _fdAsset,
+            _fdAssetQuantity,
             _minOutputQuantity,
             _stake,
             _referrer
@@ -359,13 +359,13 @@ contract SaveWrapper is ImmutableModule {
     }
 
     /**
-     * @dev 2. Swaps fAsset for mAsset and then deposits to Save/Savings Vault
+     * @dev 2. Swaps fdAsset for mAsset and then deposits to Save/Savings Vault
      * @param _mAsset             mAsset address
      * @param _save               Save address
      * @param _vault              Boosted Savings Vault address
      * @param _feeder             Feeder Pool address
-     * @param _fAsset             fAsset address
-     * @param _fAssetQuantity     Quantity of fAsset sent
+     * @param _fdAsset             fdAsset address
+     * @param _fdAssetQuantity     Quantity of fdAsset sent
      * @param _minOutputQuantity  Min amount of mAsset to be swapped and deposited
      * @param _stake              Deposit the imAsset in the Savings Vault?
      * @param _referrer           Referrer address for this deposit.
@@ -375,8 +375,8 @@ contract SaveWrapper is ImmutableModule {
         address _save,
         address _vault,
         address _feeder,
-        address _fAsset,
-        uint256 _fAssetQuantity,
+        address _fdAsset,
+        uint256 _fdAssetQuantity,
         uint256 _minOutputQuantity,
         bool _stake,
         address _referrer
@@ -385,16 +385,16 @@ contract SaveWrapper is ImmutableModule {
         require(_mAsset != address(0), "Invalid mAsset");
         require(_save != address(0), "Invalid save");
         require(_vault != address(0), "Invalid vault");
-        require(_fAsset != address(0), "Invalid input");
+        require(_fdAsset != address(0), "Invalid input");
 
-        // 0. Transfer the fAsset here
-        IERC20(_fAsset).safeTransferFrom(msg.sender, address(this), _fAssetQuantity);
+        // 0. Transfer the fdAsset here
+        IERC20(_fdAsset).safeTransferFrom(msg.sender, address(this), _fdAssetQuantity);
 
-        // 1. Swap the fAsset for mAsset with the feeder pool
+        // 1. Swap the fdAsset for mAsset with the feeder pool
         uint256 mAssetQuantity = IFeederPool(_feeder).swap(
-            _fAsset,
+            _fdAsset,
             _mAsset,
-            _fAssetQuantity,
+            _fdAssetQuantity,
             _minOutputQuantity,
             address(this)
         );
@@ -460,13 +460,13 @@ contract SaveWrapper is ImmutableModule {
     }
 
     /**
-     * @dev Approve mAsset and bAssets, Feeder Pools and fAssets, and Save/vault
+     * @dev Approve mAsset and bAssets, Feeder Pools and fdAssets, and Save/vault
      */
     function approve(
         address _mAsset,
         address[] calldata _bAssets,
         address[] calldata _fPools,
-        address[] calldata _fAssets,
+        address[] calldata _fdAssets,
         address _save,
         address _vault
     ) external onlyKeeperOrGovernor {
@@ -474,9 +474,9 @@ contract SaveWrapper is ImmutableModule {
         _approve(_save, _vault);
         _approve(_bAssets, _mAsset);
 
-        require(_fPools.length == _fAssets.length, "Mismatching fPools/fAssets");
+        require(_fPools.length == _fdAssets.length, "Mismatching fPools/fdAssets");
         for (uint256 i = 0; i < _fPools.length; i++) {
-            _approve(_fAssets[i], _fPools[i]);
+            _approve(_fdAssets[i], _fPools[i]);
         }
     }
 
