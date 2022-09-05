@@ -28,7 +28,7 @@ import { abi as SavingsManagerAbi, bytecode as SavingsManagerBytecode } from "./
 // Accounts that are impersonated
 const ethWhaleAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 const governorAddress = "0xF6FF1F7FCEB2cE6d26687EaaB5988b445d0b94a2"
-const mUsdWhaleAddress = "0x6595732468A241312bc307F327bA0D64F02b3c20"
+const fUsdWhaleAddress = "0x6595732468A241312bc307F327bA0D64F02b3c20"
 const balWhale = "0x3f5ce5fbfe3e9af3971dd833d26ba9b5c936f0be"
 const nullAddr = "0xAf40dA2DcE68Bf82bd4C5eE7dA22B2F7bb7ba265"
 
@@ -95,7 +95,7 @@ context("upgrading buy & make and collecting yield", () => {
         pool = MockBPool__factory.connect(config.crp, governor)
     })
     // Deploy recipient
-    // Upgrade both mUSD and mBTC in governance
+    // Upgrade both fUSD and mBTC in governance
     it("deploys and upgrades recipientv2", async () => {
         recipientv2 = RevenueRecipient__factory.connect("0xA7824292efDee1177a1C1BED0649cfdD6114fed5", governor)
         await savingsManager.setRevenueRecipient(config.tokens[0], recipientv2.address)
@@ -139,7 +139,7 @@ context("upgrading buy & make and collecting yield", () => {
 
         await nexus.acceptProposedModules([keccak256(toUtf8Bytes("InterestValidator")), keccak256(toUtf8Bytes("Governance"))])
     })
-    // Call both mUSD and mBTC collections via the collector
+    // Call both fUSD and mBTC collections via the collector
     it("collects from both assets using the collector", async () => {
         await collector.distributeInterest([config.tokens[0], config.tokens[1]], true)
     })
@@ -196,14 +196,14 @@ context("upgrading buy & make and collecting yield", () => {
         await fPool1.setFees(simpleToExactAmount(1, 16), simpleToExactAmount(1, 16), simpleToExactAmount(5, 17))
         await fPool2.setFees(simpleToExactAmount(1, 16), simpleToExactAmount(1, 16), simpleToExactAmount(5, 17))
 
-        const mUSDWhale = await impersonate(mUsdWhaleAddress)
-        fPool1 = FeederPool__factory.connect(config.fPools[0], mUSDWhale)
-        fPool2 = FeederPool__factory.connect(config.fPools[1], mUSDWhale)
-        const mUSD = MockERC20__factory.connect(config.tokens[0], mUSDWhale)
-        await mUSD.approve(fPool1.address, simpleToExactAmount(1000))
-        await fPool1.swap(mUSD.address, "0x056fd409e1d7a124bd7017459dfea2f387b6d5cd", simpleToExactAmount(1000), 1, mUsdWhaleAddress)
-        await mUSD.approve(fPool2.address, simpleToExactAmount(1000))
-        await fPool2.swap(mUSD.address, "0x4fabb145d64652a948d72533023f6e7a623c7c53", simpleToExactAmount(1000), 1, mUsdWhaleAddress)
+        const fUSDWhale = await impersonate(fUsdWhaleAddress)
+        fPool1 = FeederPool__factory.connect(config.fPools[0], fUSDWhale)
+        fPool2 = FeederPool__factory.connect(config.fPools[1], fUSDWhale)
+        const fUSD = MockERC20__factory.connect(config.tokens[0], fUSDWhale)
+        await fUSD.approve(fPool1.address, simpleToExactAmount(1000))
+        await fPool1.swap(fUSD.address, "0x056fd409e1d7a124bd7017459dfea2f387b6d5cd", simpleToExactAmount(1000), 1, fUsdWhaleAddress)
+        await fUSD.approve(fPool2.address, simpleToExactAmount(1000))
+        await fPool2.swap(fUSD.address, "0x4fabb145d64652a948d72533023f6e7a623c7c53", simpleToExactAmount(1000), 1, fUsdWhaleAddress)
 
         await increaseTime(ONE_DAY)
 
@@ -211,17 +211,17 @@ context("upgrading buy & make and collecting yield", () => {
     })
     // Collect all, and check the balance in the SavingsManager
     it("collects gov fees from the feeder pools", async () => {
-        const mUSDWhale = await impersonate(mUsdWhaleAddress)
-        const mUSD = MockERC20__factory.connect(config.tokens[0], mUSDWhale)
+        const fUSDWhale = await impersonate(fUsdWhaleAddress)
+        const fUSD = MockERC20__factory.connect(config.tokens[0], fUSDWhale)
 
-        const balBefore = await mUSD.balanceOf(savingsManager.address)
+        const balBefore = await fUSD.balanceOf(savingsManager.address)
         await interestValidator.collectGovFees(config.fPools)
-        const balAfter = await mUSD.balanceOf(savingsManager.address)
+        const balAfter = await fUSD.balanceOf(savingsManager.address)
         expect(balAfter).gt(balBefore)
         console.log("bals: ", formatEther(balAfter.sub(balBefore)))
 
         await collector.distributeInterest([config.tokens[0]], false)
-        const balEnd = await mUSD.balanceOf(savingsManager.address)
+        const balEnd = await fUSD.balanceOf(savingsManager.address)
         expect(balEnd).eq(0)
     })
     // Simply accrue more BAL and transfer elsewhere

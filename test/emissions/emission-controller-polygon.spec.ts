@@ -354,7 +354,7 @@ describe("EmissionsController Polygon Integration", async () => {
                 const tx = l2EmissionsController.connect(sa.governor.signer).addRecipient(sa.dummy1.address, ZERO_ADDRESS)
                 await expect(tx).to.revertedWith("End recipient address is zero")
             })
-            it("mAsset already mapped", async () => {
+            it("fAsset already mapped", async () => {
                 const tx = l2EmissionsController.connect(sa.governor.signer).addRecipient(sa.dummy2.address, finalRecipient1.address)
                 await expect(tx).to.revertedWith("End recipient already mapped")
             })

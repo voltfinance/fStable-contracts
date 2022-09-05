@@ -5,11 +5,11 @@ import { IRevenueRecipient } from "../../interfaces/IRevenueRecipient.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MockRevenueRecipient is IRevenueRecipient {
-    function notifyRedistributionAmount(address _mAsset, uint256 _amount) external override {
-        IERC20(_mAsset).transferFrom(msg.sender, address(this), _amount);
+    function notifyRedistributionAmount(address _fAsset, uint256 _amount) external override {
+        IERC20(_fAsset).transferFrom(msg.sender, address(this), _amount);
     }
 
-    function depositToPool(address[] calldata _mAssets, uint256[] calldata _percentages)
+    function depositToPool(address[] calldata _fAssets, uint256[] calldata _percentages)
         external
         override
     {}

@@ -6,23 +6,23 @@ import { ImmutableModule } from "../shared/ImmutableModule.sol";
 
 /**
  * @title Collector
- * @dev Distributes unallocated interest across multiple mAssets via savingsManager
+ * @dev Distributes unallocated interest across multiple fAssets via savingsManager
  */
 contract Collector is ImmutableModule {
     constructor(address _nexus) ImmutableModule(_nexus) {}
 
     /**
-     * @dev Distributes the interest accrued across multiple mAssets, optionally
+     * @dev Distributes the interest accrued across multiple fAssets, optionally
      * calling collectAndDistribute beforehand.
      */
-    function distributeInterest(address[] calldata _mAssets, bool _collectFirst) external {
+    function distributeInterest(address[] calldata _fAssets, bool _collectFirst) external {
         ISavingsManager savingsManager = ISavingsManager(_savingsManager());
-        uint256 len = _mAssets.length;
+        uint256 len = _fAssets.length;
         require(len > 0, "Invalid inputs");
         for (uint256 i = 0; i < len; i++) {
-            if (_collectFirst) savingsManager.collectAndDistributeInterest(_mAssets[i]);
+            if (_collectFirst) savingsManager.collectAndDistributeInterest(_fAssets[i]);
 
-            savingsManager.distributeUnallocatedInterest(_mAssets[i]);
+            savingsManager.distributeUnallocatedInterest(_fAssets[i]);
         }
     }
 }

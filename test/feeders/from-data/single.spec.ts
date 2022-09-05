@@ -1,6 +1,6 @@
 import { assertBNClose } from "@utils/assertions"
 import { DEAD_ADDRESS, fullScale, MAX_UINT256, ZERO_ADDRESS } from "@utils/constants"
-import { MassetMachine, StandardAccounts } from "@utils/machines"
+import { FassetMachine, StandardAccounts } from "@utils/machines"
 import { BN, simpleToExactAmount } from "@utils/math"
 import { feederData } from "@utils/validator-data"
 
@@ -49,8 +49,8 @@ describe("Feeder Validator - One basket one test", () => {
 
     before(async () => {
         const accounts = await ethers.getSigners()
-        const mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        sa = mAssetMachine.sa
+        const fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        sa = fAssetMachine.sa
         const logic = await new FeederLogic__factory(sa.default.signer).deploy()
         const linkedAddress = {
             "contracts/feeders/FeederLogic.sol:FeederLogic": logic.address,
@@ -77,13 +77,13 @@ describe("Feeder Validator - One basket one test", () => {
                         it(`${(count += 1)} deposit ${testMint.bAssetQty.toString()} bAssets with index ${
                             testMint.bAssetIndex
                         }`, async () => {
-                            const mAssetQty = await exposedFeeder.computeMint(
+                            const fAssetQty = await exposedFeeder.computeMint(
                                 reserves,
                                 testMint.bAssetIndex,
                                 cv(testMint.bAssetQty),
                                 localConfig,
                             )
-                            expect(mAssetQty).eq(cv(testMint.expectedQty))
+                            expect(fAssetQty).eq(cv(testMint.expectedQty))
                         })
                     }
                 })
@@ -100,8 +100,8 @@ describe("Feeder Validator - One basket one test", () => {
                 testData.mints.forEach((testMint) => {
                     const qtys = testMint.bAssetQtys.map((b) => cv(b))
                     it(`${(count += 1)} deposit ${qtys} bAssets`, async () => {
-                        const mAssetQty = await exposedFeeder.computeMintMulti(reserves, [0, 1], qtys, localConfig)
-                        expect(mAssetQty).eq(cv(testMint.expectedQty))
+                        const fAssetQty = await exposedFeeder.computeMintMulti(reserves, [0, 1], qtys, localConfig)
+                        expect(fAssetQty).eq(cv(testMint.expectedQty))
                     })
                 })
             })
@@ -158,10 +158,10 @@ describe("Feeder Validator - One basket one test", () => {
             describe(`reserves: ${testData.reserve0}, ${testData.reserve1}`, () => {
                 testData.redeems.forEach((testRedeem) => {
                     // Deduct swap fee before performing redemption
-                    const netInput = cv(testRedeem.mAssetQty).mul(fullScale.sub(redemptionFeeRate)).div(fullScale)
+                    const netInput = cv(testRedeem.fAssetQty).mul(fullScale.sub(redemptionFeeRate)).div(fullScale)
 
                     if (testRedeem.hardLimitError) {
-                        it(`${(count += 1)} throws Max Weight error when redeeming ${testRedeem.mAssetQty} mAssets for bAsset ${
+                        it(`${(count += 1)} throws Max Weight error when redeeming ${testRedeem.fAssetQty} fAssets for bAsset ${
                             testRedeem.bAssetIndex
                         }`, async () => {
                             await expect(
@@ -169,7 +169,7 @@ describe("Feeder Validator - One basket one test", () => {
                             ).to.be.revertedWith("Exceeds weight limits")
                         })
                     } else {
-                        it(`${(count += 1)} redeem ${testRedeem.mAssetQty} mAssets for bAsset ${testRedeem.bAssetIndex}`, async () => {
+                        it(`${(count += 1)} redeem ${testRedeem.fAssetQty} fAssets for bAsset ${testRedeem.bAssetIndex}`, async () => {
                             const bAssetQty = await exposedFeeder.computeRedeem(reserves, testRedeem.bAssetIndex, netInput, localConfig)
                             assertBNClose(bAssetQty, cv(testRedeem.outputQty), 2)
                         })
@@ -204,8 +204,8 @@ describe("Feeder Validator - One basket one test", () => {
                         })
                     } else {
                         it(`${(count += 1)} redeem ${qtys} bAssets`, async () => {
-                            const mAssetQty = await exposedFeeder.computeRedeemExact(reserves, [0, 1], qtys, localConfig)
-                            assertBNClose(applyFee(mAssetQty), cv(testRedeem.mAssetQty), tolerance)
+                            const fAssetQty = await exposedFeeder.computeRedeemExact(reserves, [0, 1], qtys, localConfig)
+                            assertBNClose(applyFee(fAssetQty), cv(testRedeem.fAssetQty), tolerance)
                         })
                     }
                 })
@@ -213,7 +213,7 @@ describe("Feeder Validator - One basket one test", () => {
         })
     })
 
-    describe("Compute Redeem Masset", () => {
+    describe("Compute Redeem Fasset", () => {
         let count = 0
         const testRedeemData = runLongTests ? redeemProportionalData : redeemProportionalData.slice(0, 2)
         testRedeemData.forEach((testData) => {
@@ -223,19 +223,19 @@ describe("Feeder Validator - One basket one test", () => {
                 let recipient: string
                 let bAssetAddresses: string[]
                 let bAssets: MockERC20[]
-                let mAssetBassets: MockERC20[]
+                let fAssetBassets: MockERC20[]
                 let feederFactory: FeederPool__factory
                 before(async () => {
                     const accounts = await ethers.getSigners()
-                    const mAssetMachine = await new MassetMachine().initAccounts(accounts)
-                    sa = mAssetMachine.sa
+                    const fAssetMachine = await new FassetMachine().initAccounts(accounts)
+                    sa = fAssetMachine.sa
                     recipient = await sa.default.address
 
-                    const mAssetDetails = await mAssetMachine.deployMasset(false, false)
-                    await mAssetMachine.seedWithWeightings(mAssetDetails, [25000000, 25000000, 25000000, 25000000])
-                    mAssetBassets = mAssetDetails.bAssets
-                    const bBtc = await mAssetMachine.loadBassetProxy("Binance BTC", "bBTC", 18)
-                    bAssets = [mAssetDetails.mAsset as MockERC20, bBtc]
+                    const fAssetDetails = await fAssetMachine.deployFasset(false, false)
+                    await fAssetMachine.seedWithWeightings(fAssetDetails, [25000000, 25000000, 25000000, 25000000])
+                    fAssetBassets = fAssetDetails.bAssets
+                    const bBtc = await fAssetMachine.loadBassetProxy("Binance BTC", "bBTC", 18)
+                    bAssets = [fAssetDetails.fAsset as MockERC20, bBtc]
                     bAssetAddresses = bAssets.map((b) => b.address)
                     const feederLogic = await new FeederLogic__factory(sa.default.signer).deploy()
                     const manager = await new FeederManager__factory(sa.default.signer).deploy()
@@ -271,7 +271,7 @@ describe("Feeder Validator - One basket one test", () => {
                             hasTxFee: false,
                             status: 0,
                         },
-                        mAssetBassets.map((b) => b.address),
+                        fAssetBassets.map((b) => b.address),
                         {
                             ...config,
                             a: config.a.div(100),
@@ -290,22 +290,22 @@ describe("Feeder Validator - One basket one test", () => {
                     const qtys = testRedeem.bAssetQtys.map((b) => cv(b))
                     if ("insufficientLiquidityError" in testRedeem) {
                         it(`${(count += 1)} throws throw insufficient liquidity error when redeeming ${
-                            testRedeem.mAssetQty
-                        } mAsset`, async () => {
-                            await expect(feederPool.redeemProportionately(cv(testRedeem.mAssetQty), qtys, recipient)).to.be.revertedWith(
+                            testRedeem.fAssetQty
+                        } fAsset`, async () => {
+                            await expect(feederPool.redeemProportionately(cv(testRedeem.fAssetQty), qtys, recipient)).to.be.revertedWith(
                                 "VM Exception",
                             )
                         })
                     } else if ("hardLimitError" in testRedeem) {
                         it(`${(count += 1)} throws Max Weight error when redeeming ${qtys} bAssets`, async () => {
-                            await expect(feederPool.redeemProportionately(cv(testRedeem.mAssetQty), qtys, recipient)).to.be.revertedWith(
+                            await expect(feederPool.redeemProportionately(cv(testRedeem.fAssetQty), qtys, recipient)).to.be.revertedWith(
                                 "Exceeds weight limits",
                             )
                             throw new Error("invalid exception")
                         })
                     } else {
-                        it(`${(count += 1)} redeem ${testRedeem.mAssetQty} mAssets for proportionate bAssets`, async () => {
-                            await feederPool.redeemProportionately(cv(testRedeem.mAssetQty), qtys, recipient)
+                        it(`${(count += 1)} redeem ${testRedeem.fAssetQty} fAssets for proportionate bAssets`, async () => {
+                            await feederPool.redeemProportionately(cv(testRedeem.fAssetQty), qtys, recipient)
                         })
                     }
                 })

@@ -8,16 +8,16 @@ import { IConnector } from "../../../savings/peripheral/IConnector.sol";
 // connector invariant is held
 contract MockVaultConnector is IConnector {
     address save;
-    address mUSD;
+    address fUSD;
 
     uint256 trackedB;
     uint256 realB;
     uint256 lastAccrual;
     uint256 constant perSecond = 31709791983;
 
-    constructor(address _save, address _mUSD) {
+    constructor(address _save, address _fUSD) {
         save = _save;
-        mUSD = _mUSD;
+        fUSD = _fUSD;
     }
 
     modifier onlySave() {
@@ -62,7 +62,7 @@ contract MockVaultConnector is IConnector {
         uint256 checkedB = _checkBalanceExt();
         trackedB = checkedB + _amount;
 
-        IERC20(mUSD).transferFrom(save, address(this), _amount);
+        IERC20(fUSD).transferFrom(save, address(this), _amount);
         realB += (_amount * 995) / 1000;
     }
 
@@ -70,14 +70,14 @@ contract MockVaultConnector is IConnector {
         uint256 checkedB = _checkBalanceExt();
         trackedB = checkedB - _amount;
 
-        IERC20(mUSD).transfer(save, _amount);
+        IERC20(fUSD).transfer(save, _amount);
         realB -= (_amount * 1005) / 1000;
     }
 
     function withdrawAll() external override _accrueValue onlySave {
         trackedB = 0;
 
-        IERC20(mUSD).transfer(save, realB);
+        IERC20(fUSD).transfer(save, realB);
         realB -= realB;
     }
 

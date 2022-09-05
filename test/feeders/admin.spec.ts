@@ -3,7 +3,7 @@ import { ethers } from "hardhat"
 import { expect } from "chai"
 
 import { simpleToExactAmount, BN } from "@utils/math"
-import { FeederDetails, FeederMachine, MassetMachine, StandardAccounts, MassetDetails } from "@utils/machines"
+import { FeederDetails, FeederMachine, FassetMachine, StandardAccounts, FassetDetails } from "@utils/machines"
 
 import { DEAD_ADDRESS, MAX_UINT256, ONE_DAY, ONE_HOUR, ONE_MIN, ONE_WEEK, ZERO_ADDRESS } from "@utils/constants"
 import {
@@ -27,7 +27,7 @@ import { impersonate } from "@utils/fork"
 
 describe("Feeder Admin", () => {
     let sa: StandardAccounts
-    let mAssetMachine: MassetMachine
+    let fAssetMachine: FassetMachine
     let feederMachine: FeederMachine
     let details: FeederDetails
     let nexus: MockNexus
@@ -36,17 +36,17 @@ describe("Feeder Admin", () => {
         useLendingMarkets = false,
         useInterestValidator = false,
         feederWeights?: Array<BN | number>,
-        mAssetWeights?: Array<BN | number>,
+        fAssetWeights?: Array<BN | number>,
     ): Promise<void> => {
-        details = await feederMachine.deployFeeder(feederWeights, mAssetWeights, useLendingMarkets, useInterestValidator)
-        nexus = details.mAssetDetails.nexus
+        details = await feederMachine.deployFeeder(feederWeights, fAssetWeights, useLendingMarkets, useInterestValidator)
+        nexus = details.fAssetDetails.nexus
     }
 
     before("Init contract", async () => {
         const accounts = await ethers.getSigners()
-        mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        feederMachine = await new FeederMachine(mAssetMachine)
-        sa = mAssetMachine.sa
+        fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        feederMachine = await new FeederMachine(fAssetMachine)
+        sa = fAssetMachine.sa
     })
 
     describe("using basic setters", async () => {
@@ -205,9 +205,9 @@ describe("Feeder Admin", () => {
             expect(config.a, "a value").to.eq(30000)
         })
         it("should get mStable asset", async () => {
-            const { pool, mAsset } = details
-            const asset = await pool.getBasset(mAsset.address)
-            expect(asset.personal.addr, "personal.addr").to.eq(mAsset.address)
+            const { pool, fAsset } = details
+            const asset = await pool.getBasset(fAsset.address)
+            expect(asset.personal.addr, "personal.addr").to.eq(fAsset.address)
             expect(asset.personal.hasTxFee, "personal.hasTxFee").to.equal(false)
             expect(asset.personal.integrator, "personal.integrator").to.eq(ZERO_ADDRESS)
             expect(asset.personal.status, "personal.status").to.eq(BassetStatus.Normal)
@@ -551,15 +551,15 @@ describe("Feeder Admin", () => {
                 const tx = pool.connect(sa.mockInterestValidator.signer).collectPlatformInterest()
                 await expect(tx).to.emit(pool, "MintedMulti").withArgs(pool.address, sa.mockInterestValidator.address, 0, [], [0, 0])
             })
-            it("Should collect zero platform interest even after minting a mAsset", async () => {
-                const { pool, mAsset } = details
+            it("Should collect zero platform interest even after minting a fAsset", async () => {
+                const { pool, fAsset } = details
 
                 // increase the test chain by 12 hours + 20 seconds
                 await increaseTime(ONE_HOUR.mul(12).add(20))
 
-                // Mint mAsset to generate some interest in the lending market
-                await feederMachine.approveFeeder(mAsset, pool.address, 1000)
-                await pool.mint(mAsset.address, simpleToExactAmount(500), 0, sa.default.address)
+                // Mint fAsset to generate some interest in the lending market
+                await feederMachine.approveFeeder(fAsset, pool.address, 1000)
+                await pool.mint(fAsset.address, simpleToExactAmount(500), 0, sa.default.address)
 
                 const tx = pool.connect(sa.mockInterestValidator.signer).collectPlatformInterest()
                 await expect(tx).to.emit(pool, "MintedMulti").withArgs(pool.address, sa.mockInterestValidator.address, 0, [], [0, 0])
@@ -575,15 +575,15 @@ describe("Feeder Admin", () => {
                 const tx = pool.connect(sa.mockInterestValidator.signer).collectPlatformInterest()
                 await expect(tx).to.emit(pool, "MintedMulti")
             })
-            it("Should collect interest from mAsset", async () => {
-                const { pool, mAsset } = details
+            it("Should collect interest from fAsset", async () => {
+                const { pool, fAsset } = details
 
                 // increase the test chain by 12 hours + 20 seconds
                 await increaseTime(ONE_HOUR.mul(12).add(20))
 
-                // Mint mAsset to generate some interest in the lending market
-                await feederMachine.approveFeeder(mAsset, pool.address, 1000)
-                await pool.mint(mAsset.address, simpleToExactAmount(500), 0, sa.default.address)
+                // Mint fAsset to generate some interest in the lending market
+                await feederMachine.approveFeeder(fAsset, pool.address, 1000)
+                await pool.mint(fAsset.address, simpleToExactAmount(500), 0, sa.default.address)
 
                 const tx = pool.connect(sa.mockInterestValidator.signer).collectPlatformInterest()
                 await expect(tx).to.emit(pool, "MintedMulti")
@@ -601,15 +601,15 @@ describe("Feeder Admin", () => {
                 const tx = pool.connect(sa.mockInterestValidator.signer).collectPlatformInterest()
                 await expect(tx).to.emit(pool, "MintedMulti")
             })
-            it("Should collect interest from mAsset and fdAsset", async () => {
-                const { fdAsset, pool, mAsset } = details
+            it("Should collect interest from fAsset and fdAsset", async () => {
+                const { fdAsset, pool, fAsset } = details
 
                 // increase the test chain by 12 hours + 20 seconds
                 await increaseTime(ONE_HOUR.mul(12).add(20))
 
-                // Mint mAsset to generate some interest in the lending market
-                await feederMachine.approveFeeder(mAsset, pool.address, 1000)
-                await pool.mint(mAsset.address, simpleToExactAmount(500), 0, sa.default.address)
+                // Mint fAsset to generate some interest in the lending market
+                await feederMachine.approveFeeder(fAsset, pool.address, 1000)
+                await pool.mint(fAsset.address, simpleToExactAmount(500), 0, sa.default.address)
                 // Mint fdAsset to generate some interest in the lending market
                 await feederMachine.approveFeeder(fdAsset, pool.address, 1000)
                 await pool.mint(fdAsset.address, simpleToExactAmount(500), 0, sa.default.address)
@@ -688,21 +688,21 @@ describe("Feeder Admin", () => {
             before(async () => {
                 await runSetup(false, true)
             })
-            it("redeems fpTokens for mAsset and then sends to savingsManager", async () => {
-                const { interestValidator, pool, bAssets, mAsset } = details
+            it("redeems fpTokens for fAsset and then sends to savingsManager", async () => {
+                const { interestValidator, pool, bAssets, fAsset } = details
                 // Accrue some fees for gov
                 await pool.redeem(bAssets[0].address, simpleToExactAmount(10), 0, sa.default.address)
                 const { pendingFees: beforePendingFees } = await pool.data()
                 expect(beforePendingFees).gt(simpleToExactAmount(1, 13))
-                const expectedOutput = await pool["getRedeemOutput(address,uint256)"](mAsset.address, beforePendingFees)
+                const expectedOutput = await pool["getRedeemOutput(address,uint256)"](fAsset.address, beforePendingFees)
                 // Get balance of SM
-                const balBefore = await mAsset.balanceOf(sa.mockSavingsManager.address)
+                const balBefore = await fAsset.balanceOf(sa.mockSavingsManager.address)
 
                 const tx = interestValidator.connect(sa.governor.signer).collectGovFees([pool.address])
-                await expect(tx).to.emit(interestValidator, "GovFeeCollected").withArgs(pool.address, mAsset.address, expectedOutput)
+                await expect(tx).to.emit(interestValidator, "GovFeeCollected").withArgs(pool.address, fAsset.address, expectedOutput)
                 await (await tx).wait()
                 const { pendingFees: afterPendingFees } = await pool.data()
-                const balAfter = await mAsset.balanceOf(sa.mockSavingsManager.address)
+                const balAfter = await fAsset.balanceOf(sa.mockSavingsManager.address)
                 expect(afterPendingFees).lt(beforePendingFees)
                 expect(balAfter).eq(balBefore.add(expectedOutput))
             })
@@ -726,11 +726,11 @@ describe("Feeder Admin", () => {
             await expect(tx).to.not.emit(pool, "MintedMulti")
         })
         it("should collect gov fee as the interest validator", async () => {
-            const { pool, fdAsset, mAsset } = details
+            const { pool, fdAsset, fAsset } = details
 
-            // Swap mAsset for fdAsset to generate some gov fees
-            await feederMachine.approveFeeder(mAsset, pool.address, simpleToExactAmount(10), sa.default.signer, true)
-            const swapTx = await pool.swap(mAsset.address, fdAsset.address, simpleToExactAmount(10), 0, sa.default.address)
+            // Swap fAsset for fdAsset to generate some gov fees
+            await feederMachine.approveFeeder(fAsset, pool.address, simpleToExactAmount(10), sa.default.signer, true)
+            const swapTx = await pool.swap(fAsset.address, fdAsset.address, simpleToExactAmount(10), 0, sa.default.address)
             const swapReceipt = await swapTx.wait()
             expect(swapReceipt.events[3].event).to.eq("Swapped")
             const swapFee = swapReceipt.events[3].args.fee
@@ -770,14 +770,14 @@ describe("Feeder Admin", () => {
         before(async () => {
             // Deploy using lending markets and do not seed the pool
             await runSetup(true, false, [])
-            const { bAssets, fdAsset, mAssetDetails, pool, pTokens } = details
-            const { platform } = details.mAssetDetails
+            const { bAssets, fdAsset, fAssetDetails, pool, pTokens } = details
+            const { platform } = details.fAssetDetails
             transferringAsset = fdAsset
             newMigration = await (
                 await new MockPlatformIntegration__factory(sa.default.signer)
             ).deploy(
                 DEAD_ADDRESS,
-                mAssetDetails.aavePlatformAddress,
+                fAssetDetails.aavePlatformAddress,
                 bAssets.map((b) => b.address),
                 pTokens,
             )
@@ -786,7 +786,7 @@ describe("Feeder Admin", () => {
                 await new MaliciousAaveIntegration__factory(sa.default.signer)
             ).deploy(
                 DEAD_ADDRESS,
-                mAssetDetails.aavePlatformAddress,
+                fAssetDetails.aavePlatformAddress,
                 bAssets.map((b) => b.address),
                 pTokens,
             )
@@ -809,7 +809,7 @@ describe("Feeder Admin", () => {
             await expect(
                 details.pool
                     .connect(sa.governor.signer)
-                    .migrateBassets([transferringAsset.address], details.mAssetDetails.platform.address),
+                    .migrateBassets([transferringAsset.address], details.fAssetDetails.platform.address),
             ).to.be.revertedWith("Must transfer to new integrator")
         })
         it("should fail if new address is a dud", async () => {
@@ -822,7 +822,7 @@ describe("Feeder Admin", () => {
         })
         it("should move all bAssets from a to b", async () => {
             const { pool } = details
-            const { platform } = details.mAssetDetails
+            const { platform } = details.fAssetDetails
             // get balances before
             const bal = await platform.callStatic.checkBalance(transferringAsset.address)
             expect(bal).eq(9000)
@@ -849,14 +849,14 @@ describe("Feeder Admin", () => {
         it("should pass if either rawBalance or balance are 0", async () => {
             // Deploy using lending markets and do not seed the pool
             await runSetup(true, false, [])
-            const { bAssets, fdAsset, mAssetDetails, pool, pTokens } = details
-            const { platform } = details.mAssetDetails
+            const { bAssets, fdAsset, fAssetDetails, pool, pTokens } = details
+            const { platform } = details.fAssetDetails
             transferringAsset = fdAsset
             newMigration = await (
                 await new MockPlatformIntegration__factory(sa.default.signer)
             ).deploy(
                 DEAD_ADDRESS,
-                mAssetDetails.aavePlatformAddress,
+                fAssetDetails.aavePlatformAddress,
                 bAssets.map((b) => b.address),
                 pTokens,
             )
@@ -865,7 +865,7 @@ describe("Feeder Admin", () => {
                 await new MaliciousAaveIntegration__factory(sa.default.signer)
             ).deploy(
                 DEAD_ADDRESS,
-                mAssetDetails.aavePlatformAddress,
+                fAssetDetails.aavePlatformAddress,
                 bAssets.map((b) => b.address),
                 pTokens,
             )
@@ -900,7 +900,7 @@ describe("Feeder Admin", () => {
         let transferringAsset: MockERC20
         before(async () => {
             await runSetup()
-            const lendingDetail = await mAssetMachine.loadATokens(details.bAssets)
+            const lendingDetail = await fAssetMachine.loadATokens(details.bAssets)
             ;[, transferringAsset] = details.bAssets
             newMigration = await (
                 await new MockPlatformIntegration__factory(sa.default.signer)

@@ -3,7 +3,7 @@ import { ethers } from "hardhat"
 import { expect } from "chai"
 
 import { simpleToExactAmount, BN } from "@utils/math"
-import { MassetMachine, StandardAccounts, FeederMachine, FeederDetails } from "@utils/machines"
+import { FassetMachine, StandardAccounts, FeederMachine, FeederDetails } from "@utils/machines"
 import { FeederPool, MockERC20 } from "types/generated"
 import { ZERO_ADDRESS } from "@utils/constants"
 import { assertBNClosePercent } from "@utils/assertions"
@@ -18,19 +18,19 @@ describe("Feeder - Swap", () => {
         useLendingMarkets = false,
         useInterestValidator = false,
         feederWeights?: Array<BN | number>,
-        mAssetWeights?: Array<BN | number>,
+        fAssetWeights?: Array<BN | number>,
         use2dp = false,
         useRedemptionPrice = false,
     ): Promise<void> => {
-        details = await feederMachine.deployFeeder(feederWeights, mAssetWeights, useLendingMarkets,
+        details = await feederMachine.deployFeeder(feederWeights, fAssetWeights, useLendingMarkets,
             useInterestValidator, use2dp, useRedemptionPrice)
     }
 
     before("Init contract", async () => {
         const accounts = await ethers.getSigners()
-        const mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        feederMachine = await new FeederMachine(mAssetMachine)
-        sa = mAssetMachine.sa
+        const fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        feederMachine = await new FeederMachine(fAssetMachine)
+        sa = fAssetMachine.sa
     })
 
     /**
@@ -159,10 +159,10 @@ describe("Feeder - Swap", () => {
             await expect(swapTx).to.emit(pool, "Swapped")
             // .withArgs(sender.address, inputAsset.address, outputAsset.address, outputExpectedExact, scaledFee, recipient)
             // Input Transfer event
-            await expect(swapTx, "Transfer event for input asset from sender to platform integration or mAsset")
+            await expect(swapTx, "Transfer event for input asset from sender to platform integration or fAsset")
                 .to.emit(inputAsset, "Transfer")
                 .withArgs(sender.address, inputAssetBefore.integrator ? inputAssetBefore.integratorAddr : pool.address, inputQuantityExact)
-            await expect(swapTx, "Transfer event for output asset from platform integration or mAsset to recipient")
+            await expect(swapTx, "Transfer event for output asset from platform integration or fAsset to recipient")
                 .to.emit(outputAsset, "Transfer")
                 .withArgs(outputAssetBefore.integrator ? outputAssetBefore.integratorAddr : pool.address, recipient, swapOutput)
             await swapTx
@@ -240,7 +240,7 @@ describe("Feeder - Swap", () => {
                 it("swap with RP of 0.75", async () => {
                     const { bAssets, redemptionPriceSnap } = details
                     await redemptionPriceSnap.setRedemptionPriceSnap("750000000000000000000000000")
-                    // swapping less valuable fdAsset for mAsset, expect input * redemption price, about 0.75
+                    // swapping less valuable fdAsset for fAsset, expect input * redemption price, about 0.75
                     await assertSwap(details, bAssets[1], bAssets[0], simpleToExactAmount(10), "7512443560746939199")
                 })
                 it("swap with RP of 1.0", async () => {
@@ -252,7 +252,7 @@ describe("Feeder - Swap", () => {
                 it("swap with RP of 1.2", async () => {
                     const { bAssets, redemptionPriceSnap } = details
                     await redemptionPriceSnap.setRedemptionPriceSnap("1200000000000000000000000000")
-                    // swapping more valuable fdAsset for mAsset, expect input * redemption price, about 1.25
+                    // swapping more valuable fdAsset for fAsset, expect input * redemption price, about 1.25
                     await assertSwap(details, bAssets[1], bAssets[0], simpleToExactAmount(10), "11963626285730206459")
                 })
             })
@@ -261,19 +261,19 @@ describe("Feeder - Swap", () => {
                     await runSetup()
                 })
                 it("should swap feeder asset for mStable asset", async () => {
-                    const { fdAsset, mAsset } = details
-                    await assertSwap(details, fdAsset, mAsset, simpleToExactAmount(10), "9996681629683510749")
+                    const { fdAsset, fAsset } = details
+                    await assertSwap(details, fdAsset, fAsset, simpleToExactAmount(10), "9996681629683510749")
                 })
                 it("should swap mStable asset for feeder asset", async () => {
-                    const { fdAsset, mAsset } = details
-                    await assertSwap(details, mAsset, fdAsset, simpleToExactAmount(10), "9992683316421789840")
+                    const { fdAsset, fAsset } = details
+                    await assertSwap(details, fAsset, fdAsset, simpleToExactAmount(10), "9992683316421789840")
                 })
                 it("should swap feeder asset for main pool asset with 18 decimals", async () => {
-                    const { mAssetDetails, fdAsset } = details
+                    const { fAssetDetails, fdAsset } = details
                     await assertSwap(
                         details,
                         fdAsset,
-                        mAssetDetails.bAssets[0],
+                        fAssetDetails.bAssets[0],
                         simpleToExactAmount(10),
                         simpleToExactAmount(10),
                         undefined,
@@ -285,11 +285,11 @@ describe("Feeder - Swap", () => {
                     )
                 })
                 it("should swap feeder asset for main pool asset with 6 decimals", async () => {
-                    const { mAssetDetails, fdAsset } = details
+                    const { fAssetDetails, fdAsset } = details
                     await assertSwap(
                         details,
                         fdAsset,
-                        mAssetDetails.bAssets[1],
+                        fAssetDetails.bAssets[1],
                         simpleToExactAmount(10),
                         "9990535",
                         undefined,
@@ -308,19 +308,19 @@ describe("Feeder - Swap", () => {
                     await redemptionPriceSnap.setRedemptionPriceSnap("2000000000000000000000000000")
                 })
                 it("should swap feeder asset for mStable asset", async () => {
-                    const { fdAsset, mAsset } = details
-                    await assertSwap(details, fdAsset, mAsset, simpleToExactAmount(10), "19870781263316757727")
+                    const { fdAsset, fAsset } = details
+                    await assertSwap(details, fdAsset, fAsset, simpleToExactAmount(10), "19870781263316757727")
                 })
                 it("should swap mStable asset for feeder asset", async () => {
-                    const { fdAsset, mAsset } = details
-                    await assertSwap(details, mAsset, fdAsset, simpleToExactAmount(10), "5023929440671813130")
+                    const { fdAsset, fAsset } = details
+                    await assertSwap(details, fAsset, fdAsset, simpleToExactAmount(10), "5023929440671813130")
                 })
                 it("should swap feeder asset for main pool asset with 18 decimals", async () => {
-                    const { mAssetDetails, fdAsset } = details
+                    const { fAssetDetails, fdAsset } = details
                     await assertSwap(
                         details,
                         fdAsset,
-                        mAssetDetails.bAssets[0],
+                        fAssetDetails.bAssets[0],
                         simpleToExactAmount(10),
                         "19858270000000000000",
                         undefined,
@@ -332,11 +332,11 @@ describe("Feeder - Swap", () => {
                     )
                 })
                 it("should swap feeder asset for main pool asset with 6 decimals", async () => {
-                    const { mAssetDetails, fdAsset } = details
+                    const { fAssetDetails, fdAsset } = details
                     await assertSwap(
                         details,
                         fdAsset,
-                        mAssetDetails.bAssets[1],
+                        fAssetDetails.bAssets[1],
                         simpleToExactAmount(10),
                         "19858270",
                         undefined,
@@ -355,19 +355,19 @@ describe("Feeder - Swap", () => {
                     await redemptionPriceSnap.setRedemptionPriceSnap("500000000000000000000000000")
                 })
                 it("should swap feeder asset for mStable asset", async () => {
-                    const { fdAsset, mAsset } = details
-                    await assertSwap(details, fdAsset, mAsset, simpleToExactAmount(10), "5025939724942443350")
+                    const { fdAsset, fAsset } = details
+                    await assertSwap(details, fdAsset, fAsset, simpleToExactAmount(10), "5025939724942443350")
                 })
                 it("should swap mStable asset for feeder asset", async () => {
-                    const { fdAsset, mAsset } = details
-                    await assertSwap(details, mAsset, fdAsset, simpleToExactAmount(10), "19862836775669060034")
+                    const { fdAsset, fAsset } = details
+                    await assertSwap(details, fAsset, fdAsset, simpleToExactAmount(10), "19862836775669060034")
                 })
                 it("should swap feeder asset for main pool asset with 18 decimals", async () => {
-                    const { mAssetDetails, fdAsset } = details
+                    const { fAssetDetails, fdAsset } = details
                     await assertSwap(
                         details,
                         fdAsset,
-                        mAssetDetails.bAssets[0],
+                        fAssetDetails.bAssets[0],
                         simpleToExactAmount(10),
                         "5023929440671813130",
                         undefined,
@@ -379,11 +379,11 @@ describe("Feeder - Swap", () => {
                     )
                 })
                 it("should swap feeder asset for main pool asset with 6 decimals", async () => {
-                    const { mAssetDetails, fdAsset } = details
+                    const { fAssetDetails, fdAsset } = details
                     await assertSwap(
                         details,
                         fdAsset,
-                        mAssetDetails.bAssets[1],
+                        fAssetDetails.bAssets[1],
                         simpleToExactAmount(10),
                         "5022886",
                         undefined,
@@ -399,10 +399,10 @@ describe("Feeder - Swap", () => {
                     await runSetup(false, false, [50, 50], undefined, true)
                 })
                 it("should swap out 1e16 per 1 base unit", async () => {
-                    await assertSwap(details, details.fdAsset, details.mAsset, "1", "9999986754983904", "9999986754983904")
+                    await assertSwap(details, details.fdAsset, details.fAsset, "1", "9999986754983904", "9999986754983904")
                 })
                 it("should swap out 1e18 per 1e2 base unit", async () => {
-                    await assertSwap(details, details.fdAsset, details.mAsset, "100", "999867514754849931", "999867514754849931")
+                    await assertSwap(details, details.fdAsset, details.fAsset, "100", "999867514754849931", "999867514754849931")
                 })
             })
             context("passing invalid arguments", async () => {
@@ -410,23 +410,23 @@ describe("Feeder - Swap", () => {
                     await runSetup()
                 })
                 it("should fail if identical assets", async () => {
-                    const { mAsset } = details
-                    await assertFailedSwap("Invalid pair", details.pool, mAsset, mAsset, 1)
+                    const { fAsset } = details
+                    await assertFailedSwap("Invalid pair", details.pool, fAsset, fAsset, 1)
                 })
                 it("should fail when 0 quantity", async () => {
-                    const { fdAsset, mAsset } = details
-                    await assertFailedSwap("Qty==0", details.pool, mAsset, fdAsset, 0)
+                    const { fdAsset, fAsset } = details
+                    await assertFailedSwap("Qty==0", details.pool, fAsset, fdAsset, 0)
                 })
                 it("should fail when less than 1e6 input", async () => {
-                    const { fdAsset, mAsset } = details
-                    await assertFailedSwap("Must add > 1e6 units", details.pool, mAsset, fdAsset, 100, undefined, undefined, true)
+                    const { fdAsset, fAsset } = details
+                    await assertFailedSwap("Must add > 1e6 units", details.pool, fAsset, fdAsset, 100, undefined, undefined, true)
                 })
                 it("should fail if recipient is 0x0", async () => {
-                    const { fdAsset, mAsset } = details
+                    const { fdAsset, fAsset } = details
                     await assertFailedSwap(
                         "Invalid recipient",
                         details.pool,
-                        mAsset,
+                        fAsset,
                         fdAsset,
                         simpleToExactAmount(1),
                         0,
@@ -437,11 +437,11 @@ describe("Feeder - Swap", () => {
                     )
                 })
                 it("should fail if sender doesn't have sufficient liquidity", async () => {
-                    const { fdAsset, mAsset } = details
+                    const { fdAsset, fAsset } = details
                     await assertFailedSwap(
                         "ERC20: transfer amount exceeds balance",
                         details.pool,
-                        mAsset,
+                        fAsset,
                         fdAsset,
                         simpleToExactAmount(1),
                         0,
@@ -473,15 +473,15 @@ describe("Feeder - Swap", () => {
                     )
                 })
                 it("should fail to swap mStable asset for main pool asset", async () => {
-                    await assertFailedSwap("Invalid pair", details.pool, details.mAsset, details.mAssetDetails.bAssets[0], 10)
+                    await assertFailedSwap("Invalid pair", details.pool, details.fAsset, details.fAssetDetails.bAssets[0], 10)
                 })
                 it("should fail to swap main pool asset for mStable asset", async () => {
-                    await assertFailedSwap("Invalid pair", details.pool, details.mAssetDetails.bAssets[0], details.mAsset, 10)
+                    await assertFailedSwap("Invalid pair", details.pool, details.fAssetDetails.bAssets[0], details.fAsset, 10)
                 })
                 it("should fail if *either* bAsset does not exist", async () => {
                     const { bAssets, pool } = details
                     const realBasset = bAssets[0]
-                    const fakeBasset = await feederMachine.mAssetMachine.loadBassetProxy("Mock", "MKK", 18, sa.default.address, 1000)
+                    const fakeBasset = await feederMachine.fAssetMachine.loadBassetProxy("Mock", "MKK", 18, sa.default.address, 1000)
                     await assertFailedSwap("Invalid pair", pool, fakeBasset, realBasset, 1)
                     await assertFailedSwap("Invalid pair", pool, realBasset, fakeBasset, 1)
                 })
@@ -489,7 +489,7 @@ describe("Feeder - Swap", () => {
                     await assertFailedSwap(
                         "Output qty < minimum qty",
                         details.pool,
-                        details.mAsset,
+                        details.fAsset,
                         details.fdAsset,
                         simpleToExactAmount(1),
                         simpleToExactAmount(1),

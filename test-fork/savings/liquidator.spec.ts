@@ -4,7 +4,7 @@ import { impersonateAccount } from "@utils/fork"
 import { ethers, network } from "hardhat"
 import { Account } from "types"
 import { deployContract } from "tasks/utils/deploy-utils"
-import { AAVE, stkAAVE, DAI, mBTC, mUSD, USDC, USDT, WBTC, COMP, GUSD, BUSD, CREAM, cyMUSD, RAI } from "tasks/utils/tokens"
+import { AAVE, stkAAVE, DAI, mBTC, fUSD, USDC, USDT, WBTC, COMP, GUSD, BUSD, CREAM, cyFUSD, RAI } from "tasks/utils/tokens"
 import {
     CompoundIntegration__factory,
     DelayedProxyAdmin,
@@ -35,10 +35,10 @@ const governorAddress = resolveAddress("Governor")
 const delayedAdminAddress = "0x5c8eb57b44c1c6391fc7a8a0cf44d26896f92386"
 const ethWhaleAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 const stkAaveWhaleAddress = "0xdb5AA12AD695Ef2a28C6CdB69f2BB04BEd20a48e"
-const musdWhaleAddress = "0x9b0c19000a8631c1f555bb365bDE308384E4f2Ff"
+const fusdWhaleAddress = "0x9b0c19000a8631c1f555bb365bDE308384E4f2Ff"
 
 const liquidatorAddress = resolveAddress("Liquidator")
-const aaveMusdIntegrationAddress = "0xA2a3CAe63476891AB2d640d9a5A800755Ee79d6E"
+const aaveFusdIntegrationAddress = "0xA2a3CAe63476891AB2d640d9a5A800755Ee79d6E"
 const aaveMbtcIntegrationAddress = "0xC9451a4483d1752a3E9A3f5D6b1C7A6c34621fC6"
 const compoundIntegrationAddress = "0xD55684f4369040C12262949Ff78299f2BC9dB735"
 const nexusAddress = "0xAFcE80b19A8cE13DEc0739a1aaB7A028d6845Eb3"
@@ -62,14 +62,14 @@ context("Liquidator forked network tests", () => {
     let governor: Account
     let stkAaveWhale: Account
     let ethWhale: Account
-    let musdWhale: Account
+    let fusdWhale: Account
     let delayedProxyAdmin: DelayedProxyAdmin
     let aaveIncentivesController: IAaveIncentivesController
     let aaveToken: ERC20
     let aaveStakedToken: AaveStakedTokenV2
     let compToken: ERC20
     let creamToken: ERC20
-    let musdToken: ERC20
+    let fusdToken: ERC20
     let uniswapQuoter: IUniswapV3Quoter
 
     async function runSetup(blockNumber: number) {
@@ -88,7 +88,7 @@ context("Liquidator forked network tests", () => {
         stkAaveWhale = await impersonateAccount(stkAaveWhaleAddress)
         governor = await impersonateAccount(governorAddress)
         ethWhale = await impersonateAccount(ethWhaleAddress)
-        musdWhale = await impersonateAccount(musdWhaleAddress)
+        fusdWhale = await impersonateAccount(fusdWhaleAddress)
 
         // send some Ether to the impersonated multisig contract as it doesn't have Ether
         await ethWhale.signer.sendTransaction({
@@ -103,7 +103,7 @@ context("Liquidator forked network tests", () => {
         aaveStakedToken = AaveStakedTokenV2__factory.connect(stkAAVE.address, stkAaveWhale.signer)
         compToken = ERC20__factory.connect(COMP.address, ops.signer)
         creamToken = ERC20__factory.connect(CREAM.address, ops.signer)
-        musdToken = ERC20__factory.connect(mUSD.address, ops.signer)
+        fusdToken = ERC20__factory.connect(fUSD.address, ops.signer)
     }
 
     it("Test connectivity", async () => {
@@ -462,18 +462,18 @@ context("Liquidator forked network tests", () => {
             expect(await liquidator.stkAave(), "Staked Aave address").to.eq(stkAAVE.address)
             expect(await liquidator.compToken(), "COMP address").to.eq(COMP.address)
         })
-        it("Added liquidation for mUSD Aave integration", async () => {
+        it("Added liquidation for fUSD Aave integration", async () => {
             await liquidator
                 .connect(governor.signer)
                 .createLiquidation(
-                    aaveMusdIntegrationAddress,
+                    aaveFusdIntegrationAddress,
                     AAVE.address,
                     USDC.address,
                     uniswapAaveUsdcPath.encoded,
                     uniswapAaveUsdcPath.encodedReversed,
                     0,
                     simpleToExactAmount(50, USDC.decimals),
-                    mUSD.address,
+                    fUSD.address,
                     true,
                 )
         })
@@ -556,18 +556,18 @@ context("Liquidator forked network tests", () => {
             // Connect to the proxy with the Liquidator ABI
             liquidator = Liquidator__factory.connect(liquidatorAddress, ops.signer)
         })
-        it("Added liquidation for mUSD Aave integration", async () => {
+        it("Added liquidation for fUSD Aave integration", async () => {
             await liquidator
                 .connect(governor.signer)
                 .createLiquidation(
-                    aaveMusdIntegrationAddress,
+                    aaveFusdIntegrationAddress,
                     AAVE.address,
                     USDC.address,
                     uniswapAaveUsdcPath.encoded,
                     uniswapAaveUsdcPath.encodedReversed,
                     0,
                     simpleToExactAmount(50, USDC.decimals),
-                    mUSD.address,
+                    fUSD.address,
                     true,
                 )
         })
@@ -662,7 +662,7 @@ context("Liquidator forked network tests", () => {
             expect(await liquidator.stkAave(), "Staked Aave address").to.eq(stkAAVE.address)
             expect(await liquidator.compToken(), "COMP address").to.eq(COMP.address)
         })
-        it("Added liquidation for mUSD Compound integration", async () => {
+        it("Added liquidation for fUSD Compound integration", async () => {
             const data = liquidator.interface.encodeFunctionData("createLiquidation", [
                 compoundIntegrationAddress,
                 COMP.address,
@@ -671,7 +671,7 @@ context("Liquidator forked network tests", () => {
                 uniswapCompUsdcPaths.encodedReversed,
                 simpleToExactAmount(20000, USDC.decimals),
                 simpleToExactAmount(100, USDC.decimals),
-                mUSD.address,
+                fUSD.address,
                 false,
             ])
             console.log(`createLiquidation data for COMP: ${data}`)
@@ -685,7 +685,7 @@ context("Liquidator forked network tests", () => {
                     uniswapCompUsdcPaths.encodedReversed,
                     simpleToExactAmount(20000, USDC.decimals),
                     simpleToExactAmount(100, USDC.decimals),
-                    mUSD.address,
+                    fUSD.address,
                     false,
                 )
         })
@@ -773,45 +773,45 @@ context("Liquidator forked network tests", () => {
             gusdFp = FeederPool__factory.connect(GUSD.feederPool, governor.signer)
             busdFp = FeederPool__factory.connect(BUSD.feederPool, governor.signer)
         })
-        it("migrate mUSD to Iron Bank for the GUSD Feeder Pool", async () => {
+        it("migrate fUSD to Iron Bank for the GUSD Feeder Pool", async () => {
             // Before migrate checks
-            const musdInGusdBefore = await musdToken.balanceOf(GUSD.feederPool)
-            expect(musdInGusdBefore, "Some mUSD in GUSD FP before").to.gt(0)
-            expect(await musdToken.balanceOf(gusdIronBankIntegrationAddress), "no mUSD in Iron Bank integration before").to.eq(0)
-            const musdInIronBankBefore = await musdToken.balanceOf(cyMUSD.address)
+            const fusdInGusdBefore = await fusdToken.balanceOf(GUSD.feederPool)
+            expect(fusdInGusdBefore, "Some fUSD in GUSD FP before").to.gt(0)
+            expect(await fusdToken.balanceOf(gusdIronBankIntegrationAddress), "no fUSD in Iron Bank integration before").to.eq(0)
+            const fusdInIronBankBefore = await fusdToken.balanceOf(cyFUSD.address)
             console.log(
-                `mUSD in Iron Bank ${formatUnits(musdInIronBankBefore)} and GUSD Feeder Pool ${formatUnits(musdInGusdBefore)} before`,
+                `fUSD in Iron Bank ${formatUnits(fusdInIronBankBefore)} and GUSD Feeder Pool ${formatUnits(fusdInGusdBefore)} before`,
             )
 
-            await gusdFp.migrateBassets([mUSD.address], gusdIronBankIntegrationAddress)
+            await gusdFp.migrateBassets([fUSD.address], gusdIronBankIntegrationAddress)
 
             // After migrate checks
-            const musdInIronBankIntegrationAfter = await musdToken.balanceOf(gusdIronBankIntegrationAddress)
-            console.log(`mUSD in Iron Bank ${formatUnits(musdInIronBankIntegrationAfter)} after`)
-            expect(await musdToken.balanceOf(GUSD.feederPool), "no mUSD in GUSD FP after").to.eq(0)
-            expect(await musdToken.balanceOf(cyMUSD.address), "no more mUSD in Iron Bank after").to.eq(musdInIronBankBefore)
-            expect(await musdToken.balanceOf(gusdIronBankIntegrationAddress), "mUSD moved to Iron Bank integration after").to.eq(
-                musdInGusdBefore,
+            const fusdInIronBankIntegrationAfter = await fusdToken.balanceOf(gusdIronBankIntegrationAddress)
+            console.log(`fUSD in Iron Bank ${formatUnits(fusdInIronBankIntegrationAfter)} after`)
+            expect(await fusdToken.balanceOf(GUSD.feederPool), "no fUSD in GUSD FP after").to.eq(0)
+            expect(await fusdToken.balanceOf(cyFUSD.address), "no more fUSD in Iron Bank after").to.eq(fusdInIronBankBefore)
+            expect(await fusdToken.balanceOf(gusdIronBankIntegrationAddress), "fUSD moved to Iron Bank integration after").to.eq(
+                fusdInGusdBefore,
             )
         })
-        it("Swap mUSD for GUSD", async () => {
-            const musdInIronBankBefore = await musdToken.balanceOf(cyMUSD.address)
-            const musdInIntegrationBefore = await musdToken.balanceOf(gusdIronBankIntegrationAddress)
+        it("Swap fUSD for GUSD", async () => {
+            const fusdInIronBankBefore = await fusdToken.balanceOf(cyFUSD.address)
+            const fusdInIntegrationBefore = await fusdToken.balanceOf(gusdIronBankIntegrationAddress)
 
             const swapInput = simpleToExactAmount(1000)
-            await musdToken.connect(musdWhale.signer).approve(gusdFp.address, swapInput)
-            await gusdFp.connect(musdWhale.signer).swap(mUSD.address, GUSD.address, swapInput, 0, ops.address)
+            await fusdToken.connect(fusdWhale.signer).approve(gusdFp.address, swapInput)
+            await gusdFp.connect(fusdWhale.signer).swap(fUSD.address, GUSD.address, swapInput, 0, ops.address)
 
-            expect(await musdToken.balanceOf(cyMUSD.address), "more mUSD in Iron Bank after").to.gt(musdInIronBankBefore)
-            expect(await musdToken.balanceOf(gusdIronBankIntegrationAddress), "less mUSD in Integration after").to.lt(
-                musdInIntegrationBefore,
+            expect(await fusdToken.balanceOf(cyFUSD.address), "more fUSD in Iron Bank after").to.gt(fusdInIronBankBefore)
+            expect(await fusdToken.balanceOf(gusdIronBankIntegrationAddress), "less fUSD in Integration after").to.lt(
+                fusdInIntegrationBefore,
             )
         })
-        it("migrate mUSD to Iron Bank for the BUSD Feeder Pool", async () => {
-            const musdBalanceBefore = await musdToken.balanceOf(BUSD.feederPool)
-            expect(musdBalanceBefore).to.gt(0)
-            await busdFp.migrateBassets([mUSD.address], busdIronBankIntegrationAddress)
-            expect(await musdToken.balanceOf(BUSD.feederPool)).to.eq(0)
+        it("migrate fUSD to Iron Bank for the BUSD Feeder Pool", async () => {
+            const fusdBalanceBefore = await fusdToken.balanceOf(BUSD.feederPool)
+            expect(fusdBalanceBefore).to.gt(0)
+            await busdFp.migrateBassets([fUSD.address], busdIronBankIntegrationAddress)
+            expect(await fusdToken.balanceOf(BUSD.feederPool)).to.eq(0)
         })
         it("Governor approves the liquidator to transfer CREAM from integration contracts", async () => {
             const gusdIronBankIntegration = CompoundIntegration__factory.connect(gusdIronBankIntegrationAddress, governor.signer)
@@ -925,14 +925,14 @@ context("Liquidator forked network tests", () => {
             const tx = liquidator
                 .connect(governor.signer)
                 .createLiquidation(
-                    aaveMusdIntegrationAddress,
+                    aaveFusdIntegrationAddress,
                     AAVE.address,
                     USDC.address,
                     path.encoded,
                     path.encodedReversed,
                     0,
                     simpleToExactAmount(50, USDC.decimals),
-                    mUSD.address,
+                    fUSD.address,
                     true,
                 )
             await expect(tx).revertedWith("Uniswap path too short")
@@ -941,30 +941,30 @@ context("Liquidator forked network tests", () => {
             const tx = liquidator
                 .connect(governor.signer)
                 .createLiquidation(
-                    aaveMusdIntegrationAddress,
+                    aaveFusdIntegrationAddress,
                     AAVE.address,
                     USDC.address,
                     uniswapAaveUsdcPath.encodedReversed,
                     uniswapAaveUsdcPath.encoded,
                     0,
                     simpleToExactAmount(50, USDC.decimals),
-                    mUSD.address,
+                    fUSD.address,
                     true,
                 )
             await expect(tx).revertedWith("Invalid uniswap path")
         })
-        it("Added liquidation for mUSD Aave integration", async () => {
+        it("Added liquidation for fUSD Aave integration", async () => {
             await liquidator
                 .connect(governor.signer)
                 .createLiquidation(
-                    aaveMusdIntegrationAddress,
+                    aaveFusdIntegrationAddress,
                     AAVE.address,
                     USDC.address,
                     uniswapAaveUsdcPath.encoded,
                     uniswapAaveUsdcPath.encodedReversed,
                     0,
                     simpleToExactAmount(50, USDC.decimals),
-                    mUSD.address,
+                    fUSD.address,
                     true,
                 )
         })
@@ -972,21 +972,21 @@ context("Liquidator forked network tests", () => {
             const tx = liquidator
                 .connect(governor.signer)
                 .createLiquidation(
-                    aaveMusdIntegrationAddress,
+                    aaveFusdIntegrationAddress,
                     AAVE.address,
                     USDC.address,
                     uniswapAaveUsdcPath.encoded,
                     uniswapAaveUsdcPath.encodedReversed,
                     0,
                     simpleToExactAmount(50, USDC.decimals),
-                    mUSD.address,
+                    fUSD.address,
                     true,
                 )
             await expect(tx).revertedWith("Liquidation already exists")
         })
     })
     context.skip("Aave incentives controller", () => {
-        let aaveMusdIntegration: Account
+        let aaveFusdIntegration: Account
         let aaveIncentives: IAaveIncentivesController
         let accruedDaiBal: BN
         let accruedUsdtBal: BN
@@ -997,23 +997,23 @@ context("Liquidator forked network tests", () => {
         beforeEach("reset block number", async () => {
             await runSetup(forkBlockNumber)
 
-            aaveMusdIntegration = await impersonateAccount(aaveMusdIntegrationAddress)
+            aaveFusdIntegration = await impersonateAccount(aaveFusdIntegrationAddress)
             // Give the Integration contract 10 Ether
             await network.provider.request({
                 method: "hardhat_setBalance",
-                params: [aaveMusdIntegrationAddress, simpleToExactAmount(10).toHexString()],
+                params: [aaveFusdIntegrationAddress, simpleToExactAmount(10).toHexString()],
             })
 
             const aaveIncentivesControllerProxyAddress = "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5"
-            aaveIncentives = IAaveIncentivesController__factory.connect(aaveIncentivesControllerProxyAddress, aaveMusdIntegration.signer)
+            aaveIncentives = IAaveIncentivesController__factory.connect(aaveIncentivesControllerProxyAddress, aaveFusdIntegration.signer)
 
-            expect(await aaveStakedToken.balanceOf(aaveMusdIntegrationAddress), "stkAAVE in integration before").to.eq(0)
+            expect(await aaveStakedToken.balanceOf(aaveFusdIntegrationAddress), "stkAAVE in integration before").to.eq(0)
 
-            accruedDaiBal = await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveMusdIntegrationAddress)
+            accruedDaiBal = await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveFusdIntegrationAddress)
             // console.log(`Accrued stkAAVE from DAI ${accruedDaiBal}`)
             expect(accruedDaiBal, "accrued stkAAVE from DAI before").to.be.gt(expectedAccruedDai)
 
-            accruedUsdtBal = await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveMusdIntegrationAddress)
+            accruedUsdtBal = await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveFusdIntegrationAddress)
             // console.log(`Accrued stkAAVE from USDT ${accruedUsdtBal}`)
             expect(accruedUsdtBal, "accrued stkAAVE from USDT before").to.be.gt(expectedAccruedUsdt)
         })
@@ -1034,12 +1034,12 @@ context("Liquidator forked network tests", () => {
             ]
             console.log(`Test, Unclaimed Rewards, Claimed, Total`)
             for (const test of testData) {
-                const unclaimedRewards = await aaveIncentives.getUserUnclaimedRewards(aaveMusdIntegrationAddress, {
+                const unclaimedRewards = await aaveIncentives.getUserUnclaimedRewards(aaveFusdIntegrationAddress, {
                     blockTag: test.blockNumber,
                 })
                 const rewardBalance = await aaveIncentives.getRewardsBalance(
                     [DAI.liquidityProvider, USDT.liquidityProvider],
-                    aaveMusdIntegrationAddress,
+                    aaveFusdIntegrationAddress,
                     {
                         blockTag: test.blockNumber,
                     },
@@ -1052,116 +1052,116 @@ context("Liquidator forked network tests", () => {
             }
         })
         it("integration contract claims DAI", async () => {
-            await aaveIncentives.claimRewards([DAI.liquidityProvider], simpleToExactAmount(1000), aaveMusdIntegrationAddress)
+            await aaveIncentives.claimRewards([DAI.liquidityProvider], simpleToExactAmount(1000), aaveFusdIntegrationAddress)
 
             expect(
-                await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveMusdIntegrationAddress),
+                await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveFusdIntegrationAddress),
                 "accrued stkAAVE from DAI after",
             ).to.be.lt(simpleToExactAmount(0.001))
-            expect(await aaveStakedToken.balanceOf(aaveMusdIntegrationAddress), "stkAAVE in integration after").to.gt(expectedAccruedDai)
+            expect(await aaveStakedToken.balanceOf(aaveFusdIntegrationAddress), "stkAAVE in integration after").to.gt(expectedAccruedDai)
 
             expect(
-                await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveMusdIntegrationAddress),
+                await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveFusdIntegrationAddress),
                 "accrued stkAAVE from USDT after",
             ).to.be.gt(expectedAccruedUsdt)
         })
         it("integration contract claims USDT", async () => {
-            await aaveIncentives.claimRewards([USDT.liquidityProvider], simpleToExactAmount(1000), aaveMusdIntegrationAddress)
+            await aaveIncentives.claimRewards([USDT.liquidityProvider], simpleToExactAmount(1000), aaveFusdIntegrationAddress)
 
             expect(
-                await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveMusdIntegrationAddress),
+                await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveFusdIntegrationAddress),
                 "accrued stkAAVE from USDT after",
             ).to.be.lt(simpleToExactAmount(0.001))
-            expect(await aaveStakedToken.balanceOf(aaveMusdIntegrationAddress), "stkAAVE in integration after").to.gt(accruedUsdtBal)
+            expect(await aaveStakedToken.balanceOf(aaveFusdIntegrationAddress), "stkAAVE in integration after").to.gt(accruedUsdtBal)
 
             expect(
-                await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveMusdIntegrationAddress),
+                await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveFusdIntegrationAddress),
                 "accrued stkAAVE from DAI after",
             ).to.be.gt(expectedAccruedDai)
         })
         it("integration contract claims DAI and USDT separately", async () => {
             // Claim from DAI
-            await aaveIncentives.claimRewards([DAI.liquidityProvider], simpleToExactAmount(1000), aaveMusdIntegrationAddress)
+            await aaveIncentives.claimRewards([DAI.liquidityProvider], simpleToExactAmount(1000), aaveFusdIntegrationAddress)
 
-            expect(await aaveStakedToken.balanceOf(aaveMusdIntegrationAddress), "stkAAVE in integration after DAI").to.gt(
+            expect(await aaveStakedToken.balanceOf(aaveFusdIntegrationAddress), "stkAAVE in integration after DAI").to.gt(
                 expectedAccruedDai,
             )
             expect(
-                await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveMusdIntegrationAddress),
+                await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveFusdIntegrationAddress),
                 "accrued stkAAVE from DAI after",
             ).to.be.lt(simpleToExactAmount(0.001))
 
             expect(
-                await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveMusdIntegrationAddress),
+                await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveFusdIntegrationAddress),
                 "accrued stkAAVE from USDT after DAI claim",
             ).to.be.gt(expectedAccruedUsdt)
 
             // Claim from USDT
-            await aaveIncentives.claimRewards([USDT.liquidityProvider], simpleToExactAmount(1000), aaveMusdIntegrationAddress)
+            await aaveIncentives.claimRewards([USDT.liquidityProvider], simpleToExactAmount(1000), aaveFusdIntegrationAddress)
 
             expect(
-                await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveMusdIntegrationAddress),
+                await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveFusdIntegrationAddress),
                 "accrued stkAAVE from USDT after",
             ).to.be.lt(simpleToExactAmount(0.001))
 
-            expect(await aaveStakedToken.balanceOf(aaveMusdIntegrationAddress), "stkAAVE in integration after").to.gt(
+            expect(await aaveStakedToken.balanceOf(aaveFusdIntegrationAddress), "stkAAVE in integration after").to.gt(
                 expectedAccruedDai.add(expectedAccruedUsdt),
             )
         })
         it("integration contract claims USDT and DAI separately", async () => {
             // Claim from USDT
-            await aaveIncentives.claimRewards([USDT.liquidityProvider], simpleToExactAmount(1000), aaveMusdIntegrationAddress)
+            await aaveIncentives.claimRewards([USDT.liquidityProvider], simpleToExactAmount(1000), aaveFusdIntegrationAddress)
 
-            expect(await aaveStakedToken.balanceOf(aaveMusdIntegrationAddress), "stkAAVE in integration after USDT").to.gt(
+            expect(await aaveStakedToken.balanceOf(aaveFusdIntegrationAddress), "stkAAVE in integration after USDT").to.gt(
                 expectedAccruedUsdt,
             )
             expect(
-                await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveMusdIntegrationAddress),
+                await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveFusdIntegrationAddress),
                 "accrued stkAAVE from USDT after",
             ).to.be.lt(simpleToExactAmount(0.001))
 
             expect(
-                await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveMusdIntegrationAddress),
+                await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveFusdIntegrationAddress),
                 "accrued stkAAVE from DAI after USDT claim",
             ).to.be.gt(expectedAccruedDai)
 
             // Claim from DAI
-            await aaveIncentives.claimRewards([DAI.liquidityProvider], simpleToExactAmount(1000), aaveMusdIntegrationAddress)
+            await aaveIncentives.claimRewards([DAI.liquidityProvider], simpleToExactAmount(1000), aaveFusdIntegrationAddress)
 
             expect(
-                await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveMusdIntegrationAddress),
+                await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveFusdIntegrationAddress),
                 "accrued stkAAVE from DAI after",
             ).to.be.lt(simpleToExactAmount(0.001))
 
-            expect(await aaveStakedToken.balanceOf(aaveMusdIntegrationAddress), "stkAAVE in integration after").to.gt(
+            expect(await aaveStakedToken.balanceOf(aaveFusdIntegrationAddress), "stkAAVE in integration after").to.gt(
                 expectedAccruedDai.add(expectedAccruedUsdt),
             )
         })
         it("integration contract claims USDT and DAI together", async () => {
             const accruedDaiUsdtBal = await aaveIncentives.getRewardsBalance(
                 [USDT.liquidityProvider, DAI.liquidityProvider],
-                aaveMusdIntegrationAddress,
+                aaveFusdIntegrationAddress,
             )
             expect(accruedDaiUsdtBal, "accrued stkAAVE from USDT and DAI before").to.be.gt(expectedAccruedDai.add(expectedAccruedUsdt))
 
-            expect(await aaveStakedToken.balanceOf(aaveMusdIntegrationAddress), "stkAAVE in integration before").to.eq(0)
+            expect(await aaveStakedToken.balanceOf(aaveFusdIntegrationAddress), "stkAAVE in integration before").to.eq(0)
 
             // Claim from USDT and DAI
             await aaveIncentives.claimRewards(
                 [USDT.liquidityProvider, DAI.liquidityProvider],
                 simpleToExactAmount(1000, DAI.decimals),
-                aaveMusdIntegrationAddress,
+                aaveFusdIntegrationAddress,
             )
 
             expect(
-                await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveMusdIntegrationAddress),
+                await aaveIncentives.getRewardsBalance([DAI.liquidityProvider], aaveFusdIntegrationAddress),
                 "accrued stkAAVE from DAI after",
             ).to.be.lt(simpleToExactAmount(0.001))
             expect(
-                await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveMusdIntegrationAddress),
+                await aaveIncentives.getRewardsBalance([USDT.liquidityProvider], aaveFusdIntegrationAddress),
                 "accrued stkAAVE from USDT after",
             ).to.be.lt(simpleToExactAmount(0.001))
-            expect(await aaveStakedToken.balanceOf(aaveMusdIntegrationAddress), "stkAAVE in integration after").to.gt(
+            expect(await aaveStakedToken.balanceOf(aaveFusdIntegrationAddress), "stkAAVE in integration after").to.gt(
                 expectedAccruedDai.add(expectedAccruedUsdt),
             )
         })

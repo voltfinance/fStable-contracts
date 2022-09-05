@@ -17,10 +17,10 @@ library StableMath {
     uint256 private constant FULL_SCALE = 1e18;
 
     /**
-     * @dev Token Ratios are used when converting between units of bAsset, mAsset and MTA
+     * @dev Token Ratios are used when converting between units of bAsset, fAsset and MTA
      * Reasoning: Takes into account token decimals, and difference in base unit (i.e. grams to Troy oz for gold)
      * bAsset ratio unit for use in exact calculations,
-     * where (1 bAsset unit * bAsset.ratio) / ratioScale == x mAsset unit
+     * where (1 bAsset unit * bAsset.ratio) / ratioScale == x fAsset unit
      */
     uint256 private constant RATIO_SCALE = 1e8;
 
@@ -120,7 +120,7 @@ library StableMath {
 
     /**
      * @dev Multiplies and truncates a token ratio, essentially flooring the result
-     *      i.e. How much mAsset is this bAsset worth?
+     *      i.e. How much fAsset is this bAsset worth?
      * @param x     Left hand operand to multiplication (i.e Exact quantity)
      * @param ratio bAsset ratio
      * @return c    Result after multiplying the two inputs and then dividing by the ratio scale
@@ -131,14 +131,14 @@ library StableMath {
 
     /**
      * @dev Multiplies and truncates a token ratio, rounding up the result
-     *      i.e. How much mAsset is this bAsset worth?
+     *      i.e. How much fAsset is this bAsset worth?
      * @param x     Left hand input to multiplication (i.e Exact quantity)
      * @param ratio bAsset ratio
      * @return      Result after multiplying the two inputs and then dividing by the shared
      *              ratio scale, rounded up to the closest base unit.
      */
     function mulRatioTruncateCeil(uint256 x, uint256 ratio) internal pure returns (uint256) {
-        // e.g. How much mAsset should I burn for this bAsset (x)?
+        // e.g. How much fAsset should I burn for this bAsset (x)?
         // 1e18 * 1e8 = 1e26
         uint256 scaled = x * ratio;
         // 1e26 + 9.99e7 = 100..00.999e8
@@ -149,7 +149,7 @@ library StableMath {
 
     /**
      * @dev Precisely divides two ratioed units, by first scaling the left hand operand
-     *      i.e. How much bAsset is this mAsset worth?
+     *      i.e. How much bAsset is this fAsset worth?
      * @param x     Left hand operand in division
      * @param ratio bAsset ratio
      * @return c    Result after multiplying the left operand by the scale, and

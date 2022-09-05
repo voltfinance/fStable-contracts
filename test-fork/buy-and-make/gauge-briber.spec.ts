@@ -20,7 +20,7 @@ import { Chain } from "tasks/utils/tokens"
 import { resolveAddress } from "../../tasks/utils/networkAddressFactory"
 import { deployContract } from "../../tasks/utils/deploy-utils"
 
-const musdWhaleAddress = "0x136d841d4bece3fc0e4debb94356d8b6b4b93209"
+const fusdWhaleAddress = "0x136d841d4bece3fc0e4debb94356d8b6b4b93209"
 const governorAddress = resolveAddress("Governor")
 const deployerAddress = resolveAddress("OperationsSigner")
 const ethWhaleAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
@@ -37,9 +37,9 @@ context("Recipient deployment and upgrade", () => {
     let deployer: Account
     let governor: Account
     let ethWhale: Signer
-    let musdWhale: Signer
+    let fusdWhale: Signer
     let savingsManager: SavingsManager
-    let musdAddr: string
+    let fusdAddr: string
     let gaugeBriber: GaugeBriber
     let collector: Collector
 
@@ -60,7 +60,7 @@ context("Recipient deployment and upgrade", () => {
         deployer = await impersonateAccount(deployerAddress)
         governor = await impersonateAccount(governorAddress)
         ethWhale = await impersonate(ethWhaleAddress)
-        musdWhale = await impersonate(musdWhaleAddress)
+        fusdWhale = await impersonate(fusdWhaleAddress)
 
         // send some Ether to the impersonated multisig contract as it doesn't have Ether
         await ethWhale.sendTransaction({
@@ -71,14 +71,14 @@ context("Recipient deployment and upgrade", () => {
     context("1. Deploying", () => {
         it("deploys new contract", async () => {
             const nexus = resolveAddress("Nexus", Chain.mainnet)
-            musdAddr = resolveAddress("mUSD", Chain.mainnet, "address")
+            fusdAddr = resolveAddress("fUSD", Chain.mainnet, "address")
             const keeper = "0xb81473f20818225302b8fffb905b53d58a793d84"
             const briber = "0xd0f0F590585384AF7AB420bE1CFB3A3F8a82D775"
             const childRecipient = resolveAddress("RevenueRecipient", Chain.mainnet)
 
             gaugeBriber = await deployContract(new GaugeBriber__factory(deployer.signer), "GaugeBriber", [
                 nexus,
-                musdAddr,
+                fusdAddr,
                 keeper,
                 briber,
                 childRecipient,
@@ -87,7 +87,7 @@ context("Recipient deployment and upgrade", () => {
         it("execs upgrade", async () => {
             const savingsManagerAddress = resolveAddress("SavingsManager", Chain.mainnet)
             savingsManager = SavingsManager__factory.connect(savingsManagerAddress, governor.signer)
-            await savingsManager.setRevenueRecipient(musdAddr, gaugeBriber.address)
+            await savingsManager.setRevenueRecipient(fusdAddr, gaugeBriber.address)
 
             const collectorAddress = resolveAddress("Collector", Chain.mainnet)
             collector = Collector__factory.connect(collectorAddress, governor.signer)
@@ -102,14 +102,14 @@ context("Recipient deployment and upgrade", () => {
     context("2. Beta tests", () => {
         let bal
         it("collects & distributes to revenueRecipient", async () => {
-            await collector.distributeInterest([musdAddr], true)
-            bal = await ERC20__factory.connect(musdAddr, deployer.signer).balanceOf(gaugeBriber.address)
+            await collector.distributeInterest([fusdAddr], true)
+            bal = await ERC20__factory.connect(fusdAddr, deployer.signer).balanceOf(gaugeBriber.address)
             expect(bal).gt(0)
             expect(await gaugeBriber.available(0)).eq(bal)
         })
         it("forwards to briber", async () => {
             await gaugeBriber.forward()
-            const briberBal = await ERC20__factory.connect(musdAddr, deployer.signer).balanceOf(
+            const briberBal = await ERC20__factory.connect(fusdAddr, deployer.signer).balanceOf(
                 "0xd0f0F590585384AF7AB420bE1CFB3A3F8a82D775",
             )
             expect(briberBal).eq(bal)
@@ -122,8 +122,8 @@ context("Recipient deployment and upgrade", () => {
         })
         it("collects & distributes to revenueRecipient", async () => {
             await increaseTime(ONE_WEEK)
-            await collector.distributeInterest([musdAddr], true)
-            bal = await ERC20__factory.connect(musdAddr, deployer.signer).balanceOf(gaugeBriber.address)
+            await collector.distributeInterest([fusdAddr], true)
+            bal = await ERC20__factory.connect(fusdAddr, deployer.signer).balanceOf(gaugeBriber.address)
             expect(bal).gt(0)
             const available0 = await gaugeBriber.available(0)
             const available1 = await gaugeBriber.available(1)

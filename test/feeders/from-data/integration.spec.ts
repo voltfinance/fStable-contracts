@@ -5,7 +5,7 @@ import { simpleToExactAmount, BN } from "@utils/math"
 import { MAX_UINT256, ZERO_ADDRESS } from "@utils/constants"
 import { ExposedFeederPool, ExposedFeederPool__factory, FeederLogic__factory, MockERC20, FeederManager__factory } from "types/generated"
 import { assertBNClose } from "@utils/assertions"
-import { MassetMachine, StandardAccounts } from "@utils/machines"
+import { FassetMachine, StandardAccounts } from "@utils/machines"
 import { feederData } from "@utils/validator-data"
 
 const config = {
@@ -15,7 +15,7 @@ const config = {
         max: simpleToExactAmount(80, 16),
     },
 }
-const massetA = 300
+const fassetA = 300
 const ratio = simpleToExactAmount(1, 8)
 const tolerance = BN.from(10)
 const maxAction = 100
@@ -40,14 +40,14 @@ describe("Feeder Validation - One basket many tests", () => {
     let bAssetAddresses: string[]
     before(async () => {
         const accounts = await ethers.getSigners()
-        const mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        sa = mAssetMachine.sa
+        const fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        sa = fAssetMachine.sa
         recipient = await sa.default.address
 
-        const mAssetDetails = await mAssetMachine.deployMasset(false, false, massetA)
-        await mAssetMachine.seedWithWeightings(mAssetDetails, [25000000, 25000000, 25000000, 25000000])
-        const bBtc = await mAssetMachine.loadBassetProxy("Binance BTC", "bBTC", 18)
-        const bAssets = [mAssetDetails.mAsset as MockERC20, bBtc]
+        const fAssetDetails = await fAssetMachine.deployFasset(false, false, fassetA)
+        await fAssetMachine.seedWithWeightings(fAssetDetails, [25000000, 25000000, 25000000, 25000000])
+        const bBtc = await fAssetMachine.loadBassetProxy("Binance BTC", "bBTC", 18)
+        const bAssets = [fAssetDetails.fAsset as MockERC20, bBtc]
         bAssetAddresses = bAssets.map((b) => b.address)
         const feederLogic = await new FeederLogic__factory(sa.default.signer).deploy()
         const manager = await new FeederManager__factory(sa.default.signer).deploy()
@@ -60,7 +60,7 @@ describe("Feeder Validation - One basket many tests", () => {
             })
         ).connect(sa.default.signer) as ExposedFeederPool__factory
 
-        feederPool = (await FeederFactory.deploy(mAssetDetails.nexus.address, bAssets[0].address)) as ExposedFeederPool
+        feederPool = (await FeederFactory.deploy(fAssetDetails.nexus.address, bAssets[0].address)) as ExposedFeederPool
         await feederPool.initialize(
             "mStable mBTC/bBTC Feeder",
             "bBTC fPool",
@@ -76,7 +76,7 @@ describe("Feeder Validation - One basket many tests", () => {
                 hasTxFee: false,
                 status: 0,
             },
-            mAssetDetails.bAssets.map((b) => b.address),
+            fAssetDetails.bAssets.map((b) => b.address),
             config,
         )
         await feederPool.connect(sa.governor.signer).setFees(feederFees.swap, feederFees.redeem, feederFees.gov)
@@ -227,7 +227,7 @@ describe("Feeder Validation - One basket many tests", () => {
                             break
                         case "redeem":
                             if (testData.hardLimitError) {
-                                it(`throws Max Weight error when redeeming ${testData.inputQty} mAssets for bAsset ${testData.inputIndex}`, async () => {
+                                it(`throws Max Weight error when redeeming ${testData.inputQty} fAssets for bAsset ${testData.inputIndex}`, async () => {
                                     await expect(
                                         feederPool.redeem(bAssetAddresses[testData.inputIndex], testData.inputQty, 0, recipient),
                                     ).to.be.revertedWith("Exceeds weight limits")
@@ -236,7 +236,7 @@ describe("Feeder Validation - One basket many tests", () => {
                                     ).to.be.revertedWith("Exceeds weight limits")
                                 })
                             } else if (testData.insufficientLiquidityError) {
-                                it(`throws insufficient liquidity error when redeeming ${testData.inputQty} mAssets for bAsset ${testData.inputIndex}`, async () => {
+                                it(`throws insufficient liquidity error when redeeming ${testData.inputQty} fAssets for bAsset ${testData.inputIndex}`, async () => {
                                     await expect(
                                         feederPool.redeem(bAssetAddresses[testData.inputIndex], testData.inputQty, 0, recipient),
                                     ).to.be.revertedWith("VM Exception")
@@ -245,7 +245,7 @@ describe("Feeder Validation - One basket many tests", () => {
                                     ).to.be.revertedWith("VM Exception")
                                 })
                             } else {
-                                it(`redeem ${testData.inputQty} mAssets for bAsset ${testData.inputIndex}`, async () => {
+                                it(`redeem ${testData.inputQty} fAssets for bAsset ${testData.inputIndex}`, async () => {
                                     const expectedOutput = await feederPool.getRedeemOutput(
                                         bAssetAddresses[testData.inputIndex],
                                         testData.inputQty,
@@ -261,11 +261,11 @@ describe("Feeder Validation - One basket many tests", () => {
                                 })
                             }
                             break
-                        case "redeemMasset":
+                        case "redeemFasset":
                             {
                                 const qtys = testData.expectedQtys.map((b) => cv(b).sub(5))
                                 if (testData.insufficientLiquidityError) {
-                                    it(`throws throw insufficient liquidity error when redeeming ${testData.inputQty} mAsset`, async () => {
+                                    it(`throws throw insufficient liquidity error when redeeming ${testData.inputQty} fAsset`, async () => {
                                         await expect(
                                             feederPool.redeemProportionately(cv(testData.inputQty), qtys, recipient),
                                         ).to.be.revertedWith("VM Exception")
@@ -278,7 +278,7 @@ describe("Feeder Validation - One basket many tests", () => {
                                         throw new Error("invalid exception")
                                     })
                                 } else {
-                                    it(`redeem ${testData.inputQty} mAssets for proportionate bAssets`, async () => {
+                                    it(`redeem ${testData.inputQty} fAssets for proportionate bAssets`, async () => {
                                         await feederPool.redeemProportionately(cv(testData.inputQty), qtys, recipient)
                                     })
                                 }
@@ -331,7 +331,7 @@ describe("Feeder Validation - One basket many tests", () => {
                             dataEnd.vaultBalances.map((vb, i) => assertBNClose(vb, cv(testData.reserves[i]), BN.from(1000)))
                         }
                         // 2. Price always goes up
-                        if (testData.type !== "redeemMasset") {
+                        if (testData.type !== "redeemFasset") {
                             expect(dataEnd.value.price, "fpToken price should always go up").gte(dataBefore.value.price)
                         } else if (dataEnd.value.price.lt(dataBefore.value.price)) {
                             assertBNClose(dataEnd.value.price, dataBefore.value.price, 200, "fpToken price should always go up")

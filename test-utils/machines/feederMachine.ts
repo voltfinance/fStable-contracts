@@ -14,7 +14,7 @@ import {
     InterestValidator,
     MockATokenV2__factory,
     MockAaveV2__factory,
-    Masset,
+    Fasset,
     MockERC20__factory,
     NonPeggedFeederPool__factory,
     RedemptionPriceSnapMock,
@@ -25,31 +25,31 @@ import { ratioScale, ZERO_ADDRESS, DEAD_ADDRESS, fullScale } from "@utils/consta
 import { Basset } from "@utils/mstable-objects"
 import { StandardAccounts } from "./standardAccounts"
 import { ActionDetails, BasketComposition } from "../../types/machines"
-import { MassetMachine, MassetDetails } from "./mAssetMachine"
+import { FassetMachine, FassetDetails } from "./fAssetMachine"
 
 export interface FeederDetails {
     pool?: FeederPool
     logic?: FeederLogic
     manager?: FeederManager
     interestValidator?: InterestValidator
-    mAsset?: MockERC20 & Masset
+    fAsset?: MockERC20 & Fasset
     fdAsset?: MockERC20
-    // [0] = mAsset
+    // [0] = fAsset
     // [1] = fdAsset
     bAssets?: MockERC20[]
     pTokens?: Array<string>
-    mAssetDetails?: MassetDetails
+    fAssetDetails?: FassetDetails
     redemptionPriceSnap?: RedemptionPriceSnapMock
 }
 
 export class FeederMachine {
     public sa: StandardAccounts
 
-    public mAssetMachine: MassetMachine
+    public fAssetMachine: FassetMachine
 
-    constructor(massetMachine: MassetMachine) {
-        this.mAssetMachine = massetMachine
-        this.sa = massetMachine.sa
+    constructor(fassetMachine: FassetMachine) {
+        this.fAssetMachine = fassetMachine
+        this.sa = fassetMachine.sa
     }
 
     public async initAccounts(accounts: Signer[]): Promise<FeederMachine> {
@@ -59,18 +59,18 @@ export class FeederMachine {
 
     public async deployFeeder(
         feederWeights: Array<BN | number> = [200, 200],
-        mAssetWeights: Array<BN | number> = [2500, 2500, 2500, 2500],
+        fAssetWeights: Array<BN | number> = [2500, 2500, 2500, 2500],
         useLendingMarkets = false,
         useInterestValidator = false,
         use2dp = false,
         useRedemptionPrice = false,
     ): Promise<FeederDetails> {
-        const mAssetDetails = await this.mAssetMachine.deployMasset(useLendingMarkets, false)
-        // Mints 10k mAsset to begin with
-        await this.mAssetMachine.seedWithWeightings(mAssetDetails, mAssetWeights)
+        const fAssetDetails = await this.fAssetMachine.deployFasset(useLendingMarkets, false)
+        // Mints 10k fAsset to begin with
+        await this.fAssetMachine.seedWithWeightings(fAssetDetails, fAssetWeights)
 
-        const fdAsset = await this.mAssetMachine.loadBassetProxy("Binance BTC", "bBTC", use2dp ? 2 : 18)
-        const bAssets = [mAssetDetails.mAsset as MockERC20, fdAsset]
+        const fdAsset = await this.fAssetMachine.loadBassetProxy("Binance BTC", "bBTC", use2dp ? 2 : 18)
+        const bAssets = [fAssetDetails.fAsset as MockERC20, fdAsset]
         const feederLogic = await new FeederLogic__factory(this.sa.default.signer).deploy()
         const feederManager = await new FeederManager__factory(this.sa.default.signer).deploy()
         const linkedAddress = {
@@ -84,30 +84,30 @@ export class FeederMachine {
         // - Deploy InterestValidator contract
         let interestValidator: InterestValidator
         if (useInterestValidator) {
-            interestValidator = await new InterestValidator__factory(this.sa.default.signer).deploy(mAssetDetails.nexus.address)
-            await mAssetDetails.nexus.setInterestValidator(interestValidator.address)
+            interestValidator = await new InterestValidator__factory(this.sa.default.signer).deploy(fAssetDetails.nexus.address)
+            await fAssetDetails.nexus.setInterestValidator(interestValidator.address)
         }
 
         // - Add fdAsset to lending markets
-        const platformIntegration = new MockPlatformIntegration__factory(this.sa.governor.signer).attach(mAssetDetails.integrationAddress)
+        const platformIntegration = new MockPlatformIntegration__factory(this.sa.governor.signer).attach(fAssetDetails.integrationAddress)
         const pTokens: string[] = []
         if (useLendingMarkets) {
-            //  - Deploy mock aToken for the mAsset and fdAsset
+            //  - Deploy mock aToken for the fAsset and fdAsset
             const aTokenFactory = new MockATokenV2__factory(this.sa.default.signer)
-            const mockATokenMasset = await aTokenFactory.deploy(mAssetDetails.aavePlatformAddress, mAssetDetails.mAsset.address)
-            const mockATokenFasset = await aTokenFactory.deploy(mAssetDetails.aavePlatformAddress, fdAsset.address)
-            pTokens.push(mockATokenMasset.address, mockATokenFasset.address)
-            // - Transfer some of the mAsset and fdAsset supply to the mocked Aave
-            await mAssetDetails.mAsset.transfer(mAssetDetails.aavePlatformAddress, (await mAssetDetails.mAsset.totalSupply()).div(1000))
-            await fdAsset.transfer(mAssetDetails.aavePlatformAddress, (await fdAsset.totalSupply()).div(1000))
+            const mockATokenFasset = await aTokenFactory.deploy(fAssetDetails.aavePlatformAddress, fAssetDetails.fAsset.address)
+            const mockATokenFDasset = await aTokenFactory.deploy(fAssetDetails.aavePlatformAddress, fdAsset.address)
+            pTokens.push(mockATokenFasset.address, mockATokenFDasset.address)
+            // - Transfer some of the fAsset and fdAsset supply to the mocked Aave
+            await fAssetDetails.fAsset.transfer(fAssetDetails.aavePlatformAddress, (await fAssetDetails.fAsset.totalSupply()).div(1000))
+            await fdAsset.transfer(fAssetDetails.aavePlatformAddress, (await fdAsset.totalSupply()).div(1000))
 
-            // - Add mAsset and fdAsset to the mocked Aave platform
-            const mockAave = new MockAaveV2__factory(this.sa.default.signer).attach(mAssetDetails.aavePlatformAddress)
-            await mockAave.addAToken(mockATokenMasset.address, mAssetDetails.mAsset.address)
-            await mockAave.addAToken(mockATokenFasset.address, fdAsset.address)
+            // - Add fAsset and fdAsset to the mocked Aave platform
+            const mockAave = new MockAaveV2__factory(this.sa.default.signer).attach(fAssetDetails.aavePlatformAddress)
+            await mockAave.addAToken(mockATokenFasset.address, fAssetDetails.fAsset.address)
+            await mockAave.addAToken(mockATokenFDasset.address, fdAsset.address)
 
-            // - Add mAsset and fdAsset to the platform integration
-            await platformIntegration.setPTokenAddress(mAssetDetails.mAsset.address, mockATokenMasset.address)
+            // - Add fAsset and fdAsset to the platform integration
+            await platformIntegration.setPTokenAddress(fAssetDetails.fAsset.address, mockATokenFasset.address)
             await platformIntegration.setPTokenAddress(fdAsset.address, mockATokenFasset.address)
         }
 
@@ -119,34 +119,34 @@ export class FeederMachine {
 
             feederPoolFactory = NonPeggedFeederPool__factory;
             impl = await new feederPoolFactory(linkedAddress, this.sa.default.signer).deploy(
-                mAssetDetails.nexus.address,
-                mAssetDetails.mAsset.address,
+                fAssetDetails.nexus.address,
+                fAssetDetails.fAsset.address,
                 redemptionPriceSnapAddress,
             )
         }
         else {
             feederPoolFactory = FeederPool__factory;
             impl = await new feederPoolFactory(linkedAddress, this.sa.default.signer).deploy(
-                mAssetDetails.nexus.address,
-                mAssetDetails.mAsset.address,
+                fAssetDetails.nexus.address,
+                fAssetDetails.fAsset.address,
             )
         }
         const data = impl.interface.encodeFunctionData("initialize", [
             "mStable mBTC/bBTC Feeder",
             "bBTC fPool",
             {
-                addr: mAssetDetails.mAsset.address,
-                integrator: useLendingMarkets ? mAssetDetails.integrationAddress : ZERO_ADDRESS,
+                addr: fAssetDetails.fAsset.address,
+                integrator: useLendingMarkets ? fAssetDetails.integrationAddress : ZERO_ADDRESS,
                 hasTxFee: false,
                 status: 0,
             },
             {
                 addr: fdAsset.address,
-                integrator: useLendingMarkets ? mAssetDetails.integrationAddress : ZERO_ADDRESS,
+                integrator: useLendingMarkets ? fAssetDetails.integrationAddress : ZERO_ADDRESS,
                 hasTxFee: false,
                 status: 0,
             },
-            mAssetDetails.bAssets.map((b) => b.address),
+            fAssetDetails.bAssets.map((b) => b.address),
             {
                 a: BN.from(300),
                 limits: {
@@ -167,7 +167,7 @@ export class FeederMachine {
 
         if (feederWeights?.length > 0) {
             const approvals = await Promise.all(
-                bAssets.map((b, i) => this.mAssetMachine.approveMasset(b, pool, feederWeights[i], this.sa.default.signer)),
+                bAssets.map((b, i) => this.fAssetMachine.approveFasset(b, pool, feederWeights[i], this.sa.default.signer)),
             )
             await pool.mintMulti(
                 bAssets.map((b) => b.address),
@@ -181,11 +181,11 @@ export class FeederMachine {
             logic: feederLogic,
             manager: feederManager,
             interestValidator,
-            mAsset: mAssetDetails.mAsset,
+            fAsset: fAssetDetails.fAsset,
             fdAsset,
             bAssets,
             pTokens,
-            mAssetDetails,
+            fAssetDetails,
             redemptionPriceSnap,
         }
     }
@@ -223,22 +223,22 @@ export class FeederMachine {
         }))
     }
 
-    // Gets the fdAsset, mAsset or mpAsset
+    // Gets the fdAsset, fAsset or mpAsset
     public async getAsset(
         feederDetails: FeederDetails,
         assetAddress: string,
-    ): Promise<Basset & { isMpAsset: boolean; feederPoolOrMassetContract: MockERC20 }> {
+    ): Promise<Basset & { isMpAsset: boolean; feederPoolOrFassetContract: MockERC20 }> {
         let asset
         let isMpAsset = false
         // If a feeder asset or mStable asset
-        if (assetAddress === feederDetails.fdAsset.address || assetAddress === feederDetails.mAsset.address) {
+        if (assetAddress === feederDetails.fdAsset.address || assetAddress === feederDetails.fAsset.address) {
             asset = await feederDetails.pool.getBasset(assetAddress)
             // If a main pool asset
-        } else if (feederDetails.mAssetDetails.bAssets.map((b) => b.address).includes(assetAddress)) {
-            asset = await feederDetails.mAsset.getBasset(assetAddress)
+        } else if (feederDetails.fAssetDetails.bAssets.map((b) => b.address).includes(assetAddress)) {
+            asset = await feederDetails.fAsset.getBasset(assetAddress)
             isMpAsset = true
         } else {
-            throw new Error(`Asset with address ${assetAddress} is not a fdAsset, mAsset or mpAsset`)
+            throw new Error(`Asset with address ${assetAddress} is not a fdAsset, fAsset or mpAsset`)
         }
         const assetContract = MockERC20__factory.connect(asset.personal.addr, this.sa.default.signer)
         const integrator =
@@ -258,7 +258,7 @@ export class FeederMachine {
             pToken: integrator ? await integrator.callStatic["bAssetToPToken(address)"](asset.personal.addr) : null,
             integrator,
             isMpAsset,
-            feederPoolOrMassetContract: isMpAsset ? feederDetails.mAsset : feederDetails.pool,
+            feederPoolOrFassetContract: isMpAsset ? feederDetails.fAsset : feederDetails.pool,
         }
     }
 
@@ -266,7 +266,7 @@ export class FeederMachine {
         // raw bAsset data
         const bAssets = await this.getBassets(feederDetails)
 
-        // total supply of mAsset
+        // total supply of fAsset
         const supply = await feederDetails.pool.totalSupply()
         // get actual balance of each bAsset
         const rawBalances = await Promise.all(
@@ -287,7 +287,7 @@ export class FeederMachine {
             bAssets: bAssets.map((b, i) => ({
                 ...b,
                 address: b.addr,
-                mAssetUnits: currentVaultUnits[i],
+                fAssetUnits: currentVaultUnits[i],
                 actualBalance: balances[i],
                 rawBalance: rawBalances[i],
                 platformBalance: platformBalances[i],

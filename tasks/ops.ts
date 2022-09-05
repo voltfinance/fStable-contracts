@@ -11,7 +11,7 @@ import {
 import { QuestType } from "types/stakedToken"
 import { DefenderRelayProvider, DefenderRelaySigner } from "defender-relay-client/lib/ethers"
 import { BN, simpleToExactAmount } from "@utils/math"
-import { PmUSD, PUSDC, tokens } from "./utils/tokens"
+import { PfUSD, PUSDC, tokens } from "./utils/tokens"
 import { getSigner } from "./utils/signerFactory"
 import { logTxDetails } from "./utils/deploy-utils"
 import { getChain, getChainAddress, resolveAddress } from "./utils/networkAddressFactory"
@@ -21,7 +21,7 @@ import { getQueuedUsersForQuest, hasUserCompletedQuest, signQuestUsers } from ".
 task("collect-interest", "Collects and streams interest from platforms")
     .addParam(
         "asset",
-        "Token symbol of main or feeder pool asset. eg mUSD, mBTC, fpmBTC/HBTC or fpmUSD/GUSD",
+        "Token symbol of main or feeder pool asset. eg fUSD, mBTC, fpmBTC/HBTC or fpfUSD/GUSD",
         undefined,
         types.string,
         false,
@@ -54,7 +54,7 @@ task("collect-interest", "Collects and streams interest from platforms")
         await logTxDetails(tx, "collectAndStreamInterest")
     })
 
-task("revenue-deposit", "Deposit mUSD and mBTC revenue into Balancer Pool using private transaction")
+task("revenue-deposit", "Deposit fUSD and mBTC revenue into Balancer Pool using private transaction")
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "average", types.string)
     .setAction(async (taskArgs, hre) => {
         const chain = getChain(hre)
@@ -64,13 +64,13 @@ task("revenue-deposit", "Deposit mUSD and mBTC revenue into Balancer Pool using 
         const scale = simpleToExactAmount(1)
 
         // 1 - Get contracts
-        const mUSD = ERC20__factory.connect(resolveAddress("mUSD", chain), signer)
+        const fUSD = ERC20__factory.connect(resolveAddress("fUSD", chain), signer)
         const mBTC = ERC20__factory.connect(resolveAddress("mBTC", chain), signer)
         const RevenueRecipientAddress = resolveAddress("RevenueRecipient", chain)
         const recipient = RevenueRecipient__factory.connect(RevenueRecipientAddress, signer)
 
         // 2 - work out pcts
-        let assets = [mUSD, mBTC]
+        let assets = [fUSD, mBTC]
         const balRecipient = await Promise.all(assets.map((a) => a.balanceOf(RevenueRecipientAddress)))
         assets = assets.filter((b, i) => balRecipient[i].gt(BN.from(0)))
         if (assets.length === 0) return
@@ -96,7 +96,7 @@ task("polly-daily", "Runs the daily jobs against the contracts on Polygon mainne
 
         const savingsManagerAddress = getChainAddress("SavingsManager", chain)
         const savingsManager = SavingsManager__factory.connect(savingsManagerAddress, signer)
-        const savingsManagerTx = await savingsManager.collectAndStreamInterest(PmUSD.address, {
+        const savingsManagerTx = await savingsManager.collectAndStreamInterest(PfUSD.address, {
             gasLimit: 2000000,
         })
         await logTxDetails(savingsManagerTx, "collectAndStreamInterest")
@@ -105,7 +105,7 @@ task("polly-daily", "Runs the daily jobs against the contracts on Polygon mainne
 task("proxy-upgrades", "Proxy implementation changes")
     .addParam(
         "asset",
-        "Token symbol of main or feeder pool asset. eg mUSD, mBTC, fpmBTC/HBTC or fpmUSD/GUSD",
+        "Token symbol of main or feeder pool asset. eg fUSD, mBTC, fpmBTC/HBTC or fpfUSD/GUSD",
         undefined,
         types.string,
         false,
@@ -138,7 +138,7 @@ task("proxy-upgrades", "Proxy implementation changes")
 task("proxy-admin", "Get the admin address of a proxy contract")
     .addParam(
         "proxy",
-        "Token symbol, contract name or address of the proxy contract. eg mUSD, EmissionsController",
+        "Token symbol, contract name or address of the proxy contract. eg fUSD, EmissionsController",
         undefined,
         types.string,
         false,
@@ -159,7 +159,7 @@ task("proxy-admin", "Get the admin address of a proxy contract")
 task("proxy-admin-change", "Change the admin of a proxy contract")
     .addParam(
         "proxy",
-        "Token symbol, contract name or address of the proxy contract. eg mUSD, EmissionsController",
+        "Token symbol, contract name or address of the proxy contract. eg fUSD, EmissionsController",
         undefined,
         types.string,
         false,

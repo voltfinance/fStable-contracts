@@ -7,7 +7,7 @@ import { InitializableERC20Detailed } from "./InitializableERC20Detailed.sol";
 /**
  * @title  InitializableToken
  * @author mStable
- * @dev    Basic ERC20Detailed Token functionality for Masset
+ * @dev    Basic ERC20Detailed Token functionality for Fasset
  */
 abstract contract InitializableToken is ERC205, InitializableERC20Detailed {
     /**

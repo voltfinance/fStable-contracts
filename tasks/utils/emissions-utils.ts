@@ -74,7 +74,7 @@ export const deployEmissionsController = async (
         dialRecipients = [
             mtaStakingAddress,
             mbptStakingAddress,
-            resolveAddress("mUSD", chain, "vault"),
+            resolveAddress("fUSD", chain, "vault"),
             resolveAddress("mBTC", chain, "vault"),
             resolveAddress("GUSD", chain, "vault"),
             resolveAddress("BUSD", chain, "vault"),
@@ -93,7 +93,7 @@ export const deployEmissionsController = async (
         dialRecipients = [
             mtaStakingAddress,
             mbptStakingAddress,
-            resolveAddress("mUSD", chain, "vault"),
+            resolveAddress("fUSD", chain, "vault"),
             resolveAddress("mBTC", chain, "vault"),
         ]
         caps = [10, 10, 0, 0]

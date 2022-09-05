@@ -2,7 +2,7 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 import { ethers } from "hardhat"
-import { MassetMachine, StandardAccounts } from "@utils/machines"
+import { FassetMachine, StandardAccounts } from "@utils/machines"
 import { MockNexus__factory } from "types/generated/factories/MockNexus__factory"
 import {
     AssetProxy__factory,
@@ -155,8 +155,8 @@ describe("Staked Token", () => {
 
     before("Create Contract", async () => {
         const accounts = await ethers.getSigners()
-        const mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        sa = mAssetMachine.sa
+        const fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        sa = fAssetMachine.sa
     })
 
     // '''..................................................................'''

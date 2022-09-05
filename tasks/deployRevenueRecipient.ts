@@ -13,7 +13,7 @@ interface Config {
     swapFee: BN
     bFactory: string
     factory: string
-    mAssets: string[]
+    fAssets: string[]
     minOuts: BN[]
     dao: string
     daoProxy: string
@@ -45,7 +45,7 @@ task("deployRevenueRecipient", "Deploys an instance of revenue recipient contrac
         swapFee: simpleToExactAmount(5, 16),
         bFactory: "0x9424B1412450D0f8Fc2255FAf6046b98213B76Bd",
         factory: "0xed52D8E202401645eDAD1c0AA21e872498ce47D0",
-        mAssets: ["0xe2f2a5C287993345a840Db3B0845fbC70f5935a5", "0x945Facb997494CC2570096c74b5F66A3507330a1"],
+        fAssets: ["0xe2f2a5C287993345a840Db3B0845fbC70f5935a5", "0x945Facb997494CC2570096c74b5F66A3507330a1"],
         minOuts: [simpleToExactAmount(3, 17), simpleToExactAmount(20000, 18)],
         dao: "0xF6FF1F7FCEB2cE6d26687EaaB5988b445d0b94a2",
         daoProxy: "0x7fFAF4ceD81E7c4E71b3531BD7948d7FA8f20329",
@@ -125,7 +125,7 @@ task("deployRevenueRecipient", "Deploys an instance of revenue recipient contrac
         config.nexus,
         poolAddress,
         config.balToken,
-        config.mAssets,
+        config.fAssets,
         config.minOuts,
     )
     console.log(`Deploying recipient... ${tx.hash}`)

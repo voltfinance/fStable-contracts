@@ -6,14 +6,14 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 import { IBoostedVaultWithLockup } from "../../interfaces/IBoostedVaultWithLockup.sol";
 import { IFeederPool } from "../../interfaces/IFeederPool.sol";
-import { IMasset } from "../../interfaces/IMasset.sol";
+import { IFasset } from "../../interfaces/IFasset.sol";
 import { ISavingsContractV4 } from "../../interfaces/ISavingsContract.sol";
 import { IUniswapV2Router02 } from "../../peripheral/Uniswap/IUniswapV2Router02.sol";
 import { IBasicToken } from "../../shared/IBasicToken.sol";
 import { ImmutableModule } from "../../shared/ImmutableModule.sol";
 
 // FLOWS
-// 0 - mAsset -> Savings Vault
+// 0 - fAsset -> Savings Vault
 // 1 - bAsset -> Save/Savings Vault via Mint
 // 2 - fdAsset -> Save/Savings Vault via Feeder Pool
 // 3 - ETH    -> Save/Savings Vault via Uniswap
@@ -23,51 +23,51 @@ contract SaveWrapper is ImmutableModule {
     constructor(address _nexus) ImmutableModule(_nexus) {}
 
     /**
-     * @dev 0. Simply saves an mAsset and then into the vault
-     * @param _mAsset   mAsset address
+     * @dev 0. Simply saves an fAsset and then into the vault
+     * @param _fAsset   fAsset address
      * @param _save     Save address
      * @param _vault    Boosted Savings Vault address
-     * @param _amount   Units of mAsset to deposit to savings
+     * @param _amount   Units of fAsset to deposit to savings
      */
     function saveAndStake(
-        address _mAsset,
+        address _fAsset,
         address _save,
         address _vault,
         uint256 _amount
     ) external {
-        _saveAndStake(_mAsset, _save, _vault, _amount, true, address(0));
+        _saveAndStake(_fAsset, _save, _vault, _amount, true, address(0));
     }
 
     /**
-     * @dev 0. Simply saves an mAsset and then into the vault
-     * @param _mAsset   mAsset address
+     * @dev 0. Simply saves an fAsset and then into the vault
+     * @param _fAsset   fAsset address
      * @param _save     Save address
      * @param _vault    Boosted Savings Vault address
-     * @param _amount   Units of mAsset to deposit to savings
+     * @param _amount   Units of fAsset to deposit to savings
      * @param _referrer Referrer address for this deposit.
      */
     function saveAndStake(
-        address _mAsset,
+        address _fAsset,
         address _save,
         address _vault,
         uint256 _amount,
         address _referrer
     ) external {
-        _saveAndStake(_mAsset, _save, _vault, _amount, true, _referrer);
+        _saveAndStake(_fAsset, _save, _vault, _amount, true, _referrer);
     }
 
     /**
-     * @dev 1. Mints an mAsset and then deposits to Save/Savings Vault
-     * @param _mAsset       mAsset address
+     * @dev 1. Mints an fAsset and then deposits to Save/Savings Vault
+     * @param _fAsset       fAsset address
      * @param _bAsset       bAsset address
      * @param _save         Save address
      * @param _vault        Boosted Savings Vault address
      * @param _amount       Amount of bAsset to mint with
-     * @param _minOut       Min amount of mAsset to get back
-     * @param _stake        Add the imAsset to the Boosted Savings Vault?
+     * @param _minOut       Min amount of fAsset to get back
+     * @param _stake        Add the ifAsset to the Boosted Savings Vault?
      */
     function saveViaMint(
-        address _mAsset,
+        address _fAsset,
         address _save,
         address _vault,
         address _bAsset,
@@ -75,22 +75,22 @@ contract SaveWrapper is ImmutableModule {
         uint256 _minOut,
         bool _stake
     ) external {
-        _saveViaMint(_mAsset, _save, _vault, _bAsset, _amount, _minOut, _stake, address(0));
+        _saveViaMint(_fAsset, _save, _vault, _bAsset, _amount, _minOut, _stake, address(0));
     }
 
     /**
-     * @dev 1. Mints an mAsset and then deposits to Save/Savings Vault
-     * @param _mAsset       mAsset address
+     * @dev 1. Mints an fAsset and then deposits to Save/Savings Vault
+     * @param _fAsset       fAsset address
      * @param _bAsset       bAsset address
      * @param _save         Save address
      * @param _vault        Boosted Savings Vault address
      * @param _amount       Amount of bAsset to mint with
-     * @param _minOut       Min amount of mAsset to get back
-     * @param _stake        Add the imAsset to the Boosted Savings Vault?
+     * @param _minOut       Min amount of fAsset to get back
+     * @param _stake        Add the ifAsset to the Boosted Savings Vault?
      * @param _referrer     Referrer address for this deposit.
      */
     function saveViaMint(
-        address _mAsset,
+        address _fAsset,
         address _save,
         address _vault,
         address _bAsset,
@@ -99,22 +99,22 @@ contract SaveWrapper is ImmutableModule {
         bool _stake,
         address _referrer
     ) external {
-        _saveViaMint(_mAsset, _save, _vault, _bAsset, _amount, _minOut, _stake, _referrer);
+        _saveViaMint(_fAsset, _save, _vault, _bAsset, _amount, _minOut, _stake, _referrer);
     }
 
     /**
-     * @dev 2. Swaps fdAsset for mAsset and then deposits to Save/Savings Vault
-     * @param _mAsset             mAsset address
+     * @dev 2. Swaps fdAsset for fAsset and then deposits to Save/Savings Vault
+     * @param _fAsset             fAsset address
      * @param _save               Save address
      * @param _vault              Boosted Savings Vault address
      * @param _feeder             Feeder Pool address
      * @param _fdAsset             fdAsset address
      * @param _fdAssetQuantity     Quantity of fdAsset sent
-     * @param _minOutputQuantity  Min amount of mAsset to be swapped and deposited
-     * @param _stake              Deposit the imAsset in the Savings Vault?
+     * @param _minOutputQuantity  Min amount of fAsset to be swapped and deposited
+     * @param _stake              Deposit the ifAsset in the Savings Vault?
      */
     function saveViaSwap(
-        address _mAsset,
+        address _fAsset,
         address _save,
         address _vault,
         address _feeder,
@@ -124,7 +124,7 @@ contract SaveWrapper is ImmutableModule {
         bool _stake
     ) external {
         _saveViaSwap(
-            _mAsset,
+            _fAsset,
             _save,
             _vault,
             _feeder,
@@ -137,19 +137,19 @@ contract SaveWrapper is ImmutableModule {
     }
 
     /**
-     * @dev 2. Swaps fdAsset for mAsset and then deposits to Save/Savings Vault
-     * @param _mAsset             mAsset address
+     * @dev 2. Swaps fdAsset for fAsset and then deposits to Save/Savings Vault
+     * @param _fAsset             fAsset address
      * @param _save               Save address
      * @param _vault              Boosted Savings Vault address
      * @param _feeder             Feeder Pool address
      * @param _fdAsset             fdAsset address
      * @param _fdAssetQuantity     Quantity of fdAsset sent
-     * @param _minOutputQuantity  Min amount of mAsset to be swapped and deposited
-     * @param _stake              Deposit the imAsset in the Savings Vault?
+     * @param _minOutputQuantity  Min amount of fAsset to be swapped and deposited
+     * @param _stake              Deposit the ifAsset in the Savings Vault?
      * @param _referrer       Referrer address for this deposit.
      */
     function saveViaSwap(
-        address _mAsset,
+        address _fAsset,
         address _save,
         address _vault,
         address _feeder,
@@ -160,7 +160,7 @@ contract SaveWrapper is ImmutableModule {
         address _referrer
     ) external {
         _saveViaSwap(
-            _mAsset,
+            _fAsset,
             _save,
             _vault,
             _feeder,
@@ -173,19 +173,19 @@ contract SaveWrapper is ImmutableModule {
     }
 
     /**
-     * @dev 3. Buys a bAsset on Uniswap with ETH, then mints imAsset via mAsset,
+     * @dev 3. Buys a bAsset on Uniswap with ETH, then mints ifAsset via fAsset,
      *         optionally staking in the Boosted Savings Vault
-     * @param _mAsset         mAsset address
+     * @param _fAsset         fAsset address
      * @param _save           Save address
      * @param _vault          Boosted vault address
      * @param _uniswap        Uniswap router address
      * @param _amountOutMin   Min uniswap output in bAsset units
      * @param _path           Sell path on Uniswap (e.g. [WETH, DAI])
-     * @param _minOutMStable  Min amount of mAsset to receive
-     * @param _stake          Add the imAsset to the Savings Vault?
+     * @param _minOutMStable  Min amount of fAsset to receive
+     * @param _stake          Add the ifAsset to the Savings Vault?
      */
     function saveViaUniswapETH(
-        address _mAsset,
+        address _fAsset,
         address _save,
         address _vault,
         address _uniswap,
@@ -195,7 +195,7 @@ contract SaveWrapper is ImmutableModule {
         bool _stake
     ) external payable {
         _saveViaUniswapETH(
-            _mAsset,
+            _fAsset,
             _save,
             _vault,
             _uniswap,
@@ -208,20 +208,20 @@ contract SaveWrapper is ImmutableModule {
     }
 
     /**
-     * @dev 3. Buys a bAsset on Uniswap with ETH, then mints imAsset via mAsset,
+     * @dev 3. Buys a bAsset on Uniswap with ETH, then mints ifAsset via fAsset,
      *         optionally staking in the Boosted Savings Vault
-     * @param _mAsset         mAsset address
+     * @param _fAsset         fAsset address
      * @param _save           Save address
      * @param _vault          Boosted vault address
      * @param _uniswap        Uniswap router address
      * @param _amountOutMin   Min uniswap output in bAsset units
      * @param _path           Sell path on Uniswap (e.g. [WETH, DAI])
-     * @param _minOutMStable  Min amount of mAsset to receive
-     * @param _stake          Add the imAsset to the Savings Vault?
+     * @param _minOutMStable  Min amount of fAsset to receive
+     * @param _stake          Add the ifAsset to the Savings Vault?
      * @param _referrer       Referrer address for this deposit.
      */
     function saveViaUniswapETH(
-        address _mAsset,
+        address _fAsset,
         address _save,
         address _vault,
         address _uniswap,
@@ -232,7 +232,7 @@ contract SaveWrapper is ImmutableModule {
         address _referrer
     ) external payable {
         _saveViaUniswapETH(
-            _mAsset,
+            _fAsset,
             _save,
             _vault,
             _uniswap,
@@ -245,57 +245,57 @@ contract SaveWrapper is ImmutableModule {
     }
 
     /**
-     * @dev Gets estimated mAsset output from a WETH > bAsset > mAsset trade
-     * @param _mAsset       mAsset address
+     * @dev Gets estimated fAsset output from a WETH > bAsset > fAsset trade
+     * @param _fAsset       fAsset address
      * @param _uniswap      Uniswap router address
      * @param _ethAmount    ETH amount to sell
      * @param _path         Sell path on Uniswap (e.g. [WETH, DAI])
      */
     function estimate_saveViaUniswapETH(
-        address _mAsset,
+        address _fAsset,
         address _uniswap,
         uint256 _ethAmount,
         address[] calldata _path
     ) external view returns (uint256 out) {
-        require(_mAsset != address(0), "Invalid mAsset");
+        require(_fAsset != address(0), "Invalid fAsset");
         require(_uniswap != address(0), "Invalid uniswap");
 
         uint256 estimatedBasset = _getAmountOut(_uniswap, _ethAmount, _path);
-        return IMasset(_mAsset).getMintOutput(_path[_path.length - 1], estimatedBasset);
+        return IFasset(_fAsset).getMintOutput(_path[_path.length - 1], estimatedBasset);
     }
 
     /**
-     * @dev 0. Simply saves an mAsset and then into the vault
-     * @param _mAsset   mAsset address
+     * @dev 0. Simply saves an fAsset and then into the vault
+     * @param _fAsset   fAsset address
      * @param _save     Save address
      * @param _vault    Boosted Savings Vault address
-     * @param _amount   Units of mAsset to deposit to savings
+     * @param _amount   Units of fAsset to deposit to savings
      * @param _referrer Referrer address for this deposit.
      */
     function _saveAndStake(
-        address _mAsset,
+        address _fAsset,
         address _save,
         address _vault,
         uint256 _amount,
         bool _stake,
         address _referrer
     ) internal {
-        require(_mAsset != address(0), "Invalid mAsset");
+        require(_fAsset != address(0), "Invalid fAsset");
         require(_save != address(0), "Invalid save");
         require(_vault != address(0), "Invalid vault");
 
-        // 1. Get the input mAsset
-        IERC20(_mAsset).safeTransferFrom(msg.sender, address(this), _amount);
+        // 1. Get the input fAsset
+        IERC20(_fAsset).safeTransferFrom(msg.sender, address(this), _amount);
 
-        // 2. Mint imAsset and stake in vault
+        // 2. Mint ifAsset and stake in vault
         _depositAndStake(_save, _vault, _amount, _stake, _referrer);
     }
 
     /** @dev Internal func to deposit into Save and optionally stake in the vault
      * @param _save       Save address
      * @param _vault      Boosted vault address
-     * @param _amount     Amount of mAsset to deposit
-     * @param _stake      Add the imAsset to the Savings Vault?
+     * @param _amount     Amount of fAsset to deposit
+     * @param _stake      Add the ifAsset to the Savings Vault?
      * @param _referrer   Referrer address for this deposit, if any.
      */
     function _depositAndStake(
@@ -323,18 +323,18 @@ contract SaveWrapper is ImmutableModule {
     }
 
     /**
-     * @dev 1. Mints an mAsset and then deposits to Save/Savings Vault
-     * @param _mAsset       mAsset address
+     * @dev 1. Mints an fAsset and then deposits to Save/Savings Vault
+     * @param _fAsset       fAsset address
      * @param _bAsset       bAsset address
      * @param _save         Save address
      * @param _vault        Boosted Savings Vault address
      * @param _amount       Amount of bAsset to mint with
-     * @param _minOut       Min amount of mAsset to get back
-     * @param _stake        Add the imAsset to the Boosted Savings Vault?
+     * @param _minOut       Min amount of fAsset to get back
+     * @param _stake        Add the ifAsset to the Boosted Savings Vault?
      * @param _referrer     Referrer address for this deposit.
      */
     function _saveViaMint(
-        address _mAsset,
+        address _fAsset,
         address _save,
         address _vault,
         address _bAsset,
@@ -343,7 +343,7 @@ contract SaveWrapper is ImmutableModule {
         bool _stake,
         address _referrer
     ) internal {
-        require(_mAsset != address(0), "Invalid mAsset");
+        require(_fAsset != address(0), "Invalid fAsset");
         require(_save != address(0), "Invalid save");
         require(_vault != address(0), "Invalid vault");
         require(_bAsset != address(0), "Invalid bAsset");
@@ -352,26 +352,26 @@ contract SaveWrapper is ImmutableModule {
         IERC20(_bAsset).safeTransferFrom(msg.sender, address(this), _amount);
 
         // 2. Mint
-        uint256 massetsMinted = IMasset(_mAsset).mint(_bAsset, _amount, _minOut, address(this));
+        uint256 fassetsMinted = IFasset(_fAsset).mint(_bAsset, _amount, _minOut, address(this));
 
-        // 3. Mint imAsset and optionally stake in vault
-        _depositAndStake(_save, _vault, massetsMinted, _stake, _referrer);
+        // 3. Mint ifAsset and optionally stake in vault
+        _depositAndStake(_save, _vault, fassetsMinted, _stake, _referrer);
     }
 
     /**
-     * @dev 2. Swaps fdAsset for mAsset and then deposits to Save/Savings Vault
-     * @param _mAsset             mAsset address
+     * @dev 2. Swaps fdAsset for fAsset and then deposits to Save/Savings Vault
+     * @param _fAsset             fAsset address
      * @param _save               Save address
      * @param _vault              Boosted Savings Vault address
      * @param _feeder             Feeder Pool address
      * @param _fdAsset             fdAsset address
      * @param _fdAssetQuantity     Quantity of fdAsset sent
-     * @param _minOutputQuantity  Min amount of mAsset to be swapped and deposited
-     * @param _stake              Deposit the imAsset in the Savings Vault?
+     * @param _minOutputQuantity  Min amount of fAsset to be swapped and deposited
+     * @param _stake              Deposit the ifAsset in the Savings Vault?
      * @param _referrer           Referrer address for this deposit.
      */
     function _saveViaSwap(
-        address _mAsset,
+        address _fAsset,
         address _save,
         address _vault,
         address _feeder,
@@ -382,7 +382,7 @@ contract SaveWrapper is ImmutableModule {
         address _referrer
     ) internal {
         require(_feeder != address(0), "Invalid feeder");
-        require(_mAsset != address(0), "Invalid mAsset");
+        require(_fAsset != address(0), "Invalid fAsset");
         require(_save != address(0), "Invalid save");
         require(_vault != address(0), "Invalid vault");
         require(_fdAsset != address(0), "Invalid input");
@@ -390,34 +390,34 @@ contract SaveWrapper is ImmutableModule {
         // 0. Transfer the fdAsset here
         IERC20(_fdAsset).safeTransferFrom(msg.sender, address(this), _fdAssetQuantity);
 
-        // 1. Swap the fdAsset for mAsset with the feeder pool
-        uint256 mAssetQuantity = IFeederPool(_feeder).swap(
+        // 1. Swap the fdAsset for fAsset with the feeder pool
+        uint256 fAssetQuantity = IFeederPool(_feeder).swap(
             _fdAsset,
-            _mAsset,
+            _fAsset,
             _fdAssetQuantity,
             _minOutputQuantity,
             address(this)
         );
 
-        // 2. Deposit the mAsset into Save and optionally stake in the vault
-        _depositAndStake(_save, _vault, mAssetQuantity, _stake, _referrer);
+        // 2. Deposit the fAsset into Save and optionally stake in the vault
+        _depositAndStake(_save, _vault, fAssetQuantity, _stake, _referrer);
     }
 
     /**
-     * @dev 3. Buys a bAsset on Uniswap with ETH, then mints imAsset via mAsset,
+     * @dev 3. Buys a bAsset on Uniswap with ETH, then mints ifAsset via fAsset,
      *         optionally staking in the Boosted Savings Vault
-     * @param _mAsset         mAsset address
+     * @param _fAsset         fAsset address
      * @param _save           Save address
      * @param _vault          Boosted vault address
      * @param _uniswap        Uniswap router address
      * @param _amountOutMin   Min uniswap output in bAsset units
      * @param _path           Sell path on Uniswap (e.g. [WETH, DAI])
-     * @param _minOutMStable  Min amount of mAsset to receive
-     * @param _stake          Add the imAsset to the Savings Vault?
+     * @param _minOutMStable  Min amount of fAsset to receive
+     * @param _stake          Add the ifAsset to the Savings Vault?
      * @param _referrer       Referrer address for this deposit.
      */
     function _saveViaUniswapETH(
-        address _mAsset,
+        address _fAsset,
         address _save,
         address _vault,
         address _uniswap,
@@ -427,7 +427,7 @@ contract SaveWrapper is ImmutableModule {
         bool _stake,
         address _referrer
     ) internal {
-        require(_mAsset != address(0), "Invalid mAsset");
+        require(_fAsset != address(0), "Invalid fAsset");
         require(_save != address(0), "Invalid save");
         require(_vault != address(0), "Invalid vault");
         require(_uniswap != address(0), "Invalid uniswap");
@@ -437,16 +437,16 @@ contract SaveWrapper is ImmutableModule {
             value: msg.value
         }(_amountOutMin, _path, address(this), block.timestamp + 1000);
 
-        // 2. Purchase mAsset
-        uint256 massetsMinted = IMasset(_mAsset).mint(
+        // 2. Purchase fAsset
+        uint256 fassetsMinted = IFasset(_fAsset).mint(
             _path[_path.length - 1],
             amounts[amounts.length - 1],
             _minOutMStable,
             address(this)
         );
 
-        // 3. Mint imAsset and optionally stake in vault
-        _depositAndStake(_save, _vault, massetsMinted, _stake, _referrer);
+        // 3. Mint ifAsset and optionally stake in vault
+        _depositAndStake(_save, _vault, fassetsMinted, _stake, _referrer);
     }
 
     /** @dev Internal func to get estimated Uniswap output from WETH to token trade */
@@ -460,19 +460,19 @@ contract SaveWrapper is ImmutableModule {
     }
 
     /**
-     * @dev Approve mAsset and bAssets, Feeder Pools and fdAssets, and Save/vault
+     * @dev Approve fAsset and bAssets, Feeder Pools and fdAssets, and Save/vault
      */
     function approve(
-        address _mAsset,
+        address _fAsset,
         address[] calldata _bAssets,
         address[] calldata _fPools,
         address[] calldata _fdAssets,
         address _save,
         address _vault
     ) external onlyKeeperOrGovernor {
-        _approve(_mAsset, _save);
+        _approve(_fAsset, _save);
         _approve(_save, _vault);
-        _approve(_bAssets, _mAsset);
+        _approve(_bAssets, _fAsset);
 
         require(_fPools.length == _fdAssets.length, "Mismatching fPools/fdAssets");
         for (uint256 i = 0; i < _fPools.length; i++) {

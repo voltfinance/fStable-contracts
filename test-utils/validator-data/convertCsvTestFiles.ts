@@ -32,7 +32,7 @@ interface MultiMintReserves {
 
 interface RedeemData {
     bAssetIndex: string
-    mAssetQty: string
+    fAssetQty: string
     expectedQty: string
 }
 
@@ -146,7 +146,7 @@ const parseRedeemTestRecords = async (parser: parse.Parser): Promise<RedeemReser
         if (record[0] === "reserve0") continue
         const redeem: RedeemData = {
             bAssetIndex: record[3],
-            mAssetQty: record[4],
+            fAssetQty: record[4],
             expectedQty: record[5],
         }
         // If the reserves are different from the last

@@ -18,15 +18,15 @@ task("deploy-SavingsManager")
         const nexus = resolveAddress("Nexus", chain)
         const revenueRecipient = resolveAddress("RevenueRecipient", chain)
 
-        const musd = resolveAddress("mUSD", chain, "address")
-        const musdSave = resolveAddress("mUSD", chain, "savings")
+        const fusd = resolveAddress("fUSD", chain, "address")
+        const fusdSave = resolveAddress("fUSD", chain, "savings")
         const mbtc = resolveAddress("mBTC", chain, "address")
         const mbtcSave = resolveAddress("mBTC", chain, "savings")
 
         const savingsManager = await deployContract(new SavingsManager__factory(signer), "SavingsManager", [
             nexus,
-            [musd, mbtc],
-            [musdSave, mbtcSave],
+            [fusd, mbtc],
+            [fusdSave, mbtcSave],
             [revenueRecipient, revenueRecipient],
             simpleToExactAmount(9, 17),
             ONE_WEEK,

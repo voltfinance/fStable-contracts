@@ -1,12 +1,12 @@
 /* eslint-disable no-restricted-syntax */
 import { applyDecimals, BN, simpleToExactAmount } from "@utils/math"
-import { FeederPool, ICurve__factory, Masset } from "types/generated"
+import { FeederPool, ICurve__factory, Fasset } from "types/generated"
 import { CurveRegistryExchange__factory } from "types/generated/factories/CurveRegistryExchange__factory"
-import { MusdEth } from "types/generated/MusdEth"
-import { MusdLegacy } from "types/generated/MusdLegacy"
+import { FusdEth } from "types/generated/FusdEth"
+import { FusdLegacy } from "types/generated/FusdLegacy"
 import { getChainAddress } from "./networkAddressFactory"
 import { QuantityFormatter } from "./quantity-formatters"
-import { isMusdLegacy } from "./snap-utils"
+import { isFusdLegacy } from "./snap-utils"
 import { Chain, PDAI, PUSDC, PUSDT, Token } from "./tokens"
 
 export interface Balances {
@@ -35,7 +35,7 @@ export const outputSwapRate = (swap: SwapRate, quantityFormatter: QuantityFormat
     const { inputToken, outputToken, mOutputRaw, curveOutputRaw } = swap
     const inputScaled = applyDecimals(swap.inputAmountRaw, inputToken.decimals)
 
-    // Process mUSD swap output
+    // Process fUSD swap output
     const mOutputScaled = applyDecimals(mOutputRaw, outputToken.decimals)
     const mBasicPoints = mOutputScaled.sub(inputScaled).mul(10000).div(inputScaled)
 
@@ -43,7 +43,7 @@ export const outputSwapRate = (swap: SwapRate, quantityFormatter: QuantityFormat
     const curveOutputScaled = applyDecimals(curveOutputRaw, outputToken.decimals)
     const curvePercent = curveOutputScaled.sub(inputScaled).mul(10000).div(inputScaled)
 
-    // Calculate the difference between the mUSD and Curve outputs in basis points
+    // Calculate the difference between the fUSD and Curve outputs in basis points
     const diffOutputs = mOutputRaw.sub(curveOutputRaw).mul(10000).div(mOutputRaw)
 
     // Calculate if there's an arbitrage = inverse curve output - input
@@ -74,20 +74,20 @@ export const outputSwapRate = (swap: SwapRate, quantityFormatter: QuantityFormat
 export const getSwapRates = async (
     inputTokens: Token[],
     outputTokens: Token[],
-    mAsset: Masset | MusdEth | MusdLegacy | FeederPool,
+    fAsset: Fasset | FusdEth | FusdLegacy | FeederPool,
     toBlock: number,
     quantityFormatter: QuantityFormatter,
     inputAmount: BN | number | string = BN.from("1000"),
     chain = Chain.mainnet,
 ): Promise<SwapRate[]> => {
-    if (isMusdLegacy(mAsset)) return []
+    if (isFusdLegacy(fAsset)) return []
 
     const callOverride = {
         blockTag: toBlock,
     }
     const pairs = []
-    const mAssetSwapPromises = []
-    // Get mUSD swap rates
+    const fAssetSwapPromises = []
+    // Get fUSD swap rates
     for (const inputToken of inputTokens) {
         for (const outputToken of outputTokens) {
             if (inputToken.symbol !== outputToken.symbol) {
@@ -96,19 +96,19 @@ export const getSwapRates = async (
                     outputToken,
                 })
                 const inputAmountRaw = simpleToExactAmount(inputAmount, inputToken.decimals)
-                mAssetSwapPromises.push(mAsset.getSwapOutput(inputToken.address, outputToken.address, inputAmountRaw, callOverride))
+                fAssetSwapPromises.push(fAsset.getSwapOutput(inputToken.address, outputToken.address, inputAmountRaw, callOverride))
             }
         }
     }
-    // Resolve all the mUSD promises
-    const mAssetSwaps: BN[] = await Promise.all(mAssetSwapPromises)
+    // Resolve all the fUSD promises
+    const fAssetSwaps: BN[] = await Promise.all(fAssetSwapPromises)
 
     // Get Curve's best swap rate for each pair and the inverse swap
     const curveSwapsPromises = []
     pairs.forEach(({ inputToken, outputToken }, i) => {
         if (chain === Chain.mainnet) {
             const curveRegistryExchangeAddress = getChainAddress("CurveRegistryExchange", chain)
-            const curveRegistryExchange = CurveRegistryExchange__factory.connect(curveRegistryExchangeAddress, mAsset.signer)
+            const curveRegistryExchange = CurveRegistryExchange__factory.connect(curveRegistryExchangeAddress, fAsset.signer)
             // Get the matching Curve swap rate
             const curveSwapPromise = curveRegistryExchange.get_best_rate(
                 inputToken.address,
@@ -116,16 +116,16 @@ export const getSwapRates = async (
                 simpleToExactAmount(inputAmount, inputToken.decimals),
                 callOverride,
             )
-            // Get the Curve inverse swap rate using mUSD swap output as the input
+            // Get the Curve inverse swap rate using fUSD swap output as the input
             const curveInverseSwapPromise = curveRegistryExchange.get_best_rate(
                 outputToken.address,
                 inputToken.address,
-                mAssetSwaps[i],
+                fAssetSwaps[i],
                 callOverride,
             )
             curveSwapsPromises.push(curveSwapPromise, curveInverseSwapPromise)
         } else if (chain === Chain.polygon) {
-            const curvePool = ICurve__factory.connect("0x445FE580eF8d70FF569aB36e80c647af338db351", mAsset.signer)
+            const curvePool = ICurve__factory.connect("0x445FE580eF8d70FF569aB36e80c647af338db351", fAsset.signer)
             // Just hard code the mapping for now
             const curveIndexMap = {
                 [PDAI.address]: 0,
@@ -141,21 +141,21 @@ export const getSwapRates = async (
                 simpleToExactAmount(inputAmount, inputToken.decimals),
                 callOverride,
             )
-            // Get the Curve inverse swap rate using mUSD swap output as the input
-            const curveInverseSwapPromise = curvePool.get_dy(outputIndex, inputIndex, mAssetSwaps[i], callOverride)
+            // Get the Curve inverse swap rate using fUSD swap output as the input
+            const curveInverseSwapPromise = curvePool.get_dy(outputIndex, inputIndex, fAssetSwaps[i], callOverride)
             curveSwapsPromises.push(curveSwapPromise, curveInverseSwapPromise)
         }
     })
     // Resolve all the Curve promises
     const curveSwaps = await Promise.all(curveSwapsPromises)
 
-    // Merge the mUSD and Curve swaps into one array
+    // Merge the fUSD and Curve swaps into one array
     const swaps: SwapRate[] = pairs.map(({ inputToken, outputToken }, i) => ({
         inputToken,
         inputAmountRaw: simpleToExactAmount(inputAmount, inputToken.decimals),
         inputDisplay: inputAmount.toString(),
         outputToken,
-        mOutputRaw: mAssetSwaps[i],
+        mOutputRaw: fAssetSwaps[i],
         // For mainnet, this first param of the Curve result is the pool address, the second is the output amount
         curveOutputRaw: chain === Chain.mainnet ? curveSwaps[i * 2][1] : curveSwaps[i * 2],
         curveInverseOutputRaw: chain === Chain.mainnet ? curveSwaps[i * 2 + 1][1] : curveSwaps[i * 2 + 1],

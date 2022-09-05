@@ -195,7 +195,7 @@ describe("StableMath", async () => {
     *************************************** */
 
     describe("calling mulRatioTruncate(x, ratio)", async () => {
-        it("should calculate correct mAsset value from bAsset", async () => {
+        it("should calculate correct fAsset value from bAsset", async () => {
             let x = simpleToExactAmount(1, 4) // 1e4 base bAsset units
             let y = ratioScale // 1e8 standard ratio
             let result = await math.mulRatioTruncate(x, y)
@@ -233,7 +233,7 @@ describe("StableMath", async () => {
     })
 
     describe("calling mulRatioTruncateCeil(x, ratio)", async () => {
-        it("should calculate correct mAsset value from bAsset", async () => {
+        it("should calculate correct fAsset value from bAsset", async () => {
             let x = simpleToExactAmount(1, 4) // 1e4 base bAsset units
             let y = ratioScale // 1e8 standard ratio
             let result = await math.mulRatioTruncateCeil(x, y)
@@ -284,16 +284,16 @@ describe("StableMath", async () => {
             // (1e18 * 1e8) / 1e8 == 1e18
             expect(result).to.be.eq(simpleToExactAmount(1, 18))
 
-            x = simpleToExactAmount(1, 14) // 1e14 base units of mAsset
+            x = simpleToExactAmount(1, 14) // 1e14 base units of fAsset
             y = simpleToExactAmount(1, 12) // bAsset with 14 decimals
             result = await math.divRatioPrecisely(x, y)
-            // Should equal mAsset units - 4 decimals, or 1e10
+            // Should equal fAsset units - 4 decimals, or 1e10
             expect(result).to.be.eq(simpleToExactAmount(1, 10))
 
             x = simpleToExactAmount("0.235", 18) // 235e15
             y = simpleToExactAmount(1, 12)
             result = await math.divRatioPrecisely(x, y)
-            // Should equal mAsset units - 4 decimals, or 235e11
+            // Should equal fAsset units - 4 decimals, or 235e11
             expect(result).to.be.eq(simpleToExactAmount(235, 11))
         })
         it("should ignore remaining fractions", async () => {

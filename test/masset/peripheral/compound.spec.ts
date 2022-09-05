@@ -1,6 +1,6 @@
 /* eslint-disable consistent-return */
 
-import { StandardAccounts, MassetMachine } from "@utils/machines"
+import { StandardAccounts, FassetMachine } from "@utils/machines"
 import { ZERO_ADDRESS, DEAD_ADDRESS, fullScale, MAX_UINT256 } from "@utils/constants"
 import { BN, simpleToExactAmount } from "@utils/math"
 import { MockCToken, MockCToken__factory, MockERC20, MockERC20__factory, MockNexus, MockNexus__factory } from "types/generated"
@@ -23,10 +23,10 @@ const convertCTokenToUnderlying = async (cToken: MockCToken, cTokenAmount: BN): 
 
 describe("CompoundIntegration", () => {
     let sa: StandardAccounts
-    let mAssetMachine: MassetMachine
+    let fAssetMachine: FassetMachine
 
     let nexus: MockNexus
-    let mAsset: Account
+    let fAsset: Account
     let bAssets: MockERC20[]
     let cTokens: MockCToken[]
     let compoundIntegration: CompoundIntegration
@@ -44,7 +44,7 @@ describe("CompoundIntegration", () => {
             sa.mockInterestValidator.address,
         )
         // Deploy the bAssets without the lending markets, which is Compound
-        integrationDetails = await mAssetMachine.loadBassetsLocal(false, enableUSDTFee)
+        integrationDetails = await fAssetMachine.loadBassetsLocal(false, enableUSDTFee)
         bAssets = integrationDetails.bAssets
 
         // Deploy Compound Token contract linked to the bAssets
@@ -54,11 +54,11 @@ describe("CompoundIntegration", () => {
         cTokens = await Promise.all(cTokensPromises)
 
         // Deploy Compound Integration contract
-        compoundIntegration = await new CompoundIntegration__factory(sa.default.signer).deploy(nexus.address, mAsset.address, DEAD_ADDRESS)
-        compoundIntegration = compoundIntegration.connect(sa.mockMasset.signer)
+        compoundIntegration = await new CompoundIntegration__factory(sa.default.signer).deploy(nexus.address, fAsset.address, DEAD_ADDRESS)
+        compoundIntegration = compoundIntegration.connect(sa.mockFasset.signer)
 
         if (!skipInit) {
-            // set bAsset and cToken on the Compound Integration contract for the mAsset
+            // set bAsset and cToken on the Compound Integration contract for the fAsset
             await Promise.all(
                 cTokens.map((cToken, i) =>
                     compoundIntegration.connect(sa.governor.signer).setPTokenAddress(bAssets[i].address, cToken.address),
@@ -83,9 +83,9 @@ describe("CompoundIntegration", () => {
 
     before("Init contract", async () => {
         const accounts = await ethers.getSigners()
-        mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        sa = mAssetMachine.sa
-        mAsset = sa.mockMasset
+        fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        sa = fAssetMachine.sa
+        fAsset = sa.mockFasset
     })
 
     describe("Compound constructor", async () => {
@@ -99,7 +99,7 @@ describe("CompoundIntegration", () => {
         })
         it("should properly store deploy arguments", async () => {
             expect(await compoundIntegration.nexus(), "nexus address").eq(nexus.address)
-            expect(await compoundIntegration.lpAddress(), "Liquidity provider (mAsset)").eq(mAsset.address)
+            expect(await compoundIntegration.lpAddress(), "Liquidity provider (fAsset)").eq(fAsset.address)
         })
         it("should fail when empty liquidity provider", async () => {
             const tx = new CompoundIntegration__factory(sa.default.signer).deploy(nexus.address, ZERO_ADDRESS, DEAD_ADDRESS)
@@ -193,10 +193,10 @@ describe("CompoundIntegration", () => {
                 cTokenBalInIntegrationContractBefore,
             )
 
-            // Step 4. Simulate mAsset calling deposit on the integration contract from a mint
-            // Transfer the mAsset some bAsset tokens. This would normally happen in a mAsset mint.
+            // Step 4. Simulate fAsset calling deposit on the integration contract from a mint
+            // Transfer the fAsset some bAsset tokens. This would normally happen in a fAsset mint.
             await bAsset.transfer(compoundIntegration.address, amount)
-            // mAsset calls deposit on the Compound integration contract
+            // fAsset calls deposit on the Compound integration contract
             const tx = compoundIntegration.deposit(bAsset.address, amount, false)
 
             // Step 5. Check emitted events
@@ -244,7 +244,7 @@ describe("CompoundIntegration", () => {
                 cTokenBalInIntegrationContractBefore,
             )
 
-            // Step 1. simulate mAsset transferring bAsset tokens to integration contract as part of a mint
+            // Step 1. simulate fAsset transferring bAsset tokens to integration contract as part of a mint
             await bAsset.transfer(compoundIntegration.address, amount)
 
             // Step 2. Check balances and fees after first transfer from the mint
@@ -258,7 +258,7 @@ describe("CompoundIntegration", () => {
             const firstTransferAmountExpected = amount.sub(firstTransferFeeExpected)
             expect(firstTransferReceivedAmount, "Fee needs to be removed from bAsset").eq(firstTransferAmountExpected)
 
-            // Step 3. simulate mAsset calling deposit on the Integration contract
+            // Step 3. simulate fAsset calling deposit on the Integration contract
             const tx = compoundIntegration.deposit(bAsset.address, firstTransferReceivedAmount, true)
 
             const secondTransferFeeExpected = firstTransferAmountExpected.mul(feeRate).div(fullScale)
@@ -369,13 +369,13 @@ describe("CompoundIntegration", () => {
             const bAssetsBalInCTokenBefore = await bAsset.balanceOf(cToken.address)
             const cTokenBalInIntegrationBefore = await cToken.balanceOf(compoundIntegration.address)
 
-            // Step 2. simulate transfer of bAssets to integration contract in mAsset mint
+            // Step 2. simulate transfer of bAssets to integration contract in fAsset mint
             await bAsset.transfer(compoundIntegration.address, depositAmount)
             expect(await bAsset.balanceOf(sa.default.address), "bAsset bal of user before").to.equal(
                 bAssetsUserBalBefore.sub(depositAmount),
             )
 
-            // Step 3. Simulate mAsset calling deposit
+            // Step 3. Simulate fAsset calling deposit
             const depositTx = compoundIntegration.deposit(bAsset.address, depositAmount, false)
 
             // 3.1 Check the Deposit event and balances after deposit
@@ -393,7 +393,7 @@ describe("CompoundIntegration", () => {
                 cTokenBalInIntegrationBefore.add(cTokensFromDepositExpected),
             )
 
-            // 4. Simulate mAsset calling withdraw on compound integration
+            // 4. Simulate fAsset calling withdraw on compound integration
             const withdrawalAmount = simpleToExactAmount(8, bAssetDecimals)
             const withdrawTx = compoundIntegration["withdraw(address,address,uint256,bool)"](
                 sa.default.address,
@@ -434,7 +434,7 @@ describe("CompoundIntegration", () => {
                 const cTokenAmount = await convertUnderlyingToCToken(cToken, amount)
                 expect(cTokenAmount, "cToken amount is not 0").eq(0)
 
-                const tx = compoundIntegration["withdraw(address,address,uint256,bool)"](mAsset.address, bAsset.address, amount, false)
+                const tx = compoundIntegration["withdraw(address,address,uint256,bool)"](fAsset.address, bAsset.address, amount, false)
 
                 await expect(tx).to.emit(compoundIntegration, "SkippedWithdrawal").withArgs(bAsset.address, amount)
 
@@ -458,7 +458,7 @@ describe("CompoundIntegration", () => {
                 const cTokenAmount = await convertUnderlyingToCToken(cToken, amount)
                 expect(cTokenAmount, "cToken amount is 0").gt(0)
 
-                const tx = compoundIntegration["withdraw(address,address,uint256,bool)"](mAsset.address, bAsset.address, amount, false)
+                const tx = compoundIntegration["withdraw(address,address,uint256,bool)"](fAsset.address, bAsset.address, amount, false)
 
                 await expect(tx).to.emit(compoundIntegration, "PlatformWithdrawal").withArgs(bAsset.address, cToken.address, amount, amount)
 
@@ -575,14 +575,14 @@ describe("CompoundIntegration", () => {
                 const compoundIntegrationBalBefore = await bAsset.balanceOf(compoundIntegration.address)
                 const compoundBalanceBefore = await compoundIntegration.callStatic.checkBalance(bAsset.address)
 
-                // fail if called by non Bm or mAsset
+                // fail if called by non Bm or fAsset
                 await expect(
                     compoundIntegration
                         .connect(sa.dummy1.signer)
                         ["withdraw(address,address,uint256,uint256,bool)"](bAssetRecipient, bAsset.address, amount, totalAmount, false),
                 ).revertedWith("Only the LP can execute")
 
-                // mAsset withdraws
+                // fAsset withdraws
                 const tx = compoundIntegration["withdraw(address,address,uint256,uint256,bool)"](
                     bAssetRecipient,
                     bAsset.address,
@@ -634,7 +634,7 @@ describe("CompoundIntegration", () => {
                 compoundIntegration.connect(sa.dummy1.signer).withdrawRaw(sa.dummy3.address, bAssets[0].address, BN.from(1)),
             ).revertedWith("Only the LP can execute")
         })
-        it("should allow the mAsset or BM to withdraw a given bAsset", async () => {
+        it("should allow the fAsset or BM to withdraw a given bAsset", async () => {
             const bAsset = bAssets[0]
             const amount = simpleToExactAmount(5)
 

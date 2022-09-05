@@ -13,11 +13,11 @@ import { ICERC20 } from "types/generated/ICERC20"
 const governorAddress = "0xF6FF1F7FCEB2cE6d26687EaaB5988b445d0b94a2"
 const deployerAddress = "0xb81473f20818225302b8fffb905b53d58a793d84"
 const ethWhaleAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
-const mUsdWhaleAddress = "0xd2dbd9ba61ee40519226aee282fec8197a2459ae"
+const fUsdWhaleAddress = "0xd2dbd9ba61ee40519226aee282fec8197a2459ae"
 
 const nexusAddress = "0xafce80b19a8ce13dec0739a1aab7a028d6845eb3"
-const mUsdAddress = "0xe2f2a5c287993345a840db3b0845fbc70f5935a5"
-const cymUsdAddress = "0xbe86e8918dfc7d3cb10d295fc220f941a1470c5c"
+const fUsdAddress = "0xe2f2a5c287993345a840db3b0845fbc70f5935a5"
+const cyfUsdAddress = "0xbe86e8918dfc7d3cb10d295fc220f941a1470c5c"
 const gusdFpAddress = "0x4fB30C5A3aC8e85bC32785518633303C4590752d"
 const busdFpAddress = "0xfE842e95f8911dcc21c943a1dAA4bd641a1381c6"
 const creamTokenAddress = "0x2ba592f78db6436527729929aaf6c908497cb200"
@@ -29,19 +29,19 @@ const busdIronBankIntegrationAddress = "0x2A15794575e754244F9C0A15F504607c201f8A
 // Not sure why this is 2**96 - 1 and not 2**256 - 1 for CREAM
 const safeInfinity = BN.from(2).pow(96).sub(1)
 
-context("mUSD Feeder Pool integration to CREAM", () => {
+context("fUSD Feeder Pool integration to CREAM", () => {
     let governor: Signer
     let deployer: Signer
     let ethWhale: Signer
-    let mUsdWhale: Signer
+    let fUsdWhale: Signer
     let gudsFp: FeederPool
     let budsFp: FeederPool
-    let mUsd: IERC20
-    let cymUsdToken: ICERC20
+    let fUsd: IERC20
+    let cyfUsdToken: ICERC20
     let creamToken: IERC20
     let gusdIntegration: CompoundIntegration
     let busdIntegration: CompoundIntegration
-    let mUsdInGusdFpBefore: BN
+    let fUsdInGusdFpBefore: BN
     let gUsdFpDataBefore
 
     before("reset block number", async () => {
@@ -59,7 +59,7 @@ context("mUSD Feeder Pool integration to CREAM", () => {
         deployer = await impersonate(deployerAddress)
         governor = await impersonate(governorAddress)
         ethWhale = await impersonate(ethWhaleAddress)
-        mUsdWhale = await impersonate(mUsdWhaleAddress)
+        fUsdWhale = await impersonate(fUsdWhaleAddress)
 
         // send some Ether to the impersonated multisig contract as it doesn't have Ether
         await ethWhale.sendTransaction({
@@ -70,8 +70,8 @@ context("mUSD Feeder Pool integration to CREAM", () => {
         gudsFp = FeederPool__factory.connect(gusdFpAddress, governor)
         budsFp = FeederPool__factory.connect(busdFpAddress, governor)
 
-        mUsd = await IERC20__factory.connect(mUsdAddress, deployer)
-        cymUsdToken = await ICERC20__factory.connect(cymUsdAddress, deployer)
+        fUsd = await IERC20__factory.connect(fUsdAddress, deployer)
+        cyfUsdToken = await ICERC20__factory.connect(cyfUsdAddress, deployer)
         creamToken = await IERC20__factory.connect(creamTokenAddress, deployer)
     })
     it("Test connectivity", async () => {
@@ -87,14 +87,14 @@ context("mUSD Feeder Pool integration to CREAM", () => {
             [nexusAddress, gusdFpAddress, creamTokenAddress],
         )
         expect(gusdIntegration.address).to.length(42)
-        await gusdIntegration.initialize([mUsdAddress], [cymUsdAddress])
+        await gusdIntegration.initialize([fUsdAddress], [cyfUsdAddress])
         busdIntegration = await deployContract<CompoundIntegration>(
             new CompoundIntegration__factory(deployer),
             "CREAM Integration for BUSD FP",
             [nexusAddress, busdFpAddress, creamTokenAddress],
         )
         busdIntegration = await new CompoundIntegration__factory(deployer).deploy(nexusAddress, busdFpAddress, creamTokenAddress)
-        await busdIntegration.initialize([mUsdAddress], [cymUsdAddress])
+        await busdIntegration.initialize([fUsdAddress], [cyfUsdAddress])
     })
     it("Governor approves Liquidator to spend the reward (CREAM) token", async () => {
         expect(await creamToken.allowance(gusdIntegration.address, liquidatorAddress)).to.eq(0)
@@ -107,75 +107,75 @@ context("mUSD Feeder Pool integration to CREAM", () => {
         expect(await creamToken.allowance(gusdIntegration.address, liquidatorAddress)).to.eq(safeInfinity)
         expect(await creamToken.allowance(busdIntegration.address, liquidatorAddress)).to.eq(safeInfinity)
     })
-    it("Migrate mUSD assets", async () => {
+    it("Migrate fUSD assets", async () => {
         // Before
-        expect(await mUsd.balanceOf(gusdFpAddress), "Some mUSD in existing GUSD Feeder Pool").to.gt(0)
-        expect(await mUsd.balanceOf(gusdIntegration.address), "No mUSD in new GUSD FP Integration contract").to.eq(0)
-        expect(await mUsd.balanceOf(cymUsdAddress), "No mUSD in CREAM, yet").to.eq(0)
-        mUsdInGusdFpBefore = await mUsd.balanceOf(gusdFpAddress)
-        gUsdFpDataBefore = await gudsFp.getBasset(mUsdAddress)
+        expect(await fUsd.balanceOf(gusdFpAddress), "Some fUSD in existing GUSD Feeder Pool").to.gt(0)
+        expect(await fUsd.balanceOf(gusdIntegration.address), "No fUSD in new GUSD FP Integration contract").to.eq(0)
+        expect(await fUsd.balanceOf(cyfUsdAddress), "No fUSD in CREAM, yet").to.eq(0)
+        fUsdInGusdFpBefore = await fUsd.balanceOf(gusdFpAddress)
+        gUsdFpDataBefore = await gudsFp.getBasset(fUsdAddress)
 
-        // Migrate mUSD in GUSD Feeder Pool to new GUSD FP Integration contract
-        const tx = await gudsFp.migrateBassets([mUsdAddress], gusdIntegration.address)
+        // Migrate fUSD in GUSD Feeder Pool to new GUSD FP Integration contract
+        const tx = await gudsFp.migrateBassets([fUsdAddress], gusdIntegration.address)
         console.log(`migrateBassets tx data: ${tx.data}`)
 
-        // All mUsd in the GUSD FP should have moved to the GUSD integration contract
-        expect(await mUsd.balanceOf(gusdIntegration.address), "All mUSD in GUSD FP migrated to GUSD Integration").to.eq(mUsdInGusdFpBefore)
-        expect(await mUsd.balanceOf(gusdFpAddress), "No more mUSD in GUSD Feeder Pool").to.eq(0)
+        // All fUsd in the GUSD FP should have moved to the GUSD integration contract
+        expect(await fUsd.balanceOf(gusdIntegration.address), "All fUSD in GUSD FP migrated to GUSD Integration").to.eq(fUsdInGusdFpBefore)
+        expect(await fUsd.balanceOf(gusdFpAddress), "No more fUSD in GUSD Feeder Pool").to.eq(0)
 
-        const mUsdDataAfter = await gudsFp.getBasset(mUsdAddress)
-        expect(gUsdFpDataBefore.vaultData.vaultBalance).to.eq(mUsdDataAfter.vaultData.vaultBalance)
+        const fUsdDataAfter = await gudsFp.getBasset(fUsdAddress)
+        expect(gUsdFpDataBefore.vaultData.vaultBalance).to.eq(fUsdDataAfter.vaultData.vaultBalance)
 
-        const mUsdInBusdFpBefore = await mUsd.balanceOf(busdFpAddress)
-        await budsFp.migrateBassets([mUsdAddress], busdIntegration.address)
+        const fUsdInBusdFpBefore = await fUsd.balanceOf(busdFpAddress)
+        await budsFp.migrateBassets([fUsdAddress], busdIntegration.address)
 
-        // All mUsd in the BUSD FP should have moved to the BUSD integration contract but not the CREAM mUSD vault
-        expect(await mUsd.balanceOf(busdFpAddress), "No more mUSD in BUSD Feeder Pool").to.eq(0)
-        expect(await mUsd.balanceOf(busdIntegration.address), "All mUSD in BUSD FP migrated to BUSD Integration").to.eq(mUsdInBusdFpBefore)
-        expect(await mUsd.balanceOf(cymUsdAddress), "No mUSD in CREAM, yet").to.eq(0)
+        // All fUsd in the BUSD FP should have moved to the BUSD integration contract but not the CREAM fUSD vault
+        expect(await fUsd.balanceOf(busdFpAddress), "No more fUSD in BUSD Feeder Pool").to.eq(0)
+        expect(await fUsd.balanceOf(busdIntegration.address), "All fUSD in BUSD FP migrated to BUSD Integration").to.eq(fUsdInBusdFpBefore)
+        expect(await fUsd.balanceOf(cyfUsdAddress), "No fUSD in CREAM, yet").to.eq(0)
     })
-    it("Mint some mUSD in the GUSD Feeder Pool", async () => {
-        expect(await mUsd.balanceOf(gusdFpAddress)).to.eq(0)
+    it("Mint some fUSD in the GUSD Feeder Pool", async () => {
+        expect(await fUsd.balanceOf(gusdFpAddress)).to.eq(0)
 
         const mintAmount = simpleToExactAmount(10000)
-        await mUsd.connect(mUsdWhale).approve(gusdFpAddress, mintAmount)
-        expect(await mUsd.allowance(mUsdWhaleAddress, gusdFpAddress)).to.eq(mintAmount)
+        await fUsd.connect(fUsdWhale).approve(gusdFpAddress, mintAmount)
+        expect(await fUsd.allowance(fUsdWhaleAddress, gusdFpAddress)).to.eq(mintAmount)
 
-        await gudsFp.connect(mUsdWhale).mint(mUsdAddress, mintAmount, 0, mUsdWhaleAddress)
+        await gudsFp.connect(fUsdWhale).mint(fUsdAddress, mintAmount, 0, fUsdWhaleAddress)
 
-        const mUsdDataAfter = await gudsFp.getBasset(mUsdAddress)
-        expect(mUsdDataAfter.vaultData.vaultBalance, "Vault balances").to.eq(gUsdFpDataBefore.vaultData.vaultBalance.add(mintAmount))
+        const fUsdDataAfter = await gudsFp.getBasset(fUsdAddress)
+        expect(fUsdDataAfter.vaultData.vaultBalance, "Vault balances").to.eq(gUsdFpDataBefore.vaultData.vaultBalance.add(mintAmount))
 
-        const mUsdInGusdIntegration = await mUsd.balanceOf(gusdIntegration.address)
-        const mUsdInCream = await mUsd.balanceOf(cymUsdAddress)
-        expect(mUsdInGusdIntegration, "Some mUSD in GUSD Integration").to.gt(0)
-        expect(mUsdInCream, "Some mUSD in CREAM").to.gt(0)
+        const fUsdInGusdIntegration = await fUsd.balanceOf(gusdIntegration.address)
+        const fUsdInCream = await fUsd.balanceOf(cyfUsdAddress)
+        expect(fUsdInGusdIntegration, "Some fUSD in GUSD Integration").to.gt(0)
+        expect(fUsdInCream, "Some fUSD in CREAM").to.gt(0)
 
-        console.log(`Total mUSD ${mUsdDataAfter.vaultData.vaultBalance}, integration ${mUsdInGusdIntegration}, CREAM vault ${mUsdInCream}`)
-        expect(mUsdDataAfter.vaultData.vaultBalance, "mUSD in GUSD FP split across Integration and CREAM").to.eq(
-            mUsdInGusdIntegration.add(mUsdInCream),
+        console.log(`Total fUSD ${fUsdDataAfter.vaultData.vaultBalance}, integration ${fUsdInGusdIntegration}, CREAM vault ${fUsdInCream}`)
+        expect(fUsdDataAfter.vaultData.vaultBalance, "fUSD in GUSD FP split across Integration and CREAM").to.eq(
+            fUsdInGusdIntegration.add(fUsdInCream),
         )
 
-        const rateExchange = await cymUsdToken.exchangeRateStored()
-        expect(await cymUsdToken.balanceOf(gusdIntegration.address), "cymUSD tokens in GUSD Integration").to.eq(
-            // cymUSD = mUSD *  1e18 / exchange rate
-            mUsdInCream.mul(BN.from(10).pow(18)).div(rateExchange),
+        const rateExchange = await cyfUsdToken.exchangeRateStored()
+        expect(await cyfUsdToken.balanceOf(gusdIntegration.address), "cyfUSD tokens in GUSD Integration").to.eq(
+            // cyfUSD = fUSD *  1e18 / exchange rate
+            fUsdInCream.mul(BN.from(10).pow(18)).div(rateExchange),
         )
     })
-    it("Redeem mUSD from feed", async () => {
+    it("Redeem fUSD from feed", async () => {
         const redeemAmount = simpleToExactAmount(9970)
-        await gudsFp.connect(mUsdWhale).redeem(mUsdAddress, redeemAmount, 0, mUsdWhaleAddress)
+        await gudsFp.connect(fUsdWhale).redeem(fUsdAddress, redeemAmount, 0, fUsdWhaleAddress)
 
-        const mUsdDataAfter = await gudsFp.getBasset(mUsdAddress)
+        const fUsdDataAfter = await gudsFp.getBasset(fUsdAddress)
 
-        const mUsdInGusdIntegration = await mUsd.balanceOf(gusdIntegration.address)
-        const mUsdInCream = await mUsd.balanceOf(cymUsdAddress)
-        expect(mUsdInGusdIntegration, "Some mUSD in GUSD Integration").to.gt(0)
-        expect(mUsdInCream, "Some mUSD in CREAM").to.gt(0)
+        const fUsdInGusdIntegration = await fUsd.balanceOf(gusdIntegration.address)
+        const fUsdInCream = await fUsd.balanceOf(cyfUsdAddress)
+        expect(fUsdInGusdIntegration, "Some fUSD in GUSD Integration").to.gt(0)
+        expect(fUsdInCream, "Some fUSD in CREAM").to.gt(0)
 
-        console.log(`Total mUSD ${mUsdDataAfter.vaultData.vaultBalance}, integration ${mUsdInGusdIntegration}, CREAM vault ${mUsdInCream}`)
-        expect(mUsdDataAfter.vaultData.vaultBalance, "mUSD in GUSD FP split across Integration and CREAM").to.eq(
-            mUsdInGusdIntegration.add(mUsdInCream),
+        console.log(`Total fUSD ${fUsdDataAfter.vaultData.vaultBalance}, integration ${fUsdInGusdIntegration}, CREAM vault ${fUsdInCream}`)
+        expect(fUsdDataAfter.vaultData.vaultBalance, "fUSD in GUSD FP split across Integration and CREAM").to.eq(
+            fUsdInGusdIntegration.add(fUsdInCream),
         )
     })
     context("approveRewardToken", () => {
@@ -212,7 +212,7 @@ context("mUSD Feeder Pool integration to CREAM", () => {
             deployer = await impersonate(deployerAddress)
             governor = await impersonate(governorAddress)
             ethWhale = await impersonate(ethWhaleAddress)
-            mUsdWhale = await impersonate(mUsdWhaleAddress)
+            fUsdWhale = await impersonate(fUsdWhaleAddress)
 
             // send some Ether to the impersonated multisig contract as it doesn't have Ether
             await ethWhale.sendTransaction({
@@ -223,8 +223,8 @@ context("mUSD Feeder Pool integration to CREAM", () => {
             gudsFp = FeederPool__factory.connect(gusdFpAddress, governor)
             budsFp = FeederPool__factory.connect(busdFpAddress, governor)
 
-            mUsd = await IERC20__factory.connect(mUsdAddress, deployer)
-            cymUsdToken = await ICERC20__factory.connect(cymUsdAddress, deployer)
+            fUsd = await IERC20__factory.connect(fUsdAddress, deployer)
+            cyfUsdToken = await ICERC20__factory.connect(cyfUsdAddress, deployer)
             creamToken = await IERC20__factory.connect(creamTokenAddress, deployer)
 
             gusdIntegration = CompoundIntegration__factory.connect(gusdIronBankIntegrationAddress, governor)
@@ -232,44 +232,44 @@ context("mUSD Feeder Pool integration to CREAM", () => {
         })
         it("migrateBassets in GUSD", async () => {
             // Before
-            expect(await mUsd.balanceOf(gusdFpAddress), "Some mUSD in existing GUSD Feeder Pool").to.gt(0)
-            expect(await mUsd.balanceOf(gusdIntegration.address), "No mUSD in new GUSD FP Integration contract").to.eq(0)
-            const mUsdInIronBankBefore = await mUsd.balanceOf(cymUsdAddress)
-            mUsdInGusdFpBefore = await mUsd.balanceOf(gusdFpAddress)
-            gUsdFpDataBefore = await gudsFp.getBasset(mUsdAddress)
+            expect(await fUsd.balanceOf(gusdFpAddress), "Some fUSD in existing GUSD Feeder Pool").to.gt(0)
+            expect(await fUsd.balanceOf(gusdIntegration.address), "No fUSD in new GUSD FP Integration contract").to.eq(0)
+            const fUsdInIronBankBefore = await fUsd.balanceOf(cyfUsdAddress)
+            fUsdInGusdFpBefore = await fUsd.balanceOf(gusdFpAddress)
+            gUsdFpDataBefore = await gudsFp.getBasset(fUsdAddress)
 
-            // Migrate mUSD in GUSD Feeder Pool to new GUSD FP Integration contract for Iron Bank
-            const tx = await gudsFp.migrateBassets([mUsdAddress], gusdIntegration.address)
+            // Migrate fUSD in GUSD Feeder Pool to new GUSD FP Integration contract for Iron Bank
+            const tx = await gudsFp.migrateBassets([fUsdAddress], gusdIntegration.address)
             console.log(`migrateBassets tx data for GUSD Feeder Pool: ${tx.data}`)
 
-            // All mUsd in the GUSD FP should have moved to the GUSD integration contract
-            expect(await mUsd.balanceOf(gusdIntegration.address), "All mUSD in GUSD FP migrated to GUSD Integration").to.eq(
-                mUsdInGusdFpBefore,
+            // All fUsd in the GUSD FP should have moved to the GUSD integration contract
+            expect(await fUsd.balanceOf(gusdIntegration.address), "All fUSD in GUSD FP migrated to GUSD Integration").to.eq(
+                fUsdInGusdFpBefore,
             )
-            expect(await mUsd.balanceOf(gusdFpAddress), "No more mUSD in GUSD Feeder Pool").to.eq(0)
+            expect(await fUsd.balanceOf(gusdFpAddress), "No more fUSD in GUSD Feeder Pool").to.eq(0)
 
-            const mUsdDataAfter = await gudsFp.getBasset(mUsdAddress)
-            expect(gUsdFpDataBefore.vaultData.vaultBalance).to.eq(mUsdDataAfter.vaultData.vaultBalance)
+            const fUsdDataAfter = await gudsFp.getBasset(fUsdAddress)
+            expect(gUsdFpDataBefore.vaultData.vaultBalance).to.eq(fUsdDataAfter.vaultData.vaultBalance)
 
-            expect(await mUsd.balanceOf(cymUsdAddress), "Feeder Pool mUSD not in CREAM, yet").to.eq(mUsdInIronBankBefore)
+            expect(await fUsd.balanceOf(cyfUsdAddress), "Feeder Pool fUSD not in CREAM, yet").to.eq(fUsdInIronBankBefore)
         })
         it("migrateBassets in BUSD", async () => {
             // Before
-            expect(await mUsd.balanceOf(busdFpAddress), "Some mUSD in existing BUSD Feeder Pool").to.gt(0)
-            expect(await mUsd.balanceOf(busdIntegration.address), "No mUSD in new BUSD FP Integration contract").to.eq(0)
-            const mUsdInIronBankBefore = await mUsd.balanceOf(cymUsdAddress)
-            const mUsdInBusdFpBefore = await mUsd.balanceOf(busdFpAddress)
+            expect(await fUsd.balanceOf(busdFpAddress), "Some fUSD in existing BUSD Feeder Pool").to.gt(0)
+            expect(await fUsd.balanceOf(busdIntegration.address), "No fUSD in new BUSD FP Integration contract").to.eq(0)
+            const fUsdInIronBankBefore = await fUsd.balanceOf(cyfUsdAddress)
+            const fUsdInBusdFpBefore = await fUsd.balanceOf(busdFpAddress)
 
-            // Migrate mUSD in BUSD Feeder Pool to new BUSD FP Integration contract for Iron Bank
-            const tx = await budsFp.migrateBassets([mUsdAddress], busdIntegration.address)
+            // Migrate fUSD in BUSD Feeder Pool to new BUSD FP Integration contract for Iron Bank
+            const tx = await budsFp.migrateBassets([fUsdAddress], busdIntegration.address)
             console.log(`migrateBassets tx data for BUSD Feeder Pool: ${tx.data}`)
 
-            // All mUsd in the BUSD FP should have moved to the BUSD integration contract but not the CREAM mUSD vault
-            expect(await mUsd.balanceOf(busdFpAddress), "No more mUSD in BUSD Feeder Pool").to.eq(0)
-            expect(await mUsd.balanceOf(busdIntegration.address), "All mUSD in BUSD FP migrated to BUSD Integration").to.eq(
-                mUsdInBusdFpBefore,
+            // All fUsd in the BUSD FP should have moved to the BUSD integration contract but not the CREAM fUSD vault
+            expect(await fUsd.balanceOf(busdFpAddress), "No more fUSD in BUSD Feeder Pool").to.eq(0)
+            expect(await fUsd.balanceOf(busdIntegration.address), "All fUSD in BUSD FP migrated to BUSD Integration").to.eq(
+                fUsdInBusdFpBefore,
             )
-            expect(await mUsd.balanceOf(cymUsdAddress), "Feeder Pool mUSD not in CREAM, yet").to.eq(mUsdInIronBankBefore)
+            expect(await fUsd.balanceOf(cyfUsdAddress), "Feeder Pool fUSD not in CREAM, yet").to.eq(fUsdInIronBankBefore)
         })
         it("Governor approves Liquidator to spend the reward (CREAM) tokens", async () => {
             expect(await creamToken.allowance(gusdIntegration.address, liquidatorAddress)).to.eq(0)

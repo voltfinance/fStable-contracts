@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import { ethers } from "hardhat"
-import { MassetMachine } from "@utils/machines"
+import { FassetMachine } from "@utils/machines"
 import { DelayedClaimableGovernor__factory } from "types/generated"
 import { shouldBehaveLikeDelayedClaimable, IGovernableBehaviourContext } from "./DelayedClaimableGovernor.behaviour"
 import { shouldBehaveLikeClaimable } from "./ClaimableGovernor.behaviour"
@@ -12,10 +12,10 @@ describe("DelayedClaimableGovernor", () => {
     describe("Should behave like Claimable", () => {
         beforeEach("Create Contract", async () => {
             const accounts = await ethers.getSigners()
-            const mAssetMachine = await new MassetMachine().initAccounts(accounts)
-            ctx.default = mAssetMachine.sa.default
-            ctx.governor = mAssetMachine.sa.governor
-            ctx.other = mAssetMachine.sa.other
+            const fAssetMachine = await new FassetMachine().initAccounts(accounts)
+            ctx.default = fAssetMachine.sa.default
+            ctx.governor = fAssetMachine.sa.governor
+            ctx.other = fAssetMachine.sa.other
             ctx.claimable = await new DelayedClaimableGovernor__factory(ctx.governor.signer).deploy(ctx.governor.address, GOVERNANCE_DELAY)
         })
 
@@ -25,10 +25,10 @@ describe("DelayedClaimableGovernor", () => {
     describe("Should behave like DelayedClaimable", () => {
         beforeEach("Initiate change Governor", async () => {
             const accounts = await ethers.getSigners()
-            const mAssetMachine = await new MassetMachine().initAccounts(accounts)
-            ctx.default = mAssetMachine.sa.default
-            ctx.governor = mAssetMachine.sa.governor
-            ctx.other = mAssetMachine.sa.other
+            const fAssetMachine = await new FassetMachine().initAccounts(accounts)
+            ctx.default = fAssetMachine.sa.default
+            ctx.governor = fAssetMachine.sa.governor
+            ctx.other = fAssetMachine.sa.other
             ctx.claimable = await new DelayedClaimableGovernor__factory(ctx.governor.signer).deploy(ctx.governor.address, GOVERNANCE_DELAY)
 
             await ctx.claimable.requestGovernorChange(ctx.other.address)

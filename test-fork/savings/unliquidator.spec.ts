@@ -41,7 +41,7 @@ context("Unliquidator forked network tests", async () => {
     let compToken: ERC20
     let nexusAddress: string
     let nexus: Nexus
-    let aaveMusdIntegration: PAaveIntegration
+    let aaveFusdIntegration: PAaveIntegration
     let aaveMbtcIntegration: PAaveIntegration
     let aaveGusdIntegration: PAaveIntegration
     let aaveBusdIntegration: PAaveIntegration
@@ -76,7 +76,7 @@ context("Unliquidator forked network tests", async () => {
         stkAaveToken = ERC20__factory.connect(stkAAVE.address, ops.signer)
         compToken = ERC20__factory.connect(COMP.address, ops.signer)
 
-        aaveMusdIntegration = PAaveIntegration__factory.connect(USDT.integrator, governor.signer)
+        aaveFusdIntegration = PAaveIntegration__factory.connect(USDT.integrator, governor.signer)
         aaveMbtcIntegration = PAaveIntegration__factory.connect(WBTC.integrator, governor.signer)
         aaveGusdIntegration = PAaveIntegration__factory.connect(GUSD.integrator, governor.signer)
         aaveBusdIntegration = PAaveIntegration__factory.connect(BUSD.integrator, governor.signer)
@@ -125,7 +125,7 @@ context("Unliquidator forked network tests", async () => {
             expect(await compToken.allowance(USDC.integrator, unliquidator.address)).to.eq(0)
 
             // Approve tx
-            await aaveMusdIntegration.approveRewardToken()
+            await aaveFusdIntegration.approveRewardToken()
             await aaveMbtcIntegration.approveRewardToken()
             await aaveGusdIntegration.approveRewardToken()
             await aaveBusdIntegration.approveRewardToken()

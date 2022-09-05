@@ -64,8 +64,8 @@ contract BoostedTokenWrapper is InitializableReentrancyGuard {
     }
 
     /**
-     * @param _nameArg token name. eg imUSD Vault or GUSD Feeder Pool Vault
-     * @param _symbolArg token symbol. eg v-imUSD or v-fPmUSD/GUSD
+     * @param _nameArg token name. eg ifUSD Vault or GUSD Feeder Pool Vault
+     * @param _symbolArg token symbol. eg v-ifUSD or v-fPfUSD/GUSD
      */
     function _initialize(string memory _nameArg, string memory _symbolArg) internal {
         _initializeReentrancyGuard();
@@ -146,7 +146,7 @@ contract BoostedTokenWrapper is InitializableReentrancyGuard {
 
     /**
      * @dev Updates the boost for the given address according to the formula
-     * boost = min(0.5 + c * vMTA_balance / imUSD_locked^(7/8), 1.5)
+     * boost = min(0.5 + c * vMTA_balance / ifUSD_locked^(7/8), 1.5)
      * If rawBalance <= MIN_DEPOSIT, boost is 0
      * @param _account User for which to update the boost
      */

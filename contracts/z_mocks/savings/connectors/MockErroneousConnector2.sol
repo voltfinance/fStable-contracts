@@ -8,15 +8,15 @@ import { IConnector } from "../../../savings/peripheral/IConnector.sol";
 // 3. Returns negative balance immediately after checkbalance
 contract MockErroneousConnector2 is IConnector {
     address save;
-    address mUSD;
+    address fUSD;
 
     uint256 lastValue;
     uint256 lastAccrual;
     uint256 constant perSecond = 31709791983;
 
-    constructor(address _save, address _mUSD) {
+    constructor(address _save, address _fUSD) {
         save = _save;
-        mUSD = _mUSD;
+        fUSD = _fUSD;
     }
 
     modifier onlySave() {
@@ -29,18 +29,18 @@ contract MockErroneousConnector2 is IConnector {
     }
 
     function deposit(uint256 _amount) external override onlySave {
-        IERC20(mUSD).transferFrom(save, address(this), _amount);
+        IERC20(fUSD).transferFrom(save, address(this), _amount);
         lastValue += _amount;
     }
 
     function withdraw(uint256 _amount) external override onlySave {
-        IERC20(mUSD).transfer(save, _amount);
+        IERC20(fUSD).transfer(save, _amount);
         lastValue -= _amount;
         lastValue -= 1;
     }
 
     function withdrawAll() external override onlySave {
-        IERC20(mUSD).transfer(save, lastValue);
+        IERC20(fUSD).transfer(save, lastValue);
         lastValue -= lastValue;
     }
 

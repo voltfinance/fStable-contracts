@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.6;
 
-import { IMasset } from "../../interfaces/IMasset.sol";
+import { IFasset } from "../../interfaces/IFasset.sol";
 import { ISavingsContractV1 } from "../../interfaces/ISavingsContract.sol";
 import { IRevenueRecipient } from "../../interfaces/IRevenueRecipient.sol";
 import { IERC20 } from "../shared/MockERC20.sol";
@@ -15,16 +15,16 @@ contract MockSavingsManager {
         save = _save;
     }
 
-    function collectAndDistributeInterest(address _mAsset) public {
+    function collectAndDistributeInterest(address _fAsset) public {
         require(save != address(0), "Must have a valid savings contract");
 
-        // 1. Collect the new interest from the mAsset
-        IMasset mAsset = IMasset(_mAsset);
-        (uint256 interestCollected, ) = mAsset.collectInterest();
+        // 1. Collect the new interest from the fAsset
+        IFasset fAsset = IFasset(_fAsset);
+        (uint256 interestCollected, ) = fAsset.collectInterest();
 
         // 3. Validate that interest is collected correctly and does not exceed max APY
         if (interestCollected > 0) {
-            IERC20(_mAsset).approve(save, interestCollected);
+            IERC20(_fAsset).approve(save, interestCollected);
 
             ISavingsContractV1(save).depositInterest((interestCollected * rate) / 1e18);
         }
@@ -35,12 +35,12 @@ contract MockSavingsManager {
         rate = _rate;
     }
 
-    function distributeUnallocatedInterest(address _mAsset) public {
+    function distributeUnallocatedInterest(address _fAsset) public {
         require(save != address(0), "Must have a valid savings contract");
 
-        uint256 bal = IERC20(_mAsset).balanceOf(address(this));
-        IERC20(_mAsset).approve(save, bal);
+        uint256 bal = IERC20(_fAsset).balanceOf(address(this));
+        IERC20(_fAsset).approve(save, bal);
 
-        recipient.notifyRedistributionAmount(_mAsset, bal);
+        recipient.notifyRedistributionAmount(_fAsset, bal);
     }
 }

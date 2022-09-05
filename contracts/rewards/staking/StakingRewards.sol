@@ -67,7 +67,7 @@ contract StakingRewards is
 
     /**
      * @param _nexus mStable system Nexus address
-     * @param _stakingToken token that is beinf rewarded for being staked. eg MTA, imUSD or fPmUSD/GUSD
+     * @param _stakingToken token that is beinf rewarded for being staked. eg MTA, ifUSD or fPfUSD/GUSD
      * @param _rewardsToken first token that is being distributed as a reward. eg MTA
      * @param _duration length of each staking period in seconds. 7 days = 604,800; 3 months = 7,862,400
      */
@@ -86,8 +86,8 @@ contract StakingRewards is
      *      This function should be called via Proxy just after contract deployment.
      *      To avoid variable shadowing appended `Arg` after arguments name.
      * @param _rewardsDistributorArg mStable Reward Distributor contract address
-     * @param _nameArg token name. eg imUSD Vault or GUSD Feeder Pool Vault
-     * @param _symbolArg token symbol. eg v-imUSD or v-fPmUSD/GUSD
+     * @param _nameArg token name. eg ifUSD Vault or GUSD Feeder Pool Vault
+     * @param _symbolArg token symbol. eg v-ifUSD or v-fPfUSD/GUSD
      */
     function initialize(
         address _rewardsDistributorArg,
@@ -175,17 +175,17 @@ contract StakingRewards is
     /**
      * @notice Redeems staked interest-bearing asset tokens for either bAsset or fdAsset tokens.
      * Withdraws a given staked amount of interest-bearing assets from the vault,
-     * redeems the interest-bearing asset for the underlying mAsset and either
-     * 1. Redeems the underlying mAsset tokens for bAsset tokens.
-     * 2. Swaps the underlying mAsset tokens for fdAsset tokens in a Feeder Pool.
-     * @param _amount        Units of the staked interest-bearing asset tokens to withdraw. eg imUSD or imBTC.
+     * redeems the interest-bearing asset for the underlying fAsset and either
+     * 1. Redeems the underlying fAsset tokens for bAsset tokens.
+     * 2. Swaps the underlying fAsset tokens for fdAsset tokens in a Feeder Pool.
+     * @param _amount        Units of the staked interest-bearing asset tokens to withdraw. eg ifUSD or imBTC.
      * @param _minAmountOut  Minimum units of `output` tokens to be received by the beneficiary. This is to the same decimal places as the `output` token.
-     * @param _output        Asset to receive in exchange for the redeemed mAssets. This can be a bAsset or a fdAsset. For example:
-        - bAssets (USDC, DAI, sUSD or USDT) or fdAssets (GUSD, BUSD, alUSD, FEI or RAI) for mainnet imUSD Vault.
-        - bAssets (USDC, DAI or USDT) or fdAsset FRAX for Polygon imUSD Vault.
+     * @param _output        Asset to receive in exchange for the redeemed fAssets. This can be a bAsset or a fdAsset. For example:
+        - bAssets (USDC, DAI, sUSD or USDT) or fdAssets (GUSD, BUSD, alUSD, FEI or RAI) for mainnet ifUSD Vault.
+        - bAssets (USDC, DAI or USDT) or fdAsset FRAX for Polygon ifUSD Vault.
         - bAssets (WBTC, sBTC or renBTC) or fdAssets (HBTC or TBTCV2) for mainnet imBTC Vault.
      * @param _beneficiary   Address to send `output` tokens to.
-     * @param _router        mAsset address if the `output` is a bAsset. Feeder Pool address if the `output` is a fdAsset.
+     * @param _router        fAsset address if the `output` is a bAsset. Feeder Pool address if the `output` is a fdAsset.
      * @param _isBassetOut   `true` if `output` is a bAsset. `false` if `output` is a fdAsset.
      * @return outputQuantity Units of `output` tokens sent to the beneficiary. This is to the same decimal places as the `output` token.
      */

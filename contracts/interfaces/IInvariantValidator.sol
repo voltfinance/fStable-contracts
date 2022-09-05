@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.6;
 
-import "../masset/MassetStructs.sol";
+import "../fasset/FassetStructs.sol";
 
 abstract contract IInvariantValidator {
     // Mint
@@ -33,7 +33,7 @@ abstract contract IInvariantValidator {
     function computeRedeem(
         BassetData[] calldata _bAssets,
         uint8 _i,
-        uint256 _mAssetQuantity,
+        uint256 _fAssetQuantity,
         InvariantConfig memory _config
     ) external view virtual returns (uint256);
 

@@ -3,15 +3,15 @@ import "tsconfig-paths/register"
 import { DEAD_ADDRESS } from "@utils/constants"
 import { task, types } from "hardhat/config"
 import { DelayedProxyAdmin__factory } from "types/generated"
-// Polygon imUSD Contract
-import { SavingsContractImusdPolygon22 } from "types/generated/SavingsContractImusdPolygon22"
-import { SavingsContractImusdPolygon22__factory } from "types/generated/factories/SavingsContractImusdPolygon22__factory"
+// Polygon ifUSD Contract
+import { SavingsContractIfusdPolygon22 } from "types/generated/SavingsContractIfusdPolygon22"
+import { SavingsContractIfusdPolygon22__factory } from "types/generated/factories/SavingsContractIfusdPolygon22__factory"
 // Mainnet imBTC Contract
 import { SavingsContractImbtcMainnet22__factory } from "types/generated/factories/SavingsContractImbtcMainnet22__factory"
 import { SavingsContractImbtcMainnet22 } from "types/generated/SavingsContractImbtcMainnet22"
-// Mainnet imUSD Contract
-import { SavingsContractImusdMainnet22__factory } from "types/generated/factories/SavingsContractImusdMainnet22__factory"
-import { SavingsContractImusdMainnet22 } from "types/generated/SavingsContractImusdMainnet22"
+// Mainnet ifUSD Contract
+import { SavingsContractIfusdMainnet22__factory } from "types/generated/factories/SavingsContractIfusdMainnet22__factory"
+import { SavingsContractIfusdMainnet22 } from "types/generated/SavingsContractIfusdMainnet22"
 
 import { deployContract } from "./utils/deploy-utils"
 import { getSigner } from "./utils/signerFactory"
@@ -19,7 +19,7 @@ import { getChain, resolveAddress, getChainAddress } from "./utils/networkAddres
 import { Chain } from "./utils/tokens"
 import { verifyEtherscan } from "./utils/etherscan"
 
-task("upgrade-imusd-polygon", "Upgrade Polygon imUSD save contract imUSD")
+task("upgrade-ifusd-polygon", "Upgrade Polygon ifUSD save contract ifUSD")
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
         const signer = await getSigner(hre, taskArgs.speed)
@@ -27,22 +27,22 @@ task("upgrade-imusd-polygon", "Upgrade Polygon imUSD save contract imUSD")
 
         if (chain !== Chain.polygon) throw Error("Task can only run against polygon or a polygon fork")
 
-        const musdAddress = resolveAddress("mUSD", chain)
-        const imusdAddress = resolveAddress("mUSD", chain, "savings")
+        const fusdAddress = resolveAddress("fUSD", chain)
+        const ifusdAddress = resolveAddress("fUSD", chain, "savings")
         const delayedAdminAddress = getChainAddress("DelayedProxyAdmin", chain)
         const nexusAddress = getChainAddress("Nexus", chain)
         const unwrapperAddress = getChainAddress("Unwrapper", chain)
-        const constructorArguments = [nexusAddress, musdAddress, unwrapperAddress]
+        const constructorArguments = [nexusAddress, fusdAddress, unwrapperAddress]
 
         // Deploy step 1 - Save Contract
-        const saveContractImpl = await deployContract<SavingsContractImusdPolygon22>(
-            new SavingsContractImusdPolygon22__factory(signer),
-            "mStable: mUSD Savings Contract (imUSD)",
+        const saveContractImpl = await deployContract<SavingsContractIfusdPolygon22>(
+            new SavingsContractIfusdPolygon22__factory(signer),
+            "mStable: fUSD Savings Contract (ifUSD)",
             constructorArguments,
         )
         await verifyEtherscan(hre, {
             address: saveContractImpl.address,
-            contract: "contracts/legacy-upgraded/imusd-polygon-22.sol:SavingsContract_imusd_polygon_22",
+            contract: "contracts/legacy-upgraded/ifusd-polygon-22.sol:SavingsContract_ifusd_polygon_22",
             constructorArguments,
         })
 
@@ -53,14 +53,14 @@ task("upgrade-imusd-polygon", "Upgrade Polygon imUSD save contract imUSD")
         // Update the  proxy to point to the new implementation using the delayed proxy admin
         const upgradeData = []
         const proposeUpgradeData = delayedProxyAdmin.interface.encodeFunctionData("proposeUpgrade", [
-            imusdAddress,
+            ifusdAddress,
             saveContractImpl.address,
             upgradeData,
         ])
         console.log(`\ndelayedProxyAdmin.proposeUpgrade to ${delayedAdminAddress}, data:\n${proposeUpgradeData}`)
     })
 
-task("upgrade-imusd-mainnet", "Upgrade Mainnet imUSD save contract imUSD")
+task("upgrade-ifusd-mainnet", "Upgrade Mainnet ifUSD save contract ifUSD")
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
         const signer = await getSigner(hre, taskArgs.speed)
@@ -68,15 +68,15 @@ task("upgrade-imusd-mainnet", "Upgrade Mainnet imUSD save contract imUSD")
 
         if (chain !== Chain.mainnet) throw Error("Task can only run against mainnet or a mainnet fork")
 
-        const imusdAddress = resolveAddress("mUSD", chain, "savings")
+        const ifusdAddress = resolveAddress("fUSD", chain, "savings")
         const delayedAdminAddress = getChainAddress("DelayedProxyAdmin", chain)
         const unwrapperAddress = getChainAddress("Unwrapper", chain)
         const constructorArguments = []
 
         // Deploy step 1 -  Save Contract
-        const saveContractImpl = await deployContract<SavingsContractImusdMainnet22>(
-            new SavingsContractImusdMainnet22__factory(signer),
-            "mStable: mUSD Savings Contract (imUSD)",
+        const saveContractImpl = await deployContract<SavingsContractIfusdMainnet22>(
+            new SavingsContractIfusdMainnet22__factory(signer),
+            "mStable: fUSD Savings Contract (ifUSD)",
             constructorArguments,
         )
         // Validate the unwrapper is set as constant on the save contract
@@ -84,7 +84,7 @@ task("upgrade-imusd-mainnet", "Upgrade Mainnet imUSD save contract imUSD")
             throw Error("Unwrapper address not set on save contract")
         await verifyEtherscan(hre, {
             address: saveContractImpl.address,
-            contract: "contracts/legacy-upgraded/imusd-mainnet-22.sol:SavingsContract_imusd_mainnet_22",
+            contract: "contracts/legacy-upgraded/ifusd-mainnet-22.sol:SavingsContract_ifusd_mainnet_22",
             constructorArguments,
         })
 
@@ -95,7 +95,7 @@ task("upgrade-imusd-mainnet", "Upgrade Mainnet imUSD save contract imUSD")
         // Update the  proxy to point to the new implementation using the delayed proxy admin
         const upgradeData = []
         const proposeUpgradeData = delayedProxyAdmin.interface.encodeFunctionData("proposeUpgrade", [
-            imusdAddress,
+            ifusdAddress,
             saveContractImpl.address,
             upgradeData,
         ])

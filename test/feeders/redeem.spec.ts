@@ -3,7 +3,7 @@ import { Signer } from "ethers"
 import { ethers } from "hardhat"
 
 import { BN, simpleToExactAmount } from "@utils/math"
-import { FeederDetails, FeederMachine, MassetMachine, StandardAccounts } from "@utils/machines"
+import { FeederDetails, FeederMachine, FassetMachine, StandardAccounts } from "@utils/machines"
 import { ZERO_ADDRESS } from "@utils/constants"
 import { FeederPool, MockERC20 } from "types/generated"
 import { BassetStatus } from "@utils/mstable-objects"
@@ -26,19 +26,19 @@ describe("Feeder - Redeem", () => {
         useLendingMarkets = false,
         useInterestValidator = false,
         feederWeights?: Array<BN | number>,
-        mAssetWeights?: Array<BN | number>,
+        fAssetWeights?: Array<BN | number>,
         use2dp = false,
         useRedemptionPrice = false,
     ): Promise<void> => {
-        details = await feederMachine.deployFeeder(feederWeights, mAssetWeights, useLendingMarkets,
+        details = await feederMachine.deployFeeder(feederWeights, fAssetWeights, useLendingMarkets,
             useInterestValidator, use2dp, useRedemptionPrice)
     }
 
     before("Init contract", async () => {
         const accounts = await ethers.getSigners()
-        const mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        feederMachine = await new FeederMachine(mAssetMachine)
-        sa = mAssetMachine.sa
+        const fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        feederMachine = await new FeederMachine(fAssetMachine)
+        sa = fAssetMachine.sa
     })
 
     const assertFailedRedeem = async (
@@ -170,7 +170,7 @@ describe("Feeder - Redeem", () => {
 
         const platformInteraction = await FeederMachine.getPlatformInteraction(pool, "withdrawal", fpTokenQuantityExact, assetBefore)
         const integratorBalBefore = await assetBefore.contract.balanceOf(
-            assetBefore.integrator ? assetBefore.integratorAddr : assetBefore.feederPoolOrMassetContract.address,
+            assetBefore.integrator ? assetBefore.integratorAddr : assetBefore.feederPoolOrFassetContract.address,
         )
 
         const outputActual = await pool.getRedeemOutput(outputAsset.address, fpTokenQuantityExact)
@@ -187,7 +187,7 @@ describe("Feeder - Redeem", () => {
         expect(redeemEvent).to.not.equal(undefined)
         expect(redeemEvent.args.redeemer, "redeemer in Redeemer event").to.eq(sender.address)
         expect(redeemEvent.args.recipient, "recipient in Redeemer event").to.eq(recipient)
-        expect(redeemEvent.args.mAssetQuantity, "mAssetQuantity in Redeemer event").to.eq(fpTokenQuantityExact)
+        expect(redeemEvent.args.fAssetQuantity, "fAssetQuantity in Redeemer event").to.eq(fpTokenQuantityExact)
         expect(redeemEvent.args.output, "output in Redeemer event").to.eq(outputAsset.address)
         if (outputActual.gte(0)) {
             expect(redeemEvent.args.outputQuantity, "outputQuantity in Redeemer event").to.eq(outputActual)
@@ -201,19 +201,19 @@ describe("Feeder - Redeem", () => {
         await expect(tx, "Transfer event")
             .to.emit(outputAsset, "Transfer")
             .withArgs(
-                assetBefore.integrator ? assetBefore.integratorAddr : assetBefore.feederPoolOrMassetContract.address,
+                assetBefore.integrator ? assetBefore.integratorAddr : assetBefore.feederPoolOrFassetContract.address,
                 recipient,
                 outputActual,
             )
 
         // Withdraw from lending platform, feeder pool or main pool
         const integratorBalAfter = await assetBefore.contract.balanceOf(
-            assetBefore.integrator ? assetBefore.integratorAddr : assetBefore.feederPoolOrMassetContract.address,
+            assetBefore.integrator ? assetBefore.integratorAddr : assetBefore.feederPoolOrFassetContract.address,
         )
         // TODO Expected "199000412397088284203" to be equal 199000000000000000000
         if (platformInteraction.expectInteraction) {
             await expect(tx)
-                .to.emit(fd.mAssetDetails.platform, "Withdraw")
+                .to.emit(fd.fAssetDetails.platform, "Withdraw")
                 .withArgs(outputAsset.address, assetBefore.pToken, platformInteraction.amount)
         } else {
             expect(integratorBalAfter, "integrator balance after").eq(integratorBalBefore.sub(outputActual))
@@ -277,14 +277,14 @@ describe("Feeder - Redeem", () => {
         expect(redeemEvent).to.not.equal(undefined)
         expect(redeemEvent.args.redeemer, "redeemer in RedeemedMulti event").to.eq(sender.address)
         expect(redeemEvent.args.recipient, "recipient in RedeemedMulti event").to.eq(recipient)
-        expect(redeemEvent.args.mAssetQuantity, "mAssetQuantity in RedeemedMulti event").to.eq(inputQuantityExpectedExact)
+        expect(redeemEvent.args.fAssetQuantity, "fAssetQuantity in RedeemedMulti event").to.eq(inputQuantityExpectedExact)
         expect(redeemEvent.args.outputs, "outputs in RedeemedMulti event").to.eql(outputAssetAddresses)
         expect(redeemEvent.args.outputQuantity.length, "outputQuantity length RedeemedMulti event").to.eql(outputQuantitiesExact.length)
         redeemEvent.args.outputQuantity.forEach((qty, i) => {
             expect(qty, `outputQuantity at index ${i} in RedeemedMulti event`).to.eq(outputQuantitiesExact[i])
         })
 
-        // Recipient should have mAsset quantity after
+        // Recipient should have fAsset quantity after
         const recipientOutputBalancesAfter = await Promise.all(outputAssets.map((b) => b.balanceOf(recipient)))
         recipientOutputBalancesAfter.forEach((balanceAfter, i) => {
             expect(balanceAfter, `recipient asset[${i}] balance after`).eq(recipientOutputBalancesBefore[i].add(outputQuantitiesExact[i]))
@@ -339,7 +339,7 @@ describe("Feeder - Redeem", () => {
         expect(redeemEvent).to.not.equal(undefined)
         expect(redeemEvent.args.redeemer, "redeemer in RedeemedMulti event").to.eq(sender.address)
         expect(redeemEvent.args.recipient, "recipient in RedeemedMulti event").to.eq(recipient)
-        expect(redeemEvent.args.mAssetQuantity, "mAssetQuantity in RedeemedMulti event").to.eq(fpTokenQuantityExact)
+        expect(redeemEvent.args.fAssetQuantity, "fAssetQuantity in RedeemedMulti event").to.eq(fpTokenQuantityExact)
         expect(redeemEvent.args.outputs, "outputs in RedeemedMulti event").to.deep.eq(outputAssetAddresses)
         expect(redeemEvent.args.outputQuantity.length, "outputQuantity length RedeemedMulti event").to.eql(
             outputQuantitiesExpectedExact.length,
@@ -425,15 +425,15 @@ describe("Feeder - Redeem", () => {
                     )
                 })
                 it("should fail to redeem mStable asset when sender doesn't give approval", async () => {
-                    const { mAsset, pool } = details
+                    const { fAsset, pool } = details
                     const sender = sa.dummy2
-                    await mAsset.transfer(sender.address, 10000)
-                    expect(await mAsset.allowance(sender.address, pool.address)).eq(0)
-                    expect(await mAsset.balanceOf(sender.address)).eq(10000)
+                    await fAsset.transfer(sender.address, 10000)
+                    expect(await fAsset.allowance(sender.address, pool.address)).eq(0)
+                    expect(await fAsset.balanceOf(sender.address)).eq(10000)
                     await assertFailedRedeem(
                         "ERC20: burn amount exceeds balance",
                         pool,
-                        mAsset,
+                        fAsset,
                         simpleToExactAmount(100),
                         "99836469880460054332",
                         0,
@@ -460,7 +460,7 @@ describe("Feeder - Redeem", () => {
                 })
                 it("should fail when the asset does not exist", async () => {
                     const { pool } = details
-                    const invalidAsset = await feederMachine.mAssetMachine.loadBassetProxy("Mock", "MKK", 18, sa.default.address, 1000)
+                    const invalidAsset = await feederMachine.fAssetMachine.loadBassetProxy("Mock", "MKK", 18, sa.default.address, 1000)
                     await assertFailedRedeem("Invalid asset", pool, invalidAsset, simpleToExactAmount(1))
                 })
 
@@ -482,8 +482,8 @@ describe("Feeder - Redeem", () => {
                         await assertFailedRedeem("Unhealthy", pool, fdAsset, simpleToExactAmount(1), "999591707839220549")
                     })
                     it("should fail to redeem mStable asset", async () => {
-                        const { mAsset, pool } = details
-                        await assertFailedRedeem("Unhealthy", pool, mAsset, simpleToExactAmount(1), "999591707839220549")
+                        const { fAsset, pool } = details
+                        await assertFailedRedeem("Unhealthy", pool, fAsset, simpleToExactAmount(1), "999591707839220549")
                     })
                     it("should fail to redeem a main pool assets", async () => {
                         const { bAssets, pool } = details
@@ -496,16 +496,16 @@ describe("Feeder - Redeem", () => {
                     await runSetup()
                 })
                 it("should redeem a single mStable asset", async () => {
-                    const { mAsset } = details
-                    await assertBasicRedeem(details, mAsset, simpleToExactAmount(1), "999591707839220549", "999591707839220549")
+                    const { fAsset } = details
+                    await assertBasicRedeem(details, fAsset, simpleToExactAmount(1), "999591707839220549", "999591707839220549")
                 })
                 it("should redeem a single feeder asset", async () => {
                     const { fdAsset } = details
                     await assertBasicRedeem(details, fdAsset, simpleToExactAmount(1), "999591707839220549", "999591707839220549")
                 })
                 it("should redeem a single main pool asset", async () => {
-                    const { mAssetDetails } = details
-                    await assertBasicRedeem(details, mAssetDetails.bAssets[0], simpleToExactAmount(1))
+                    const { fAssetDetails } = details
+                    await assertBasicRedeem(details, fAssetDetails.bAssets[0], simpleToExactAmount(1))
                 })
             })
             context("scale fdAsset by setting redemption price to 2", () => {
@@ -515,10 +515,10 @@ describe("Feeder - Redeem", () => {
                     const {redemptionPriceSnap} = details
                     await redemptionPriceSnap.setRedemptionPriceSnap("2000000000000000000000000000")
                 })
-                it("redeem 1 pool token for scaled mAsset quantity", async () => {
-                    const {mAsset} = details
-                    // TVL is 50% higher so 1 pool token should give about 1.5 mAssets.
-                    await assertBasicRedeem(details, mAsset, simpleToExactAmount(1), "1493800546589159674")
+                it("redeem 1 pool token for scaled fAsset quantity", async () => {
+                    const {fAsset} = details
+                    // TVL is 50% higher so 1 pool token should give about 1.5 fAssets.
+                    await assertBasicRedeem(details, fAsset, simpleToExactAmount(1), "1493800546589159674")
                 })
                 it("redeem 1 pool token for scaled fdAsset quantity", async () => {
                     const {fdAsset} = details
@@ -526,8 +526,8 @@ describe("Feeder - Redeem", () => {
                     await assertBasicRedeem(details, fdAsset, simpleToExactAmount(1), "751092003565206370")
                 })
                 it("should redeem a single main pool asset independent of redemption price", async () => {
-                    const {mAssetDetails} = details
-                    await assertBasicRedeem(details, mAssetDetails.bAssets[0], simpleToExactAmount(1))
+                    const {fAssetDetails} = details
+                    await assertBasicRedeem(details, fAssetDetails.bAssets[0], simpleToExactAmount(1))
                 })
             })
             context("enable using redemption price", () => {
@@ -535,16 +535,16 @@ describe("Feeder - Redeem", () => {
                     await runSetup(undefined, undefined, undefined,
                         undefined, undefined, true)
                 })
-                it("Set RP so mAsset should fail redeem", async () => {
-                    const {mAsset, pool, redemptionPriceSnap} = details
+                it("Set RP so fAsset should fail redeem", async () => {
+                    const {fAsset, pool, redemptionPriceSnap} = details
                     await redemptionPriceSnap.setRedemptionPriceSnap("4500000000000000000000000000")
-                    // Due to the RP fdAsset is now overweight and redeeming mAsset should fail
-                    await assertFailedRedeem("Exceeds weight limits", pool, mAsset, simpleToExactAmount(1))
+                    // Due to the RP fdAsset is now overweight and redeeming fAsset should fail
+                    await assertFailedRedeem("Exceeds weight limits", pool, fAsset, simpleToExactAmount(1))
                 })
                 it("Set RP so fdAsset should fail redeem", async () => {
                     const {fdAsset, pool, redemptionPriceSnap} = details
                     await redemptionPriceSnap.setRedemptionPriceSnap("240000000000000000000000000")
-                    // Due to the RP fdAsset is now overweight and redeeming mAsset should fail
+                    // Due to the RP fdAsset is now overweight and redeeming fAsset should fail
                     await assertFailedRedeem("Exceeds weight limits", pool, fdAsset, simpleToExactAmount(1))
                 })
             })
@@ -564,30 +564,30 @@ describe("Feeder - Redeem", () => {
                     await runSetup()
                 })
                 before(async () => {
-                    const { mAsset, mAssetDetails } = details
-                    await mAsset.connect(sa.governor.signer).handlePegLoss(mAssetDetails.bAssets[0].address, true)
-                    const newBasset = await mAsset.getBasset(mAssetDetails.bAssets[0].address)
+                    const { fAsset, fAssetDetails } = details
+                    await fAsset.connect(sa.governor.signer).handlePegLoss(fAssetDetails.bAssets[0].address, true)
+                    const newBasset = await fAsset.getBasset(fAssetDetails.bAssets[0].address)
                     expect(newBasset.personal.status).to.eq(BassetStatus.BrokenBelowPeg)
                 })
                 after(async () => {
-                    const { mAsset, mAssetDetails } = details
-                    await mAsset.connect(sa.governor.signer).negateIsolation(mAssetDetails.bAssets[0].address)
-                    const newBasset = await mAsset.getBasset(mAssetDetails.bAssets[0].address)
+                    const { fAsset, fAssetDetails } = details
+                    await fAsset.connect(sa.governor.signer).negateIsolation(fAssetDetails.bAssets[0].address)
+                    const newBasset = await fAsset.getBasset(fAssetDetails.bAssets[0].address)
                     expect(newBasset.personal.status).to.eq(BassetStatus.Normal)
                 })
                 it("should fail to redeem a main pool asset", async () => {
-                    const { mAssetDetails, pool } = details
+                    const { fAssetDetails, pool } = details
                     await assertFailedRedeem(
                         "VM Exception while processing transaction: revert",
                         pool,
-                        mAssetDetails.bAssets[0],
+                        fAssetDetails.bAssets[0],
                         simpleToExactAmount(1),
                         "998990470317456042",
                     )
                 })
                 it("should redeem a single mStable asset", async () => {
-                    const { mAsset } = details
-                    await assertBasicRedeem(details, mAsset, simpleToExactAmount(1), "999591707839220549")
+                    const { fAsset } = details
+                    await assertBasicRedeem(details, fAsset, simpleToExactAmount(1), "999591707839220549")
                 })
                 it("should redeem a single feeder asset", async () => {
                     const { fdAsset } = details
@@ -600,24 +600,24 @@ describe("Feeder - Redeem", () => {
                     await runSetup(true)
 
                     // Do another mint to ensure there is something in the lending platform
-                    await feederMachine.approveFeeder(details.mAsset, details.pool.address, 100)
+                    await feederMachine.approveFeeder(details.fAsset, details.pool.address, 100)
                     await feederMachine.approveFeeder(details.fdAsset, details.pool.address, 100)
                     await details.pool.mintMulti(
-                        [details.mAsset.address, details.fdAsset.address],
+                        [details.fAsset.address, details.fdAsset.address],
                         [simpleToExactAmount(100), simpleToExactAmount(100)],
                         0,
                         sa.default.address,
                     )
                 })
                 it("should mint a single mStable asset", async () => {
-                    await assertBasicRedeem(details, details.mAsset, simpleToExactAmount(20), "19989716067001609834")
+                    await assertBasicRedeem(details, details.fAsset, simpleToExactAmount(20), "19989716067001609834")
                 })
                 it("should mint a single feeder asset", async () => {
                     await assertBasicRedeem(details, details.fdAsset, simpleToExactAmount(20), "19989716067001609834")
                 })
             })
         })
-        context("when the basket is 80% mAsset, 20% fdAsset", () => {
+        context("when the basket is 80% fAsset, 20% fdAsset", () => {
             beforeEach(async () => {
                 await runSetup(false, false, [79, 21])
             })
@@ -681,12 +681,12 @@ describe("Feeder - Redeem", () => {
                         await assertFailedRedeemExact("Duplicate asset", pool, [bAssets[0].address, bAssets[0].address], [10000, 10000])
                     })
                     it("should multi redeem a single main pool asset", async () => {
-                        const { mAssetDetails, pool } = details
-                        await assertFailedRedeemExact("Invalid asset", pool, [mAssetDetails.bAssets[0]], [10000])
+                        const { fAssetDetails, pool } = details
+                        await assertFailedRedeemExact("Invalid asset", pool, [fAssetDetails.bAssets[0]], [10000])
                     })
                 })
                 context("when all quantities are zero", () => {
-                    it("should fail to redeem exact fdAsset and mAsset", async () => {
+                    it("should fail to redeem exact fdAsset and fAsset", async () => {
                         const { bAssets, pool } = details
                         await assertFailedRedeemExact("Must redeem > 1e6 units", pool, bAssets, [0, 0])
                     })
@@ -695,8 +695,8 @@ describe("Feeder - Redeem", () => {
                         await assertFailedRedeemExact("Must redeem > 1e6 units", pool, [fdAsset], [0])
                     })
                     it("should fail to redeem exact mStable asset", async () => {
-                        const { mAsset, pool } = details
-                        await assertFailedRedeemExact("Must redeem > 1e6 units", pool, [mAsset], [0])
+                        const { fAsset, pool } = details
+                        await assertFailedRedeemExact("Must redeem > 1e6 units", pool, [fAsset], [0])
                     })
                 })
                 it("should fail if zero max feed pool token quantity", async () => {
@@ -721,7 +721,7 @@ describe("Feeder - Redeem", () => {
                     const sender = sa.default
                     await feederMachine.approveFeeder(bAsset, pool.address, 101, sender.signer)
                     await assertFailedRedeemExact(
-                        "Redeem mAsset qty > max quantity",
+                        "Redeem fAsset qty > max quantity",
                         pool,
                         [bAsset.address],
                         ["100000000000000000000"], // 100
@@ -749,7 +749,7 @@ describe("Feeder - Redeem", () => {
                 })
                 it("should fail when the asset does not exist", async () => {
                     const { pool } = details
-                    const newBasset = await feederMachine.mAssetMachine.loadBassetProxy("Mock", "MKK", 18, sa.default.address, 1000)
+                    const newBasset = await feederMachine.fAssetMachine.loadBassetProxy("Mock", "MKK", 18, sa.default.address, 1000)
                     await assertFailedRedeemExact("Invalid asset", pool, [newBasset], [1])
                 })
                 context("when feeder pool is paused", () => {
@@ -770,8 +770,8 @@ describe("Feeder - Redeem", () => {
                         await assertFailedRedeemExact("Unhealthy", pool, [fdAsset], [simpleToExactAmount(1)], "1000408462329643612")
                     })
                     it("should fail to redeem exact mStable asset", async () => {
-                        const { mAsset, pool } = details
-                        await assertFailedRedeemExact("Unhealthy", pool, [mAsset], [simpleToExactAmount(1)], "1000408462329643612")
+                        const { fAsset, pool } = details
+                        await assertFailedRedeemExact("Unhealthy", pool, [fAsset], [simpleToExactAmount(1)], "1000408462329643612")
                     })
                 })
             })
@@ -780,8 +780,8 @@ describe("Feeder - Redeem", () => {
                     await runSetup()
                 })
                 it("should redeem exact single mStable asset", async () => {
-                    const { mAsset } = details
-                    await assertRedeemExact(details, [mAsset], [simpleToExactAmount(1)], "1000408462329643612", simpleToExactAmount(11, 17))
+                    const { fAsset } = details
+                    await assertRedeemExact(details, [fAsset], [simpleToExactAmount(1)], "1000408462329643612", simpleToExactAmount(11, 17))
                 })
                 it("should redeem exact a single feeder asset", async () => {
                     const { fdAsset } = details
@@ -800,9 +800,9 @@ describe("Feeder - Redeem", () => {
                     await redemptionPriceSnap.setRedemptionPriceSnap("2000000000000000000000000000")
                 })
                 it("should redeem exact two thirds mStable asset", async () => {
-                    const { mAsset } = details
-                    // TVL has increased so 1 mAsset will cost less than 1 fptoken, expect 1/1.5
-                    await assertRedeemExact(details, [mAsset], [simpleToExactAmount(1)], "669427234744509357", simpleToExactAmount(11, 17))
+                    const { fAsset } = details
+                    // TVL has increased so 1 fAsset will cost less than 1 fptoken, expect 1/1.5
+                    await assertRedeemExact(details, [fAsset], [simpleToExactAmount(1)], "669427234744509357", simpleToExactAmount(11, 17))
                 })
                 it("should redeem exact four thirds of feeder asset", async () => {
                     const { fdAsset } = details
@@ -828,20 +828,20 @@ describe("Feeder - Redeem", () => {
             context("when a main pool asset has broken below peg", () => {
                 before(async () => {
                     await runSetup()
-                    const { mAsset, mAssetDetails } = details
-                    await mAsset.connect(sa.governor.signer).handlePegLoss(mAssetDetails.bAssets[0].address, true)
-                    const newBasset = await mAsset.getBasset(mAssetDetails.bAssets[0].address)
+                    const { fAsset, fAssetDetails } = details
+                    await fAsset.connect(sa.governor.signer).handlePegLoss(fAssetDetails.bAssets[0].address, true)
+                    const newBasset = await fAsset.getBasset(fAssetDetails.bAssets[0].address)
                     expect(newBasset.personal.status).to.eq(BassetStatus.BrokenBelowPeg)
                 })
                 after(async () => {
-                    const { mAsset, mAssetDetails } = details
-                    await mAsset.connect(sa.governor.signer).negateIsolation(mAssetDetails.bAssets[0].address)
-                    const newBasset = await mAsset.getBasset(mAssetDetails.bAssets[0].address)
+                    const { fAsset, fAssetDetails } = details
+                    await fAsset.connect(sa.governor.signer).negateIsolation(fAssetDetails.bAssets[0].address)
+                    const newBasset = await fAsset.getBasset(fAssetDetails.bAssets[0].address)
                     expect(newBasset.personal.status).to.eq(BassetStatus.Normal)
                 })
                 it("should redeem exact a single mStable asset", async () => {
-                    const { mAsset } = details
-                    await assertRedeemExact(details, [mAsset], [simpleToExactAmount(1)], "1000408462329643612")
+                    const { fAsset } = details
+                    await assertRedeemExact(details, [fAsset], [simpleToExactAmount(1)], "1000408462329643612")
                 })
                 it("should redeem exact a single feeder asset", async () => {
                     const { fdAsset } = details
@@ -853,7 +853,7 @@ describe("Feeder - Redeem", () => {
                 })
             })
         })
-        context("when the basket is 79% mAsset, 21% fdAsset", () => {
+        context("when the basket is 79% fAsset, 21% fdAsset", () => {
             beforeEach(async () => {
                 await runSetup(false, false, [79, 21])
             })
@@ -964,15 +964,15 @@ describe("Feeder - Redeem", () => {
                     await runSetup()
                 })
                 before(async () => {
-                    const { mAsset, mAssetDetails } = details
-                    await mAsset.connect(sa.governor.signer).handlePegLoss(mAssetDetails.bAssets[0].address, true)
-                    const newBasset = await mAsset.getBasset(mAssetDetails.bAssets[0].address)
+                    const { fAsset, fAssetDetails } = details
+                    await fAsset.connect(sa.governor.signer).handlePegLoss(fAssetDetails.bAssets[0].address, true)
+                    const newBasset = await fAsset.getBasset(fAssetDetails.bAssets[0].address)
                     expect(newBasset.personal.status).to.eq(BassetStatus.BrokenBelowPeg)
                 })
                 after(async () => {
-                    const { mAsset, mAssetDetails } = details
-                    await mAsset.connect(sa.governor.signer).negateIsolation(mAssetDetails.bAssets[0].address)
-                    const newBasset = await mAsset.getBasset(mAssetDetails.bAssets[0].address)
+                    const { fAsset, fAssetDetails } = details
+                    await fAsset.connect(sa.governor.signer).negateIsolation(fAssetDetails.bAssets[0].address)
+                    const newBasset = await fAsset.getBasset(fAssetDetails.bAssets[0].address)
                     expect(newBasset.personal.status).to.eq(BassetStatus.Normal)
                 })
                 it("should redeem proportionately", async () => {

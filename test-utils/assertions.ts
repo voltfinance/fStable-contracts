@@ -1,4 +1,4 @@
-import { MassetMachine, MassetDetails } from "@utils/machines"
+import { FassetMachine, FassetDetails } from "@utils/machines"
 import { assert, expect } from "chai"
 import { BN, simpleToExactAmount } from "./math"
 import { fullScale } from "./constants"
@@ -89,10 +89,10 @@ export const assertBNSlightlyGTPercent = (actual: BN, equator: BN, maxPercentInc
     assert.ok(actual.lte(equator.add(maxIncreaseUnits)), `Actual value should not exceed ${maxPercentIncrease}% greater than expected`)
 }
 
-export const assertBasketIsHealthy = async (machine: MassetMachine, md: MassetDetails): Promise<void> => {
+export const assertBasketIsHealthy = async (machine: FassetMachine, md: FassetDetails): Promise<void> => {
     // Read full basket composition
     const composition = await machine.getBasketComposition(md)
-    // Assert sum of bAssets in vault storage is gte to total supply of mAsset
+    // Assert sum of bAssets in vault storage is gte to total supply of fAsset
     assertBnGte(composition.sumOfBassets, composition.totalSupply.add(composition.surplus))
     // No basket weight should be above max
     // composition.bAssets.forEach((b, i) => {
@@ -105,8 +105,8 @@ export const assertBasketIsHealthy = async (machine: MassetMachine, md: MassetDe
     // Should be not undergoing recol
     expect(composition.undergoingRecol, "not undergoing recol").to.eq(false)
     // not failed
-    expect(composition.failed, "mAsset not failed").to.eq(false)
+    expect(composition.failed, "fAsset not failed").to.eq(false)
     // prepareForgeBasset works
     // Potentially wrap in mock and check event
-    await md.mAsset["getBasset(address)"](md.bAssets[0].address)
+    await md.fAsset["getBasset(address)"](md.bAssets[0].address)
 }

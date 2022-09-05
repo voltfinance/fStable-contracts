@@ -19,7 +19,7 @@ import { Account } from "types"
 import { Chain, COMP, USDC, USDT, WBTC } from "tasks/utils/tokens"
 import { resolveAddress } from "../../tasks/utils/networkAddressFactory"
 
-const musdWhaleAddress = "0x136d841d4bece3fc0e4debb94356d8b6b4b93209"
+const fusdWhaleAddress = "0x136d841d4bece3fc0e4debb94356d8b6b4b93209"
 const governorAddress = resolveAddress("Governor")
 const deployerAddress = resolveAddress("OperationsSigner")
 const ethWhaleAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
@@ -52,25 +52,25 @@ context("StakedToken deployments and vault upgrades", () => {
     let deployer: Account
     let governor: Account
     let ethWhale: Signer
-    let musdWhale: Signer
+    let fusdWhale: Signer
     let compWhale: Signer
     let savingsManager: SavingsManager
     let liquidator: Liquidator
-    let musd
+    let fusd
     let mbtc
 
     const { network } = hre
 
-    const snapData = async (_savingsManager: SavingsManager, mAssets: string[]): Promise<Data> => ({
-        savingsContracts: await Promise.all(mAssets.map((m) => savingsManager.savingsContracts(m))),
-        revenueRecipients: await Promise.all(mAssets.map((m) => savingsManager.revenueRecipients(m))),
+    const snapData = async (_savingsManager: SavingsManager, fAssets: string[]): Promise<Data> => ({
+        savingsContracts: await Promise.all(fAssets.map((m) => savingsManager.savingsContracts(m))),
+        revenueRecipients: await Promise.all(fAssets.map((m) => savingsManager.revenueRecipients(m))),
         nexus: await savingsManager.nexus(),
-        lastPeriodStart: await Promise.all(mAssets.map((m) => savingsManager.lastPeriodStart(m))),
-        lastCollection: await Promise.all(mAssets.map((m) => savingsManager.lastCollection(m))),
-        periodYield: await Promise.all(mAssets.map((m) => savingsManager.periodYield(m))),
-        liqStream: await Promise.all(mAssets.map((m) => savingsManager.liqStream(m))),
-        yieldStream: await Promise.all(mAssets.map((m) => savingsManager.yieldStream(m))),
-        lastBatchCollected: await Promise.all(mAssets.map((m) => savingsManager.lastBatchCollected(m))),
+        lastPeriodStart: await Promise.all(fAssets.map((m) => savingsManager.lastPeriodStart(m))),
+        lastCollection: await Promise.all(fAssets.map((m) => savingsManager.lastCollection(m))),
+        periodYield: await Promise.all(fAssets.map((m) => savingsManager.periodYield(m))),
+        liqStream: await Promise.all(fAssets.map((m) => savingsManager.liqStream(m))),
+        yieldStream: await Promise.all(fAssets.map((m) => savingsManager.yieldStream(m))),
+        lastBatchCollected: await Promise.all(fAssets.map((m) => savingsManager.lastBatchCollected(m))),
     })
 
     before("reset block number", async () => {
@@ -88,7 +88,7 @@ context("StakedToken deployments and vault upgrades", () => {
         deployer = await impersonateAccount(deployerAddress)
         governor = await impersonateAccount(governorAddress)
         ethWhale = await impersonate(ethWhaleAddress)
-        musdWhale = await impersonate(musdWhaleAddress)
+        fusdWhale = await impersonate(fusdWhaleAddress)
         compWhale = await impersonate(compWhaleAddress)
 
         // send some Ether to the impersonated multisig contract as it doesn't have Ether
@@ -100,7 +100,7 @@ context("StakedToken deployments and vault upgrades", () => {
     context("1. Deploying", () => {
         let liquidatorImpl: Liquidator
         it("deploys new contract", async () => {
-            musd = resolveAddress("mUSD", Chain.mainnet, "address")
+            fusd = resolveAddress("fUSD", Chain.mainnet, "address")
             mbtc = resolveAddress("mBTC", Chain.mainnet, "address")
 
             const newSavingsManagerAddress = "0xBC3B550E0349D74bF5148D86114A48C3B4Aa856F"
@@ -109,8 +109,8 @@ context("StakedToken deployments and vault upgrades", () => {
         it("checks the config matches up", async () => {
             const oldAddress = resolveAddress("SavingsManager", Chain.mainnet)
             const oldSavingsManager = await SavingsManager__factory.connect(oldAddress, deployer.signer)
-            const oldConfig = await snapData(oldSavingsManager, [musd, mbtc])
-            const newConfig = await snapData(savingsManager, [musd, mbtc])
+            const oldConfig = await snapData(oldSavingsManager, [fusd, mbtc])
+            const newConfig = await snapData(savingsManager, [fusd, mbtc])
 
             expect(newConfig.lastBatchCollected[0]).eq(0)
             expect(newConfig.lastCollection[0]).eq(0)
@@ -157,24 +157,24 @@ context("StakedToken deployments and vault upgrades", () => {
             // Connect to the proxy with the Liquidator ABI
             liquidator = Liquidator__factory.connect(liquidatorAddress, deployer.signer)
         })
-        it("Reapprove mAssets to SavingsManager", async () => {
-            await liquidator.reApproveLiquidation(USDC.integrator) // COMP for mUSD
-            await liquidator.reApproveLiquidation(USDT.integrator) // AAVE for mUSD
+        it("Reapprove fAssets to SavingsManager", async () => {
+            await liquidator.reApproveLiquidation(USDC.integrator) // COMP for fUSD
+            await liquidator.reApproveLiquidation(USDT.integrator) // AAVE for fUSD
             await liquidator.reApproveLiquidation(WBTC.integrator) // AAVE for mBTC
         })
     })
     context("2. Beta tests", () => {
-        it("collects & streams interest from both mAssets", async () => {
-            await savingsManager.collectAndStreamInterest(musd)
+        it("collects & streams interest from both fAssets", async () => {
+            await savingsManager.collectAndStreamInterest(fusd)
             await savingsManager.collectAndStreamInterest(mbtc)
         })
         it("allows save deposits", async () => {
-            const save = resolveAddress("mUSD", Chain.mainnet, "savings")
-            await ERC20__factory.connect(musd, musdWhale).approve(save, simpleToExactAmount(1000))
-            await SavingsContract__factory.connect(save, musdWhale)["depositSavings(uint256)"](simpleToExactAmount(1000))
+            const save = resolveAddress("fUSD", Chain.mainnet, "savings")
+            await ERC20__factory.connect(fusd, fusdWhale).approve(save, simpleToExactAmount(1000))
+            await SavingsContract__factory.connect(save, fusdWhale)["depositSavings(uint256)"](simpleToExactAmount(1000))
         })
         it("distributed unallocated interest", async () => {
-            await savingsManager.distributeUnallocatedInterest(musd)
+            await savingsManager.distributeUnallocatedInterest(fusd)
             await savingsManager.distributeUnallocatedInterest(mbtc)
         })
         it("Liquidate COMP", async () => {

@@ -2,7 +2,7 @@
 pragma solidity 0.8.6;
 
 import { ISavingsContractV2 } from "../../interfaces/ISavingsContract.sol";
-import { IMasset } from "../../interfaces/IMasset.sol";
+import { IFasset } from "../../interfaces/IFasset.sol";
 import { IFeederPool } from "../../interfaces/IFeederPool.sol";
 import { IBoostedVaultWithLockup } from "../../interfaces/IBoostedVaultWithLockup.sol";
 
@@ -11,16 +11,16 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // FLOWS
-// 0 - fdAsset/mAsset/mpAsset    -> FeederPool BoostedVault
-// 1 - fdAssets/mAssets/mpAssets -> FeederPool BoostedVault
+// 0 - fdAsset/fAsset/mpAsset    -> FeederPool BoostedVault
+// 1 - fdAssets/fAssets/mpAssets -> FeederPool BoostedVault
 contract FeederWrapper is Ownable {
     using SafeERC20 for IERC20;
 
     /**
-     * @dev 0. fdAsset/mAsset/mpAsset -> FeederPool BoostedVault
+     * @dev 0. fdAsset/fAsset/mpAsset -> FeederPool BoostedVault
      * @param  _feeder             FeederPool address
      * @param  _vault              BoostedVault address (with stakingToken of `_feeder`)
-     * @param  _input              Input address; fdAsset, mAsset or mpAsset
+     * @param  _input              Input address; fdAsset, fAsset or mpAsset
      * @param  _inputQuantity      Quantity of input sent
      * @param  _minOutputQuantity  Min amount of fpToken to be minted and staked
      */
@@ -47,10 +47,10 @@ contract FeederWrapper is Ownable {
     }
 
     /**
-     * @dev 1. fdAssets/mAssets/mpAssets -> FeederPool BoostedVault
+     * @dev 1. fdAssets/fAssets/mpAssets -> FeederPool BoostedVault
      * @param _feeder             FeederPool address
      * @param _vault              BoostedVault address (with stakingToken of `_feeder`)
-     * @param _inputs             Input addresses; fdAsset, mAsset or mpAsset
+     * @param _inputs             Input addresses; fdAsset, fAsset or mpAsset
      * @param _inputQuantities    Quantity of input sent
      * @param _minOutputQuantity  Min amount of fpToken to be minted and staked
      */

@@ -13,11 +13,11 @@ task("deploy-RevenueForwarder")
         const chain = getChain(hre)
 
         const nexus = resolveAddress("Nexus", chain)
-        const musd = resolveAddress("mUSD", chain, "address")
+        const fusd = resolveAddress("fUSD", chain, "address")
         const keeper = "0xdccb7a6567603af223c090be4b9c83eced210f18"
         const forwarder = "0xd0f0F590585384AF7AB420bE1CFB3A3F8a82D775"
 
-        await deployContract(new RevenueForwarder__factory(signer), "RevenueForwarder", [nexus, musd, keeper, forwarder])
+        await deployContract(new RevenueForwarder__factory(signer), "RevenueForwarder", [nexus, fusd, keeper, forwarder])
     })
 
 module.exports = {}

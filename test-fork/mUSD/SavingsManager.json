@@ -12,7 +12,7 @@
                 },
                 {
                     "internalType": "address",
-                    "name": "_mUSD",
+                    "name": "_fUSD",
                     "type": "address"
                 },
                 {
@@ -31,7 +31,7 @@
                 {
                     "indexed": true,
                     "internalType": "address",
-                    "name": "mAsset",
+                    "name": "fAsset",
                     "type": "address"
                 },
                 {
@@ -62,7 +62,7 @@
                 {
                     "indexed": true,
                     "internalType": "address",
-                    "name": "mAsset",
+                    "name": "fAsset",
                     "type": "address"
                 },
                 {
@@ -81,7 +81,7 @@
                 {
                     "indexed": true,
                     "internalType": "address",
-                    "name": "mAsset",
+                    "name": "fAsset",
                     "type": "address"
                 },
                 {
@@ -113,7 +113,7 @@
                 {
                     "indexed": true,
                     "internalType": "address",
-                    "name": "mAsset",
+                    "name": "fAsset",
                     "type": "address"
                 },
                 {
@@ -132,7 +132,7 @@
                 {
                     "indexed": true,
                     "internalType": "address",
-                    "name": "mAsset",
+                    "name": "fAsset",
                     "type": "address"
                 },
                 {
@@ -157,7 +157,7 @@
                 {
                     "indexed": true,
                     "internalType": "address",
-                    "name": "mAsset",
+                    "name": "fAsset",
                     "type": "address"
                 },
                 {
@@ -176,7 +176,7 @@
                 {
                     "indexed": true,
                     "internalType": "address",
-                    "name": "mAsset",
+                    "name": "fAsset",
                     "type": "address"
                 },
                 {
@@ -226,7 +226,7 @@
             "inputs": [
                 {
                     "internalType": "address",
-                    "name": "_mAsset",
+                    "name": "_fAsset",
                     "type": "address"
                 },
                 {
@@ -246,7 +246,7 @@
             "inputs": [
                 {
                     "internalType": "address",
-                    "name": "_mAsset",
+                    "name": "_fAsset",
                     "type": "address"
                 }
             ],
@@ -261,7 +261,7 @@
             "inputs": [
                 {
                     "internalType": "address",
-                    "name": "_mAsset",
+                    "name": "_fAsset",
                     "type": "address"
                 }
             ],
@@ -276,7 +276,7 @@
             "inputs": [
                 {
                     "internalType": "address",
-                    "name": "_mAsset",
+                    "name": "_fAsset",
                     "type": "address"
                 },
                 {
@@ -296,7 +296,7 @@
             "inputs": [
                 {
                     "internalType": "address",
-                    "name": "_mAsset",
+                    "name": "_fAsset",
                     "type": "address"
                 }
             ],
@@ -511,7 +511,7 @@
             "inputs": [
                 {
                     "internalType": "address",
-                    "name": "_mAsset",
+                    "name": "_fAsset",
                     "type": "address"
                 },
                 {
@@ -555,7 +555,7 @@
             "inputs": [
                 {
                     "internalType": "address",
-                    "name": "_mAsset",
+                    "name": "_fAsset",
                     "type": "address"
                 },
                 {

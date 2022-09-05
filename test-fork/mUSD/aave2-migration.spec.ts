@@ -15,8 +15,8 @@ import {
     PAaveIntegration,
     PAaveIntegration__factory,
 } from "types/generated"
-import { MusdEth__factory } from "types/generated/factories/MusdEth__factory"
-import { MusdEth } from "types/generated/MusdEth"
+import { FusdEth__factory } from "types/generated/factories/FusdEth__factory"
+import { FusdEth } from "types/generated/FusdEth"
 
 const governorAddress = "0xF6FF1F7FCEB2cE6d26687EaaB5988b445d0b94a2"
 const deployerAddress = "0xb81473f20818225302b8fffb905b53d58a793d84"
@@ -36,8 +36,8 @@ const compoundIntegrationAddress = "0xd55684f4369040c12262949ff78299f2bc9db735"
 
 // Reward token
 const stkAaveTokenAddress = "0x4da27a545c0c5b758a6ba100e3a049001de870f5"
-// mAssets
-const mUsdAddress = "0xe2f2a5c287993345a840db3b0845fbc70f5935a5"
+// fAssets
+const fUsdAddress = "0xe2f2a5c287993345a840db3b0845fbc70f5935a5"
 const mBtcAddress = "0x945Facb997494CC2570096c74b5F66A3507330a1"
 // bAssets
 const daiAddress = "0x6b175474e89094c44da98b954eedeac495271d0f"
@@ -60,14 +60,14 @@ context("DAI and WBTC migration to integration that can claim stkAave", () => {
     let daiWhale: Signer
     let sUsdWhale: Signer
     let usdtWhale: Signer
-    let mUsd: MusdEth
-    let mBtc: MusdEth
+    let fUsd: FusdEth
+    let mBtc: FusdEth
     let stkAave: IERC20
     let wbtc: IERC20
     let dai: IERC20
     let usdt: IERC20
     let susd: IERC20
-    let mUsdPAaveIntegration: PAaveIntegration
+    let fUsdPAaveIntegration: PAaveIntegration
     let mBtcPAaveIntegration: PAaveIntegration
     let aaveIncentivesController: IAaveIncentivesController
 
@@ -97,8 +97,8 @@ context("DAI and WBTC migration to integration that can claim stkAave", () => {
             value: simpleToExactAmount(10),
         })
 
-        mUsd = await MusdEth__factory.connect(mUsdAddress, deployer)
-        mBtc = await MusdEth__factory.connect(mBtcAddress, deployer)
+        fUsd = await FusdEth__factory.connect(fUsdAddress, deployer)
+        mBtc = await FusdEth__factory.connect(mBtcAddress, deployer)
 
         wbtc = await IERC20__factory.connect(wBtcAddress, deployer)
         dai = await IERC20__factory.connect(daiAddress, deployer)
@@ -108,10 +108,10 @@ context("DAI and WBTC migration to integration that can claim stkAave", () => {
         stkAave = await IERC20__factory.connect(stkAaveTokenAddress, governor)
         aaveIncentivesController = await IAaveIncentivesController__factory.connect(aaveRewardControllerAddress, governor)
 
-        // whales approve spending by mAssets
-        await dai.connect(daiWhale).approve(mUsdAddress, simpleToExactAmount(1000))
-        await susd.connect(sUsdWhale).approve(mUsdAddress, simpleToExactAmount(1000))
-        await usdt.connect(usdtWhale).approve(mUsdAddress, simpleToExactAmount(1000, 6))
+        // whales approve spending by fAssets
+        await dai.connect(daiWhale).approve(fUsdAddress, simpleToExactAmount(1000))
+        await susd.connect(sUsdWhale).approve(fUsdAddress, simpleToExactAmount(1000))
+        await usdt.connect(usdtWhale).approve(fUsdAddress, simpleToExactAmount(1000, 6))
         await wbtc.connect(wbtcWhale).approve(mBtcAddress, simpleToExactAmount(100, 8))
     })
     it("Test connectivity", async () => {
@@ -120,14 +120,14 @@ context("DAI and WBTC migration to integration that can claim stkAave", () => {
         const startEther = await deployer.getBalance()
         console.log(`Deployer ${deployerAddress} has ${startEther} Ether`)
     })
-    it("deploy and initialize Aave integration for mUSD", async () => {
-        mUsdPAaveIntegration = await deployContract<PAaveIntegration>(
+    it("deploy and initialize Aave integration for fUSD", async () => {
+        fUsdPAaveIntegration = await deployContract<PAaveIntegration>(
             new PAaveIntegration__factory(deployer),
-            "Aave Integration for mUSD",
-            [nexusAddress, mUsdAddress, lendingPoolAddressProviderAddress, stkAaveTokenAddress, aaveRewardControllerAddress],
+            "Aave Integration for fUSD",
+            [nexusAddress, fUsdAddress, lendingPoolAddressProviderAddress, stkAaveTokenAddress, aaveRewardControllerAddress],
         )
-        expect(mUsdPAaveIntegration.address).to.length(42)
-        await mUsdPAaveIntegration.initialize([daiAddress, usdtAddress, sUsdAddress], [aDaiAddress, aUsdtAddress, asUsdAddress])
+        expect(fUsdPAaveIntegration.address).to.length(42)
+        await fUsdPAaveIntegration.initialize([daiAddress, usdtAddress, sUsdAddress], [aDaiAddress, aUsdtAddress, asUsdAddress])
     })
     it("deploy and initialize Aave integration for mBTC", async () => {
         mBtcPAaveIntegration = await deployContract<PAaveIntegration>(
@@ -139,14 +139,14 @@ context("DAI and WBTC migration to integration that can claim stkAave", () => {
         await mBtcPAaveIntegration.initialize([wBtcAddress], [aWBtcAddress])
     })
     it("Governor approves Liquidator to spend the reward (stkAave) tokens", async () => {
-        expect(await stkAave.allowance(mUsdPAaveIntegration.address, liquidatorAddress)).to.eq(0)
+        expect(await stkAave.allowance(fUsdPAaveIntegration.address, liquidatorAddress)).to.eq(0)
         expect(await stkAave.allowance(mBtcPAaveIntegration.address, liquidatorAddress)).to.eq(0)
 
         // This will be done via the delayedProxyAdmin on mainnet
-        await mUsdPAaveIntegration.connect(governor).approveRewardToken()
+        await fUsdPAaveIntegration.connect(governor).approveRewardToken()
         await mBtcPAaveIntegration.connect(governor).approveRewardToken()
 
-        expect(await stkAave.allowance(mUsdPAaveIntegration.address, liquidatorAddress)).to.eq(safeInfinity)
+        expect(await stkAave.allowance(fUsdPAaveIntegration.address, liquidatorAddress)).to.eq(safeInfinity)
         expect(await stkAave.allowance(mBtcPAaveIntegration.address, liquidatorAddress)).to.eq(safeInfinity)
     })
     context("WBTC in mBTC", () => {
@@ -221,89 +221,89 @@ context("DAI and WBTC migration to integration that can claim stkAave", () => {
             expect(wbtcDataAfter.vaultBalance, "Vault balances").to.eq(wbtcDataBefore.vaultBalance.sub(wbtcAmount))
         })
     })
-    context("DAI in mUSD", () => {
+    context("DAI in fUSD", () => {
         it("Migrate DAI from Compound to Aave", async () => {
             // Before migration checks
             const daiBalInATokenBefore = await dai.balanceOf(aDaiAddress)
             const daiBalInCTokenBefore = await dai.balanceOf(cDaiAddress)
-            const { data: bAssetDataBefore } = await mUsd.getBasset(daiAddress)
+            const { data: bAssetDataBefore } = await fUsd.getBasset(daiAddress)
             const daiMigrationAmount = bAssetDataBefore.vaultBalance
-            expect(daiMigrationAmount, "Over 11m DAI in mUSD").to.gt(simpleToExactAmount(11000000))
+            expect(daiMigrationAmount, "Over 11m DAI in fUSD").to.gt(simpleToExactAmount(11000000))
             console.log(`DAI to be migrated ${formatUnits(daiMigrationAmount)}`)
 
-            // All mUSD's DAI is in Compound's cDai or cached in Compound integration contract
+            // All fUSD's DAI is in Compound's cDai or cached in Compound integration contract
             expect(await dai.balanceOf(oldAaveIntegrationAddress), "No DAI in old Aave integration before").to.eq(0)
             const daiCachedInCompoundIntegrationBefore = await dai.balanceOf(compoundIntegrationAddress)
             console.log(`${formatUnits(daiCachedInCompoundIntegrationBefore)} DAI cached in Compound Integration before`)
-            expect(daiCachedInCompoundIntegrationBefore, "> 100k DAI cached in mUSD Compound integration before").to.gt(
+            expect(daiCachedInCompoundIntegrationBefore, "> 100k DAI cached in fUSD Compound integration before").to.gt(
                 simpleToExactAmount(100000),
             )
             expect(await dai.balanceOf(cDaiAddress), "> 700m DAI in cDAI").to.gt(simpleToExactAmount(700, 24))
-            expect(await dai.balanceOf(mUsdAddress), "No DAI in mUSD before").to.eq(0)
+            expect(await dai.balanceOf(fUsdAddress), "No DAI in fUSD before").to.eq(0)
             expect(await dai.balanceOf(oldAaveIntegrationAddress), "No DAI in old Aave Integration before").to.eq(0)
-            expect(await dai.balanceOf(mUsdPAaveIntegration.address), "No DAI in new PAaveIntegration before").to.eq(0)
+            expect(await dai.balanceOf(fUsdPAaveIntegration.address), "No DAI in new PAaveIntegration before").to.eq(0)
 
-            // Migrate DAI in mUSD from old Aave V2 Integration to new PAaveIntegration contract
-            const tx = await mUsd.connect(governor).migrateBassets([daiAddress], mUsdPAaveIntegration.address)
+            // Migrate DAI in fUSD from old Aave V2 Integration to new PAaveIntegration contract
+            const tx = await fUsd.connect(governor).migrateBassets([daiAddress], fUsdPAaveIntegration.address)
             console.log(`DAI migrateBassets tx data: ${tx.data}`)
 
-            // All DAI in mUSD should have moved to the PAaveIntegration contract
+            // All DAI in fUSD should have moved to the PAaveIntegration contract
             expect(await dai.balanceOf(oldAaveIntegrationAddress), "No DAI in old Aave Integration after").to.eq(0)
-            expect(await dai.balanceOf(compoundIntegrationAddress), "No DAI cached in mUSD Compound integration").to.eq(0)
-            expect(await dai.balanceOf(mUsdAddress), "No DAI in mUSD after").to.eq(0)
-            const daiCachedInAaveIntegrationAfter = await dai.balanceOf(mUsdPAaveIntegration.address)
+            expect(await dai.balanceOf(compoundIntegrationAddress), "No DAI cached in fUSD Compound integration").to.eq(0)
+            expect(await dai.balanceOf(fUsdAddress), "No DAI in fUSD after").to.eq(0)
+            const daiCachedInAaveIntegrationAfter = await dai.balanceOf(fUsdPAaveIntegration.address)
             const daiBalInATokenAfter = await dai.balanceOf(aDaiAddress)
             const daiBalInCTokenAfter = await dai.balanceOf(cDaiAddress)
             // DAI in aToken after - aToken before + Aave integration after = cToken before - cToken after + Compound integration before
             expect(daiBalInATokenAfter.sub(daiBalInATokenBefore).add(daiCachedInAaveIntegrationAfter), "No DAI was lost").to.eq(
                 daiBalInCTokenBefore.sub(daiBalInCTokenAfter).add(daiCachedInCompoundIntegrationBefore),
             )
-            const { data: bAssetDataAfter } = await mUsd.getBasset(daiAddress)
-            expect(bAssetDataBefore.vaultBalance, "Before and after mUSD DAI vault balances").to.eq(bAssetDataAfter.vaultBalance)
+            const { data: bAssetDataAfter } = await fUsd.getBasset(daiAddress)
+            expect(bAssetDataBefore.vaultBalance, "Before and after fUSD DAI vault balances").to.eq(bAssetDataAfter.vaultBalance)
         })
         it("Swap 10 DAI for USDT", async () => {
-            const { data: daiDataBefore } = await mUsd.getBasset(daiAddress)
+            const { data: daiDataBefore } = await fUsd.getBasset(daiAddress)
 
             // whale swaps 10 DAI for USDT
             const swapAmount = simpleToExactAmount(10)
-            await mUsd.connect(daiWhale).swap(daiAddress, usdtAddress, swapAmount, 0, daiWhaleAddress)
+            await fUsd.connect(daiWhale).swap(daiAddress, usdtAddress, swapAmount, 0, daiWhaleAddress)
 
-            const { data: daiDataAfter } = await mUsd.getBasset(daiAddress)
+            const { data: daiDataAfter } = await fUsd.getBasset(daiAddress)
             expect(daiDataAfter.vaultBalance, "DAI Vault balances").to.eq(daiDataBefore.vaultBalance.add(swapAmount))
         })
         it("Swap 10 USDT for DAI", async () => {
             // whale swaps 10 USDT for DAI
             const swapAmount = simpleToExactAmount(10, 6)
-            await mUsd.connect(usdtWhale).swap(usdtAddress, daiAddress, swapAmount, 0, usdtWhaleAddress)
+            await fUsd.connect(usdtWhale).swap(usdtAddress, daiAddress, swapAmount, 0, usdtWhaleAddress)
         })
     })
-    context("USDT in mUSD", () => {
+    context("USDT in fUSD", () => {
         it("Migrate USDT from old Aave to new Aave", async () => {
             // Before migration checks
             const usdtBalInATokenBefore = await usdt.balanceOf(aUsdtAddress)
-            const { data: bAssetDataBefore } = await mUsd.getBasset(usdtAddress)
+            const { data: bAssetDataBefore } = await fUsd.getBasset(usdtAddress)
             const usdtMigrationAmount = bAssetDataBefore.vaultBalance
-            expect(usdtMigrationAmount, "Over 11m USDT in mUSD").to.gt(simpleToExactAmount(11000000, 6))
+            expect(usdtMigrationAmount, "Over 11m USDT in fUSD").to.gt(simpleToExactAmount(11000000, 6))
             console.log(`USDT to be migrated ${formatUnits(usdtMigrationAmount, 6)}`)
 
-            // All mUSD's USDT is in Aave's aUSDT or cached in old Aave integration contract
+            // All fUSD's USDT is in Aave's aUSDT or cached in old Aave integration contract
             const usdtCachedInOldIntegrationBefore = await usdt.balanceOf(oldAaveIntegrationAddress)
             console.log(`${formatUnits(usdtCachedInOldIntegrationBefore, 6)} USDT cached in old Aave Integration before `)
             expect(usdtCachedInOldIntegrationBefore, "> 50k USDT cached in old Aave integration before").to.gt(
                 simpleToExactAmount(50000, 6),
             )
             expect(await usdt.balanceOf(aUsdtAddress), "> 70m USDT in aUSDT before").to.gt(simpleToExactAmount(70, 12))
-            expect(await usdt.balanceOf(mUsdAddress), "No USDT in mUSD before").to.eq(0)
-            expect(await usdt.balanceOf(mUsdPAaveIntegration.address), "No USDT in new PAaveIntegration before").to.eq(0)
+            expect(await usdt.balanceOf(fUsdAddress), "No USDT in fUSD before").to.eq(0)
+            expect(await usdt.balanceOf(fUsdPAaveIntegration.address), "No USDT in new PAaveIntegration before").to.eq(0)
 
-            // Migrate USDT in mUSD from old Aave V2 Integration to new PAaveIntegration contract
-            const tx = await mUsd.connect(governor).migrateBassets([usdtAddress], mUsdPAaveIntegration.address)
+            // Migrate USDT in fUSD from old Aave V2 Integration to new PAaveIntegration contract
+            const tx = await fUsd.connect(governor).migrateBassets([usdtAddress], fUsdPAaveIntegration.address)
             console.log(`USDT migrateBassets tx data: ${tx.data}`)
 
-            // All USDT in mUSD should have moved to the PAaveIntegration contract
+            // All USDT in fUSD should have moved to the PAaveIntegration contract
             expect(await usdt.balanceOf(oldAaveIntegrationAddress), "No USDT in old Aave Integration after").to.eq(0)
-            expect(await usdt.balanceOf(mUsdAddress), "No USDT in mUSD after").to.eq(0)
-            const usdtCachedInAaveIntegrationAfter = await usdt.balanceOf(mUsdPAaveIntegration.address)
+            expect(await usdt.balanceOf(fUsdAddress), "No USDT in fUSD after").to.eq(0)
+            const usdtCachedInAaveIntegrationAfter = await usdt.balanceOf(fUsdPAaveIntegration.address)
             const usdtBalInATokenAfter = await usdt.balanceOf(aUsdtAddress)
             console.log(`usdtBalInATokenAfter ${usdtBalInATokenAfter}`)
             console.log(`usdtCachedInAaveIntegrationAfter ${usdtCachedInAaveIntegrationAfter}`)
@@ -314,49 +314,49 @@ context("DAI and WBTC migration to integration that can claim stkAave", () => {
                 usdtBalInATokenBefore.add(usdtCachedInOldIntegrationBefore),
             )
 
-            const { data: bAssetDataAfter } = await mUsd.getBasset(usdtAddress)
-            expect(bAssetDataBefore.vaultBalance, "Before and after mUSD USDT vault balances").to.eq(bAssetDataAfter.vaultBalance)
+            const { data: bAssetDataAfter } = await fUsd.getBasset(usdtAddress)
+            expect(bAssetDataBefore.vaultBalance, "Before and after fUSD USDT vault balances").to.eq(bAssetDataAfter.vaultBalance)
         })
         it("Swap 10 sUSD for USDT", async () => {
-            const { data: sUsdDataBefore } = await mUsd.getBasset(sUsdAddress)
+            const { data: sUsdDataBefore } = await fUsd.getBasset(sUsdAddress)
 
             // whale swaps 10 sUSD for USDT
             const swapAmount = simpleToExactAmount(10)
-            await mUsd.connect(daiWhale).swap(sUsdAddress, usdtAddress, swapAmount, 0, sUsdWhaleAddress)
+            await fUsd.connect(daiWhale).swap(sUsdAddress, usdtAddress, swapAmount, 0, sUsdWhaleAddress)
 
-            const { data: sUsdDataAfter } = await mUsd.getBasset(sUsdAddress)
+            const { data: sUsdDataAfter } = await fUsd.getBasset(sUsdAddress)
             expect(sUsdDataAfter.vaultBalance, "DAI Vault balances").to.eq(sUsdDataBefore.vaultBalance.add(swapAmount))
         })
         it("Swap 10 USDT for sUSD", async () => {
             const swapAmount = simpleToExactAmount(10, 6)
-            await mUsd.connect(usdtWhale).swap(usdtAddress, sUsdAddress, swapAmount, 0, usdtWhaleAddress)
+            await fUsd.connect(usdtWhale).swap(usdtAddress, sUsdAddress, swapAmount, 0, usdtWhaleAddress)
         })
     })
-    context("sUSD in mUSD", () => {
+    context("sUSD in fUSD", () => {
         it("Migrate sUSD from old Aave to new Aave", async () => {
             // Before migration checks
             const sUsdBalInATokenBefore = await susd.balanceOf(sUsdAddress)
-            const { data: bAssetDataBefore } = await mUsd.getBasset(sUsdAddress)
+            const { data: bAssetDataBefore } = await fUsd.getBasset(sUsdAddress)
             const sUsdMigrationAmount = bAssetDataBefore.vaultBalance
-            expect(sUsdMigrationAmount, "Over 2m sUSD in mUSD").to.gt(simpleToExactAmount(2000000))
+            expect(sUsdMigrationAmount, "Over 2m sUSD in fUSD").to.gt(simpleToExactAmount(2000000))
             console.log(`sUSD to be migrated ${formatUnits(sUsdMigrationAmount, 6)}`)
 
-            // All mUSD's sUSD is in Aave's asUSD or cached in old Aave integration contract
+            // All fUSD's sUSD is in Aave's asUSD or cached in old Aave integration contract
             const sUsdCachedInOldIntegrationBefore = await susd.balanceOf(oldAaveIntegrationAddress)
             console.log(`${formatUnits(sUsdCachedInOldIntegrationBefore, 6)} sUSD cached in old Aave Integration before `)
             expect(sUsdCachedInOldIntegrationBefore, "> 2k sUSD cached in old Aave integration before").to.gt(simpleToExactAmount(2000))
             expect(await susd.balanceOf(asUsdAddress), "> 10m sUSD in asUSD before").to.gt(simpleToExactAmount(10, 12))
-            expect(await susd.balanceOf(mUsdAddress), "No sUSD in mUSD before").to.eq(0)
-            expect(await susd.balanceOf(mUsdPAaveIntegration.address), "No sUSD in new PAaveIntegration before").to.eq(0)
+            expect(await susd.balanceOf(fUsdAddress), "No sUSD in fUSD before").to.eq(0)
+            expect(await susd.balanceOf(fUsdPAaveIntegration.address), "No sUSD in new PAaveIntegration before").to.eq(0)
 
-            // Migrate sUSD and sUSD in mUSD from old Aave V2 Integration to new PAaveIntegration contract
-            const tx = await mUsd.connect(governor).migrateBassets([sUsdAddress], mUsdPAaveIntegration.address)
+            // Migrate sUSD and sUSD in fUSD from old Aave V2 Integration to new PAaveIntegration contract
+            const tx = await fUsd.connect(governor).migrateBassets([sUsdAddress], fUsdPAaveIntegration.address)
             console.log(`sUSD and sUSD migrateBassets tx data: ${tx.data}`)
 
-            // All sUSD in mUSD should have moved to the PAaveIntegration contract
+            // All sUSD in fUSD should have moved to the PAaveIntegration contract
             expect(await susd.balanceOf(oldAaveIntegrationAddress), "No sUSD in old Aave Integration after").to.eq(0)
-            expect(await susd.balanceOf(mUsdAddress), "No sUSD in mUSD after").to.eq(0)
-            const susdCachedInAaveIntegrationAfter = await susd.balanceOf(mUsdPAaveIntegration.address)
+            expect(await susd.balanceOf(fUsdAddress), "No sUSD in fUSD after").to.eq(0)
+            const susdCachedInAaveIntegrationAfter = await susd.balanceOf(fUsdPAaveIntegration.address)
             const susdBalInATokenAfter = await susd.balanceOf(asUsdAddress)
             console.log(`susdBalInATokenAfter ${susdBalInATokenAfter}`)
             console.log(`susdCachedInAaveIntegrationAfter ${susdCachedInAaveIntegrationAfter}`)
@@ -367,22 +367,22 @@ context("DAI and WBTC migration to integration that can claim stkAave", () => {
                 sUsdBalInATokenBefore.add(sUsdCachedInOldIntegrationBefore),
             )
 
-            const { data: bAssetDataAfter } = await mUsd.getBasset(sUsdAddress)
-            expect(bAssetDataBefore.vaultBalance, "Before and after mUSD sUSD vault balances").to.eq(bAssetDataAfter.vaultBalance)
+            const { data: bAssetDataAfter } = await fUsd.getBasset(sUsdAddress)
+            expect(bAssetDataBefore.vaultBalance, "Before and after fUSD sUSD vault balances").to.eq(bAssetDataAfter.vaultBalance)
         })
         it("Swap 10 sUSD for USDT", async () => {
-            const { data: sUsdDataBefore } = await mUsd.getBasset(sUsdAddress)
+            const { data: sUsdDataBefore } = await fUsd.getBasset(sUsdAddress)
 
             // whale swaps 10 sUSD for USDT
             const swapAmount = simpleToExactAmount(10)
-            await mUsd.connect(daiWhale).swap(sUsdAddress, usdtAddress, swapAmount, 0, sUsdWhaleAddress)
+            await fUsd.connect(daiWhale).swap(sUsdAddress, usdtAddress, swapAmount, 0, sUsdWhaleAddress)
 
-            const { data: sUsdDataAfter } = await mUsd.getBasset(sUsdAddress)
+            const { data: sUsdDataAfter } = await fUsd.getBasset(sUsdAddress)
             expect(sUsdDataAfter.vaultBalance, "DAI Vault balances").to.eq(sUsdDataBefore.vaultBalance.add(swapAmount))
         })
         it("Swap 10 USDT for sUSD", async () => {
             const swapAmount = simpleToExactAmount(10, 6)
-            await mUsd.connect(usdtWhale).swap(usdtAddress, sUsdAddress, swapAmount, 0, usdtWhaleAddress)
+            await fUsd.connect(usdtWhale).swap(usdtAddress, sUsdAddress, swapAmount, 0, usdtWhaleAddress)
         })
     })
 })

@@ -6,7 +6,7 @@ pragma abicoder v2;
 import { IPlatformIntegration } from "../interfaces/IPlatformIntegration.sol";
 
 // Internal
-import "../masset/MassetStructs.sol";
+import "../fasset/FassetStructs.sol";
 
 // Libs
 import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
@@ -17,7 +17,7 @@ import { StableMath } from "../shared/StableMath.sol";
 /**
  * @title   FeederManager
  * @author  mStable
- * @notice  Manager contract for fPools. Forked from `masset/Manager.sol`, and performs a subset of functionality
+ * @notice  Manager contract for fPools. Forked from `fasset/Manager.sol`, and performs a subset of functionality
  *          related to basket management.
  * @dev     VERSION: 1.0
  *          DATE:    2021-03-01

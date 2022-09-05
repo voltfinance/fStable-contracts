@@ -2,14 +2,14 @@ import { expect } from "chai"
 import { ethers } from "hardhat"
 
 import { BN, simpleToExactAmount } from "@utils/math"
-import { MassetMachine, StandardAccounts } from "@utils/machines"
+import { FassetMachine, StandardAccounts } from "@utils/machines"
 import { ONE_HOUR, ONE_WEEK, ZERO_ADDRESS } from "@utils/constants"
 import {
     AssetProxy__factory,
     MockERC20,
     MockERC20__factory,
-    MockMasset,
-    MockMasset__factory,
+    MockFasset,
+    MockFasset__factory,
     MockNexus,
     SavingsContract__factory,
     SavingsManager,
@@ -41,7 +41,7 @@ describe("Liquidator", () => {
     let liquidator: PLiquidator
     let bAsset: MockERC20
     let bAsset2: MockERC20
-    let mUSD: MockMasset
+    let fUSD: MockFasset
     let paaveIntegration: PAaveIntegration
     let rewardsToken: MockERC20
     let savings: SavingsManager
@@ -72,8 +72,8 @@ describe("Liquidator", () => {
     // - Add to modules
     // - Upgrade COMP
     const redeployLiquidator = async () => {
-        // Fake mUSD & uniswap
-        mUSD = await new MockMasset__factory(sa.default.signer).deploy("mStable USD", "mUSD", 18, sa.fundManager.address, 100000000)
+        // Fake fUSD & uniswap
+        fUSD = await new MockFasset__factory(sa.default.signer).deploy("mStable USD", "fUSD", 18, sa.fundManager.address, 100000000)
         uniswap = await new MockUniswap__factory(sa.default.signer).deploy()
         // Set up Comp Integration
         bAsset = await new MockERC20__factory(sa.default.signer).deploy("Mock1", "MK1", 18, sa.fundManager.address, 100000000)
@@ -85,7 +85,7 @@ describe("Liquidator", () => {
         await rewardsToken.connect(sa.fundManager.signer).transfer(incentivesController.address, simpleToExactAmount(1, 21))
         paaveIntegration = await new PAaveIntegration__factory(sa.default.signer).deploy(
             nexus.address,
-            mUSD.address,
+            fUSD.address,
             mockAAVE,
             rewardsToken.address,
             incentivesController.address,
@@ -96,18 +96,18 @@ describe("Liquidator", () => {
         )
         // Add the module
         // Liquidator
-        const impl = await new PLiquidator__factory(sa.default.signer).deploy(nexus.address, uniswap.address, mUSD.address)
+        const impl = await new PLiquidator__factory(sa.default.signer).deploy(nexus.address, uniswap.address, fUSD.address)
         const proxy = await new AssetProxy__factory(sa.default.signer).deploy(impl.address, sa.other.address, "0x")
         liquidator = await PLiquidator__factory.connect(proxy.address, sa.default.signer)
 
         const unwrapperFactory = await new Unwrapper__factory(sa.default.signer)
         const unwrapperContract = await unwrapperFactory.deploy(nexus.address)
 
-        const save = await new SavingsContract__factory(sa.default.signer).deploy(nexus.address, mUSD.address, unwrapperContract.address)
-        await save.initialize(sa.default.address, "Savings Credit", "imUSD")
+        const save = await new SavingsContract__factory(sa.default.signer).deploy(nexus.address, fUSD.address, unwrapperContract.address)
+        await save.initialize(sa.default.address, "Savings Credit", "ifUSD")
         savings = await new SavingsManager__factory(sa.default.signer).deploy(
             nexus.address,
-            [mUSD.address],
+            [fUSD.address],
             [save.address],
             [ZERO_ADDRESS],
             simpleToExactAmount(1, 18),
@@ -131,7 +131,7 @@ describe("Liquidator", () => {
         const liquidation = await getLiquidation(liquidator.address)
         const sellBalIntegration = await rewardsToken.balanceOf(paaveIntegration.address)
         const sellBalLiquidator = await rewardsToken.balanceOf(liquidator.address)
-        const savingsManagerBal = await mUSD.balanceOf(savings.address)
+        const savingsManagerBal = await fUSD.balanceOf(savings.address)
         return {
             sellTokenBalance: {
                 integration: sellBalIntegration,
@@ -144,12 +144,12 @@ describe("Liquidator", () => {
 
     before(async () => {
         const accounts = await ethers.getSigners()
-        const mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        const massetDetails = await mAssetMachine.deployMasset(true)
-        mockAAVE = massetDetails.aavePlatformAddress
-        bAssets = massetDetails.bAssets
-        pTokens = massetDetails.pTokens
-        sa = mAssetMachine.sa
+        const fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        const fassetDetails = await fAssetMachine.deployFasset(true)
+        mockAAVE = fassetDetails.aavePlatformAddress
+        bAssets = fassetDetails.bAssets
+        pTokens = fassetDetails.pTokens
+        sa = fAssetMachine.sa
         nexus = await new MockNexus__factory(sa.default.signer).deploy(sa.governor.address, sa.governor.address, sa.dummy1.address)
 
         await redeployLiquidator()
@@ -164,7 +164,7 @@ describe("Liquidator", () => {
         it("should properly store valid arguments", async () => {
             expect(await liquidator.nexus()).eq(nexus.address)
             expect(await liquidator.quickSwap()).eq(uniswap.address)
-            expect(await liquidator.mUSD()).eq(mUSD.address)
+            expect(await liquidator.fUSD()).eq(fUSD.address)
         })
     })
 
@@ -212,9 +212,9 @@ describe("Liquidator", () => {
     context("calling constructor", () => {
         it("should fail if any inputs are null", async () => {
             const factory = await new PLiquidator__factory(sa.default.signer)
-            await expect(factory.deploy(ZERO_ADDRESS, uniswap.address, mUSD.address)).to.be.revertedWith("Nexus address is zero")
-            await expect(factory.deploy(nexus.address, ZERO_ADDRESS, mUSD.address)).to.be.revertedWith("Invalid quickSwap address")
-            await expect(factory.deploy(nexus.address, uniswap.address, ZERO_ADDRESS)).to.be.revertedWith("Invalid mUSD address")
+            await expect(factory.deploy(ZERO_ADDRESS, uniswap.address, fUSD.address)).to.be.revertedWith("Nexus address is zero")
+            await expect(factory.deploy(nexus.address, ZERO_ADDRESS, fUSD.address)).to.be.revertedWith("Invalid quickSwap address")
+            await expect(factory.deploy(nexus.address, uniswap.address, ZERO_ADDRESS)).to.be.revertedWith("Invalid fUSD address")
         })
     })
     context("creating a new liquidation", () => {
@@ -379,11 +379,11 @@ describe("Liquidator", () => {
             await uniswap.setRatio(71)
             await liquidator.triggerLiquidation(paaveIntegration.address)
         })
-        it("should fail if mUSD price is below the floor", async () => {
+        it("should fail if fUSD price is below the floor", async () => {
             await paaveIntegration.claimRewards()
-            await mUSD.setRatio(simpleToExactAmount(8, 17))
+            await fUSD.setRatio(simpleToExactAmount(8, 17))
             await expect(liquidator.triggerLiquidation(paaveIntegration.address)).to.be.revertedWith("MINT: Output amount not enough")
-            await mUSD.setRatio(simpleToExactAmount(96, 16))
+            await fUSD.setRatio(simpleToExactAmount(96, 16))
             await liquidator.triggerLiquidation(paaveIntegration.address)
         })
         it("should fail if called within 7 days of the previous", async () => {

@@ -3,8 +3,8 @@ import { ethers } from "hardhat"
 import { expect } from "chai"
 
 import { simpleToExactAmount, BN } from "@utils/math"
-import { MassetDetails, MassetMachine, StandardAccounts } from "@utils/machines"
-import { Masset, MockERC20 } from "types/generated"
+import { FassetDetails, FassetMachine, StandardAccounts } from "@utils/machines"
+import { Fasset, MockERC20 } from "types/generated"
 import { fullScale, ratioScale, ZERO_ADDRESS } from "@utils/constants"
 import { assertBNSlightlyGTPercent, assertBasketIsHealthy } from "@utils/assertions"
 import { BassetStatus } from "@utils/mstable-objects"
@@ -13,11 +13,11 @@ import { Account } from "types"
 // (AS) - test cases to add:
 //  - whenHealthy flag
 //  - asserting swapoutput < min qty by setting `multiplier` on MockValidator
-describe("Masset - Swap", () => {
+describe("Fasset - Swap", () => {
     let sa: StandardAccounts
-    let mAssetMachine: MassetMachine
+    let fAssetMachine: FassetMachine
 
-    let details: MassetDetails
+    let details: FassetDetails
 
     /**
      * @dev (Re)Sets the local variables for this test file
@@ -30,23 +30,23 @@ describe("Masset - Swap", () => {
         useLendingMarkets = false,
         weights: number[] = [25, 25, 25, 25],
     ): Promise<void> => {
-        details = await mAssetMachine.deployMasset(useLendingMarkets, useTransferFees)
+        details = await fAssetMachine.deployFasset(useLendingMarkets, useTransferFees)
         if (seedBasket) {
-            await mAssetMachine.seedWithWeightings(details, weights)
+            await fAssetMachine.seedWithWeightings(details, weights)
         }
     }
 
     before("Init contract", async () => {
         const accounts = await ethers.getSigners()
-        mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        sa = mAssetMachine.sa
+        fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        sa = fAssetMachine.sa
 
         await runSetup()
     })
 
     /**
      * @dev Asserts that both 'swap' and 'getSwapOutput' fail for a given reason
-     * @param mAsset Masset instance upon which to call swap
+     * @param fAsset Fasset instance upon which to call swap
      * @param inputBasset Basset to swap out of
      * @param outputAsset Asset to swap in to
      * @param inputQuantity Whole units to swap out of
@@ -58,7 +58,7 @@ describe("Masset - Swap", () => {
      * @param quantitiesAreExact false (default) if the input and min output quantities need to be converted to base units
      */
     const assertFailedSwap = async (
-        mAssetContract: Masset,
+        fAssetContract: Fasset,
         inputBasset: MockERC20,
         outputAsset: MockERC20,
         inputQuantity: string | BN | number,
@@ -71,8 +71,8 @@ describe("Masset - Swap", () => {
         swapOutputExpected: string | BN | number = 0,
         quantitiesAreExact = false,
     ): Promise<void> => {
-        const mAsset = mAssetContract.connect(sender)
-        const approval: BN = await mAssetMachine.approveMasset(inputBasset, mAsset, inputQuantity, sa.default.signer, quantitiesAreExact)
+        const fAsset = fAssetContract.connect(sender)
+        const approval: BN = await fAssetMachine.approveFasset(inputBasset, fAsset, inputQuantity, sa.default.signer, quantitiesAreExact)
 
         const outputDecimals = await outputAsset.decimals()
         const minOutputQuantityExact = quantitiesAreExact
@@ -81,7 +81,7 @@ describe("Masset - Swap", () => {
 
         // Expect the swap to revert
         await expect(
-            mAsset.swap(inputBasset.address, outputAsset.address, approval, minOutputQuantityExact, recipient),
+            fAsset.swap(inputBasset.address, outputAsset.address, approval, minOutputQuantityExact, recipient),
             `swap tx should revert with "${expectedReason}"`,
         ).to.be.revertedWith(expectedReason)
 
@@ -90,14 +90,14 @@ describe("Masset - Swap", () => {
         if (callSwapOutput) {
             if (swapOutputRevertExpected) {
                 await expect(
-                    mAsset.getSwapOutput(inputBasset.address, outputAsset.address, approval),
+                    fAsset.getSwapOutput(inputBasset.address, outputAsset.address, approval),
                     `getSwapOutput call should revert with "${expectedReason}"`,
                 ).to.be.revertedWith(expectedReason)
             } else {
                 const swapOutputExpectedExact = quantitiesAreExact
                     ? BN.from(swapOutputExpected)
                     : simpleToExactAmount(swapOutputExpected, outputDecimals)
-                const output = await mAsset.getSwapOutput(inputBasset.address, outputAsset.address, approval)
+                const output = await fAsset.getSwapOutput(inputBasset.address, outputAsset.address, approval)
                 expect(output, "getSwapOutput call output").eq(swapOutputExpectedExact)
             }
         }
@@ -117,7 +117,7 @@ describe("Masset - Swap", () => {
      * @param swapQuantityIsExact true if the inputQuantity does not been to be converted to base units
      */
     const assertSwap = async (
-        md: MassetDetails,
+        md: FassetDetails,
         inputBasset: MockERC20,
         outputAsset: MockERC20,
         inputQuantity: BN | number,
@@ -128,39 +128,39 @@ describe("Masset - Swap", () => {
         minOutputQuantity: BN | number = 1,
     ): Promise<BN> => {
         const { platform } = md
-        const mAsset = md.mAsset.connect(sender.signer)
+        const fAsset = md.fAsset.connect(sender.signer)
 
         // 1. Assert all state is currently valid and prepare objects
-        if (!ignoreHealthAssertions) await assertBasketIsHealthy(mAssetMachine, md)
+        if (!ignoreHealthAssertions) await assertBasketIsHealthy(fAssetMachine, md)
 
         //    Get basic before data about the actors balances
         const swapperInputBalBefore = await inputBasset.balanceOf(sender.address)
         const recipientOutputBalBefore = await outputAsset.balanceOf(recipient)
 
         //    Get basic before data on the swap assets
-        const inputBassetBefore = await mAssetMachine.getBasset(details, inputBasset.address)
-        const outputBassetBefore = await mAssetMachine.getBasset(details, outputAsset.address)
-        const { surplus: surplusBefore } = await mAsset.data()
+        const inputBassetBefore = await fAssetMachine.getBasset(details, inputBasset.address)
+        const outputBassetBefore = await fAssetMachine.getBasset(details, outputAsset.address)
+        const { surplus: surplusBefore } = await fAsset.data()
 
         // 2. Do the necessary approvals and make the calls
-        const approval0: BN = await mAssetMachine.approveMasset(
+        const approval0: BN = await fAssetMachine.approveFasset(
             inputBasset,
-            mAsset,
+            fAsset,
             BN.from(inputQuantity),
             sender.signer,
             swapQuantityIsExact,
         )
 
         //    Call the swap output function to check if results match
-        const expectedOutputValue = await mAsset.getSwapOutput(inputBasset.address, outputAsset.address, approval0)
+        const expectedOutputValue = await fAsset.getSwapOutput(inputBasset.address, outputAsset.address, approval0)
 
         // 3. Calculate expected responses
         const inputQuantityExact = approval0
 
         //     Expect to be used in cache
-        const platformInteractionIn = await MassetMachine.getPlatformInteraction(mAsset, "deposit", approval0, inputBassetBefore)
-        const platformInteractionOut = await MassetMachine.getPlatformInteraction(
-            mAsset,
+        const platformInteractionIn = await FassetMachine.getPlatformInteraction(fAsset, "deposit", approval0, inputBassetBefore)
+        const platformInteractionOut = await FassetMachine.getPlatformInteraction(
+            fAsset,
             "withdrawal",
             expectedOutputValue,
             outputBassetBefore,
@@ -168,11 +168,11 @@ describe("Masset - Swap", () => {
 
         // FIXME can await when Waffle 3.2.2 is included in @nomiclabs/hardhat-waffle
         // https://github.com/EthWorks/Waffle/issues/119
-        const swapTx = mAsset.swap(inputBasset.address, outputAsset.address, approval0, minOutputQuantity, recipient)
+        const swapTx = fAsset.swap(inputBasset.address, outputAsset.address, approval0, minOutputQuantity, recipient)
 
         // 4. Validate any basic events that should occur
         // Swapped event
-        await expect(swapTx).to.emit(mAsset, "Swapped")
+        await expect(swapTx).to.emit(fAsset, "Swapped")
         // .withArgs(sender.address, inputBasset.address, outputAsset.address, expectedOutputValue, scaledFee, recipient)
         const { events } = await (await swapTx).wait()
         const swappedEvent = events.find((e) => e.event === "Swapped")
@@ -184,20 +184,20 @@ describe("Masset - Swap", () => {
         expect(swappedEvent.args[5]).to.eq(recipient)
 
         // Input Transfer event
-        await expect(swapTx, "Transfer event for input bAsset from sender to platform integration or mAsset")
+        await expect(swapTx, "Transfer event for input bAsset from sender to platform integration or fAsset")
             .to.emit(inputBasset, "Transfer")
-            .withArgs(sender.address, inputBassetBefore.integrator ? inputBassetBefore.integratorAddr : mAsset.address, inputQuantityExact)
-        await expect(swapTx, "Transfer event for output bAsset from platform integration or mAsset to recipient")
+            .withArgs(sender.address, inputBassetBefore.integrator ? inputBassetBefore.integratorAddr : fAsset.address, inputQuantityExact)
+        await expect(swapTx, "Transfer event for output bAsset from platform integration or fAsset to recipient")
             .to.emit(outputAsset, "Transfer")
-            .withArgs(outputBassetBefore.integrator ? outputBassetBefore.integratorAddr : mAsset.address, recipient, expectedOutputValue)
+            .withArgs(outputBassetBefore.integrator ? outputBassetBefore.integratorAddr : fAsset.address, recipient, expectedOutputValue)
         await swapTx
 
         const inputIntegratorBalAfter = await inputBassetBefore.contract.balanceOf(
-            inputBassetBefore.integrator ? inputBassetBefore.integratorAddr : mAsset.address,
+            inputBassetBefore.integrator ? inputBassetBefore.integratorAddr : fAsset.address,
         )
         expect(inputIntegratorBalAfter, "Input destination raw balance").eq(platformInteractionIn.rawBalance)
         const outputIntegratorBalAfter = await outputBassetBefore.contract.balanceOf(
-            outputBassetBefore.integrator ? outputBassetBefore.integratorAddr : mAsset.address,
+            outputBassetBefore.integrator ? outputBassetBefore.integratorAddr : fAsset.address,
         )
         expect(outputIntegratorBalAfter, "Output source raw balance").eq(platformInteractionOut.rawBalance)
 
@@ -213,7 +213,7 @@ describe("Masset - Swap", () => {
         const swapperBassetBalAfter = await inputBasset.balanceOf(sender.address)
         expect(swapperBassetBalAfter, "swapperBassetBalAfter incorrect").eq(swapperInputBalBefore.sub(inputQuantityExact))
         //    VaultBalance should update for input bAsset
-        const inputBassetAfter = await mAsset.getBasset(inputBasset.address)
+        const inputBassetAfter = await fAsset.getBasset(inputBasset.address)
         expect(BN.from(inputBassetAfter.bData.vaultBalance), "inputBassetAfter incorrect").eq(
             BN.from(inputBassetBefore.vaultBalance).add(inputQuantityExact),
         )
@@ -233,17 +233,17 @@ describe("Masset - Swap", () => {
         //    Swap estimation should match up
         expect(expectedOutputValue, "expectedOutputValue incorrect").eq(recipientBalAfter.sub(recipientOutputBalBefore))
         //    VaultBalance should update for output bAsset
-        const outputBassetAfter = await mAsset.getBasset(outputAsset.address)
+        const outputBassetAfter = await fAsset.getBasset(outputAsset.address)
         expect(BN.from(outputBassetAfter.bData.vaultBalance), "outputBassetAfter incorrect").eq(
             BN.from(outputBassetBefore.vaultBalance).sub(expectedOutputValue),
         )
 
         // Global
         //   Fees should accrue to surplus
-        const { surplus: surplusAfter } = await mAsset.data()
+        const { surplus: surplusAfter } = await fAsset.data()
         expect(BN.from(surplusAfter), "surplusAfter incorrect").eq(BN.from(surplusBefore).add(scaledFee))
 
-        if (!ignoreHealthAssertions) await assertBasketIsHealthy(mAssetMachine, md)
+        if (!ignoreHealthAssertions) await assertBasketIsHealthy(fAssetMachine, md)
 
         return expectedOutputValue
     }
@@ -263,9 +263,9 @@ describe("Masset - Swap", () => {
                 })
             })
             it("should fail if min qty < output qty", async () => {
-                const { bAssets, mAsset } = details
+                const { bAssets, fAsset } = details
                 await assertFailedSwap(
-                    mAsset,
+                    fAsset,
                     bAssets[2], // wBTC 12 decimal places
                     bAssets[1], // sBTC 6 decimal places
                     simpleToExactAmount(5, 12), // sBTC input qty
@@ -280,12 +280,12 @@ describe("Masset - Swap", () => {
                 )
             })
             it("should swap with min qty same as qty less swap fee", async () => {
-                const { bAssets, mAsset } = details
+                const { bAssets, fAsset } = details
                 const inputBasset = bAssets[2] // wBTC 12 decimal places
                 const outputBasset = bAssets[1] // sBTC 6 decimal places
                 const inputQty = simpleToExactAmount(5, 12) // wBTC input qty
                 const expectedOutputQty = simpleToExactAmount(4.986726, 6) // min output qty ~= 0.06% of input
-                const outputQty = await mAsset.getSwapOutput(inputBasset.address, outputBasset.address, inputQty)
+                const outputQty = await fAsset.getSwapOutput(inputBasset.address, outputBasset.address, inputQty)
                 expect(outputQty, "incorrect swap output quantity").to.eq(expectedOutputQty)
                 await assertSwap(
                     details,
@@ -330,13 +330,13 @@ describe("Masset - Swap", () => {
                     await runSetup()
                 })
                 it("should fail if output has less decimals", async () => {
-                    const { bAssets, mAsset } = details
+                    const { bAssets, fAsset } = details
                     const input = bAssets[0]
                     const output = bAssets[1]
                     expect(await input.decimals()).eq(18)
                     expect(await output.decimals()).eq(6)
                     await assertFailedSwap(
-                        mAsset,
+                        fAsset,
                         input,
                         output,
                         1,
@@ -364,15 +364,15 @@ describe("Masset - Swap", () => {
                     await runSetup()
                 })
                 it("should fail if identical bAssets", async () => {
-                    const { bAssets, mAsset } = details
+                    const { bAssets, fAsset } = details
                     const input = bAssets[0]
                     const output = input
-                    await assertFailedSwap(mAsset, input, output, 1, 0, "Invalid pair", sa.default.signer, sa.default.address, true, true)
+                    await assertFailedSwap(fAsset, input, output, 1, 0, "Invalid pair", sa.default.signer, sa.default.address, true, true)
                 })
                 it("should fail when 0 quantity", async () => {
-                    const { bAssets, mAsset } = details
+                    const { bAssets, fAsset } = details
                     await assertFailedSwap(
-                        mAsset,
+                        fAsset,
                         bAssets[0],
                         bAssets[1],
                         0,
@@ -385,9 +385,9 @@ describe("Masset - Swap", () => {
                     )
                 })
                 it("should fail if recipient is 0x0", async () => {
-                    const { bAssets, mAsset } = details
+                    const { bAssets, fAsset } = details
                     await assertFailedSwap(
-                        mAsset,
+                        fAsset,
                         bAssets[0],
                         bAssets[1],
                         1,
@@ -401,9 +401,9 @@ describe("Masset - Swap", () => {
                     )
                 })
                 it("should fail if sender doesn't have sufficient liquidity", async () => {
-                    const { bAssets, mAsset } = details
+                    const { bAssets, fAsset } = details
                     await assertFailedSwap(
-                        mAsset,
+                        fAsset,
                         bAssets[0],
                         bAssets[1],
                         1,
@@ -417,44 +417,44 @@ describe("Masset - Swap", () => {
                     )
                 })
                 it("should fail if sender doesn't give approval", async () => {
-                    const { bAssets, mAsset } = details
+                    const { bAssets, fAsset } = details
                     const input = bAssets[0]
                     const sender = sa.dummy2
                     await input.transfer(sender.address, 10000)
-                    expect(await input.allowance(sender.address, mAsset.address)).eq(0)
+                    expect(await input.allowance(sender.address, fAsset.address)).eq(0)
                     expect(await input.balanceOf(sender.address)).eq(10000)
                     await expect(
-                        mAsset.connect(sender.signer).swap(input.address, bAssets[1].address, 5, 1, sa.default.address),
+                        fAsset.connect(sender.signer).swap(input.address, bAssets[1].address, 5, 1, sa.default.address),
                     ).to.revertedWith("ERC20: transfer amount exceeds allowance")
                 })
                 it("should fail if *either* bAsset does not exist", async () => {
-                    const { bAssets, mAsset } = details
+                    const { bAssets, fAsset } = details
                     const realBasset = bAssets[0].address
                     const fakeBasset = sa.dummy1.address
                     const recipient = sa.dummy2.address
                     const expectedReason = "Invalid asset"
-                    await expect(mAsset.swap(fakeBasset, realBasset, 1, 0, recipient)).to.revertedWith(expectedReason)
-                    await expect(mAsset.swap(realBasset, fakeBasset, 1, 0, recipient)).to.revertedWith(expectedReason)
+                    await expect(fAsset.swap(fakeBasset, realBasset, 1, 0, recipient)).to.revertedWith(expectedReason)
+                    await expect(fAsset.swap(realBasset, fakeBasset, 1, 0, recipient)).to.revertedWith(expectedReason)
                 })
                 it("should fail if *either* bAsset is ZERO", async () => {
-                    const { bAssets, mAsset } = details
+                    const { bAssets, fAsset } = details
                     const realBasset = bAssets[0]
                     const fakeBasset = ZERO_ADDRESS
                     const recipient = sa.default.address
                     const expectedReason = "Invalid asset"
-                    await expect(mAsset.swap(realBasset.address, fakeBasset, 1, 0, recipient)).to.revertedWith(expectedReason)
-                    await expect(mAsset.getSwapOutput(realBasset.address, fakeBasset, 1)).to.revertedWith(expectedReason)
-                    await expect(mAsset.swap(fakeBasset, realBasset.address, 1, 0, recipient)).to.revertedWith(expectedReason)
-                    await expect(mAsset.getSwapOutput(fakeBasset, realBasset.address, 1)).to.revertedWith(expectedReason)
+                    await expect(fAsset.swap(realBasset.address, fakeBasset, 1, 0, recipient)).to.revertedWith(expectedReason)
+                    await expect(fAsset.getSwapOutput(realBasset.address, fakeBasset, 1)).to.revertedWith(expectedReason)
+                    await expect(fAsset.swap(fakeBasset, realBasset.address, 1, 0, recipient)).to.revertedWith(expectedReason)
+                    await expect(fAsset.getSwapOutput(fakeBasset, realBasset.address, 1)).to.revertedWith(expectedReason)
                 })
-                it("should fail using the mAsset as the input asset", async () => {
-                    const { bAssets, mAsset } = details
-                    await assertFailedSwap(mAsset, mAsset, bAssets[0], 1, 0, "Invalid asset", undefined, undefined, true, true)
+                it("should fail using the fAsset as the input asset", async () => {
+                    const { bAssets, fAsset } = details
+                    await assertFailedSwap(fAsset, fAsset, bAssets[0], 1, 0, "Invalid asset", undefined, undefined, true, true)
                 })
                 it("should fail using an input asset not in the basket", async () => {
-                    const { bAssets, mAsset } = details
-                    const invalidBasset = await mAssetMachine.loadBassetProxy("Wrapped ETH", "WETH", 18)
-                    await assertFailedSwap(mAsset, invalidBasset, bAssets[0], 1, 0, "Invalid asset", undefined, undefined, true, true)
+                    const { bAssets, fAsset } = details
+                    const invalidBasset = await fAssetMachine.loadBassetProxy("Wrapped ETH", "WETH", 18)
+                    await assertFailedSwap(fAsset, invalidBasset, bAssets[0], 1, 0, "Invalid asset", undefined, undefined, true, true)
                 })
             })
             context("using bAssets with transfer fees", async () => {
@@ -464,26 +464,26 @@ describe("Masset - Swap", () => {
                     })
                     context("and input has xfer fee", () => {
                         it("should have lower input and proportionately lower output", async () => {
-                            const { mAsset, bAssets } = details
+                            const { fAsset, bAssets } = details
                             const sender = sa.default.address
                             const recipient = sa.default.address
                             const inputBasset = bAssets[3]
                             const outputAsset = bAssets[0]
                             const swapQuantity = 1
 
-                            await assertBasketIsHealthy(mAssetMachine, details)
+                            await assertBasketIsHealthy(fAssetMachine, details)
 
                             // 1. Get basic before data about the actors balances
                             const swapperInputBalBefore = await inputBasset.balanceOf(sender)
                             const recipientOutputBalBefore = await outputAsset.balanceOf(recipient)
 
                             //    Get basic before data on the swap assets
-                            const inputBassetBefore = await mAsset.getBasset(inputBasset.address)
-                            const outputBassetBefore = await mAsset.getBasset(outputAsset.address)
+                            const inputBassetBefore = await fAsset.getBasset(inputBasset.address)
+                            const outputBassetBefore = await fAsset.getBasset(outputAsset.address)
 
                             // 2. Do the necessary approvals and make the calls
-                            const approval0: BN = await mAssetMachine.approveMasset(inputBasset, mAsset, swapQuantity, sa.default.signer)
-                            await mAsset.swap(inputBasset.address, outputAsset.address, approval0, 0, recipient)
+                            const approval0: BN = await fAssetMachine.approveFasset(inputBasset, fAsset, swapQuantity, sa.default.signer)
+                            await fAsset.swap(inputBasset.address, outputAsset.address, approval0, 0, recipient)
                             // Senders balance goes down but vaultbalance goes up by less
 
                             // 3. Calculate expected responses
@@ -491,7 +491,7 @@ describe("Masset - Swap", () => {
                             const scaledInputQuantity = simpleToExactAmount(swapQuantity, 18)
                             const expectedOutputValue = scaledInputQuantity.mul(ratioScale).div(outputBassetBefore.bData.ratio)
 
-                            const { swapFee: feeRate } = await mAsset.data()
+                            const { swapFee: feeRate } = await fAsset.data()
                             const fee = expectedOutputValue.mul(feeRate).div(fullScale)
 
                             //  Input
@@ -499,7 +499,7 @@ describe("Masset - Swap", () => {
                             const swapperBassetBalAfter = await inputBasset.balanceOf(sender)
                             expect(swapperBassetBalAfter).eq(swapperInputBalBefore.sub(inputQuantityExact))
                             //    VaultBalance should update for input bAsset
-                            const inputBassetAfter = await mAsset.getBasset(inputBasset.address)
+                            const inputBassetAfter = await fAsset.getBasset(inputBasset.address)
                             // Assert that only >99.7 && <100% of the asset got added to the vault
                             assertBNSlightlyGTPercent(
                                 inputQuantityExact,
@@ -519,7 +519,7 @@ describe("Masset - Swap", () => {
                             )
 
                             // Complete basket should remain in healthy state
-                            await assertBasketIsHealthy(mAssetMachine, details)
+                            await assertBasketIsHealthy(fAssetMachine, details)
                         })
                     })
                 })
@@ -529,26 +529,26 @@ describe("Masset - Swap", () => {
                     })
                     context("and input has xfer fee", () => {
                         it("should pass but return less output that input", async () => {
-                            const { mAsset, bAssets } = details
+                            const { fAsset, bAssets } = details
                             const sender = sa.default.address
                             const recipient = sa.default.address
                             const inputBasset = bAssets[3]
                             const outputAsset = bAssets[0]
                             const swapQuantity = 1
 
-                            await assertBasketIsHealthy(mAssetMachine, details)
+                            await assertBasketIsHealthy(fAssetMachine, details)
 
                             // 1. Get basic before data about the actors balances
                             const swapperInputBalBefore = await inputBasset.balanceOf(sender)
                             const recipientOutputBalBefore = await outputAsset.balanceOf(recipient)
 
                             //    Get basic before data on the swap assets
-                            const inputBassetBefore = await mAsset.getBasset(inputBasset.address)
-                            const outputBassetBefore = await mAsset.getBasset(outputAsset.address)
+                            const inputBassetBefore = await fAsset.getBasset(inputBasset.address)
+                            const outputBassetBefore = await fAsset.getBasset(outputAsset.address)
 
                             // 2. Do the necessary approvals and make the calls
-                            const approval0: BN = await mAssetMachine.approveMasset(inputBasset, mAsset, swapQuantity, sa.default.signer)
-                            await mAsset.swap(inputBasset.address, outputAsset.address, approval0, 0, recipient)
+                            const approval0: BN = await fAssetMachine.approveFasset(inputBasset, fAsset, swapQuantity, sa.default.signer)
+                            await fAsset.swap(inputBasset.address, outputAsset.address, approval0, 0, recipient)
                             // Senders balance goes down but vaultbalance goes up by less
 
                             // 3. Calculate expected responses
@@ -556,7 +556,7 @@ describe("Masset - Swap", () => {
                             const scaledInputQuantity = simpleToExactAmount(swapQuantity, 18)
                             const expectedOutputValue = scaledInputQuantity.mul(ratioScale).div(outputBassetBefore.bData.ratio)
 
-                            const { swapFee: feeRate } = await mAsset.data()
+                            const { swapFee: feeRate } = await fAsset.data()
                             const fee = expectedOutputValue.mul(feeRate).div(fullScale)
 
                             //  Input
@@ -564,7 +564,7 @@ describe("Masset - Swap", () => {
                             const swapperBassetBalAfter = await inputBasset.balanceOf(sender)
                             expect(swapperBassetBalAfter).eq(swapperInputBalBefore.sub(inputQuantityExact))
                             //    VaultBalance should update for input bAsset
-                            const inputBassetAfter = await mAsset.getBasset(inputBasset.address)
+                            const inputBassetAfter = await fAsset.getBasset(inputBasset.address)
                             // Assert that only >99.7 && <100% of the asset got added to the vault
                             assertBNSlightlyGTPercent(
                                 inputQuantityExact,
@@ -584,13 +584,13 @@ describe("Masset - Swap", () => {
                             )
 
                             // Complete basket should remain in healthy state
-                            await assertBasketIsHealthy(mAssetMachine, details)
+                            await assertBasketIsHealthy(fAssetMachine, details)
                         })
                         it("should fail if the system doesn't know about the fee", async () => {
-                            const { bAssets, mAsset } = details
-                            await mAsset.connect(sa.governor.signer).setTransferFeesFlag(bAssets[3].address, false)
+                            const { bAssets, fAsset } = details
+                            await fAsset.connect(sa.governor.signer).setTransferFeesFlag(bAssets[3].address, false)
                             await assertFailedSwap(
-                                mAsset,
+                                fAsset,
                                 bAssets[3],
                                 bAssets[0],
                                 1,
@@ -608,26 +608,26 @@ describe("Masset - Swap", () => {
                         await runSetup(true, true)
                     })
                     it("should have same input but lower physical output", async () => {
-                        const { mAsset, bAssets } = details
+                        const { fAsset, bAssets } = details
                         const sender = sa.default.address
                         const recipient = sa.default.address
                         const inputBasset = bAssets[0]
                         const outputAsset = bAssets[3]
                         const swapQuantity = 1
 
-                        await assertBasketIsHealthy(mAssetMachine, details)
+                        await assertBasketIsHealthy(fAssetMachine, details)
 
                         // 1. Get basic before data about the actors balances
                         const swapperInputBalBefore = await inputBasset.balanceOf(sender)
                         const recipientOutputBalBefore = await outputAsset.balanceOf(recipient)
 
                         //    Get basic before data on the swap assets
-                        const inputBassetBefore = await mAsset.getBasset(inputBasset.address)
-                        const outputBassetBefore = await mAsset.getBasset(outputAsset.address)
+                        const inputBassetBefore = await fAsset.getBasset(inputBasset.address)
+                        const outputBassetBefore = await fAsset.getBasset(outputAsset.address)
 
                         // 2. Do the necessary approvals and make the calls
-                        const approval0: BN = await mAssetMachine.approveMasset(inputBasset, mAsset, swapQuantity, sa.default.signer)
-                        await mAsset.swap(inputBasset.address, outputAsset.address, approval0, 0, recipient)
+                        const approval0: BN = await fAssetMachine.approveFasset(inputBasset, fAsset, swapQuantity, sa.default.signer)
+                        await fAsset.swap(inputBasset.address, outputAsset.address, approval0, 0, recipient)
                         // Senders balance goes down but vaultbalance goes up by less
 
                         // 3. Calculate expected responses
@@ -635,7 +635,7 @@ describe("Masset - Swap", () => {
                         const scaledInputQuantity = simpleToExactAmount(swapQuantity, 18)
                         const expectedOutputValue = scaledInputQuantity.mul(ratioScale).div(outputBassetBefore.bData.ratio)
 
-                        const { swapFee: feeRate } = await mAsset.data()
+                        const { swapFee: feeRate } = await fAsset.data()
                         const fee = expectedOutputValue.mul(feeRate).div(fullScale)
 
                         //  Input
@@ -643,7 +643,7 @@ describe("Masset - Swap", () => {
                         const swapperBassetBalAfter = await inputBasset.balanceOf(sender)
                         expect(swapperBassetBalAfter).eq(swapperInputBalBefore.sub(inputQuantityExact))
                         //    VaultBalance should update for input bAsset
-                        const inputBassetAfter = await mAsset.getBasset(inputBasset.address)
+                        const inputBassetAfter = await fAsset.getBasset(inputBasset.address)
                         expect(BN.from(inputBassetAfter.bData.vaultBalance)).eq(
                             BN.from(inputBassetBefore.bData.vaultBalance).add(inputQuantityExact),
                         )
@@ -659,28 +659,28 @@ describe("Masset - Swap", () => {
                         )
 
                         // Complete basket should remain in healthy state
-                        await assertBasketIsHealthy(mAssetMachine, details)
+                        await assertBasketIsHealthy(fAssetMachine, details)
                     })
                     it("should continue to pay out", async () => {
-                        const { bAssets, mAsset } = details
+                        const { bAssets, fAsset } = details
                         const sender = sa.default.address
                         const recipient = sa.dummy1.address
                         const inputBasset = bAssets[0]
                         const outputAsset = bAssets[3]
                         const swapQuantity = 1
-                        await mAsset.connect(sa.governor.signer).setTransferFeesFlag(outputAsset.address, false)
+                        await fAsset.connect(sa.governor.signer).setTransferFeesFlag(outputAsset.address, false)
 
                         // 1. Get basic before data about the actors balances
                         const swapperInputBalBefore = await inputBasset.balanceOf(sender)
                         const recipientOutputBalBefore = await outputAsset.balanceOf(recipient)
 
                         //    Get basic before data on the swap assets
-                        const inputBassetBefore = await mAsset.getBasset(inputBasset.address)
-                        const outputBassetBefore = await mAsset.getBasset(outputAsset.address)
+                        const inputBassetBefore = await fAsset.getBasset(inputBasset.address)
+                        const outputBassetBefore = await fAsset.getBasset(outputAsset.address)
 
                         // 2. Do the necessary approvals and make the calls
-                        const approval0: BN = await mAssetMachine.approveMasset(inputBasset, mAsset, swapQuantity, sa.default.signer)
-                        await mAsset.swap(inputBasset.address, outputAsset.address, approval0, 0, recipient)
+                        const approval0: BN = await fAssetMachine.approveFasset(inputBasset, fAsset, swapQuantity, sa.default.signer)
+                        await fAsset.swap(inputBasset.address, outputAsset.address, approval0, 0, recipient)
                         // Senders balance goes down but vaultbalance goes up by less
 
                         // 3. Calculate expected responses
@@ -688,7 +688,7 @@ describe("Masset - Swap", () => {
                         const scaledInputQuantity = simpleToExactAmount(swapQuantity, 18)
                         const expectedOutputValue = scaledInputQuantity.mul(ratioScale).div(outputBassetBefore.bData.ratio)
 
-                        const { swapFee: feeRate } = await mAsset.data()
+                        const { swapFee: feeRate } = await fAsset.data()
                         const fee = expectedOutputValue.mul(feeRate).div(fullScale)
 
                         //  Input
@@ -696,7 +696,7 @@ describe("Masset - Swap", () => {
                         const swapperBassetBalAfter = await inputBasset.balanceOf(sender)
                         expect(swapperBassetBalAfter).eq(swapperInputBalBefore.sub(inputQuantityExact))
                         //    VaultBalance should update for input bAsset
-                        const inputBassetAfter = await mAsset.getBasset(inputBasset.address)
+                        const inputBassetAfter = await fAsset.getBasset(inputBasset.address)
                         expect(BN.from(inputBassetAfter.bData.vaultBalance)).eq(
                             BN.from(inputBassetBefore.bData.vaultBalance).add(inputQuantityExact),
                         )
@@ -718,32 +718,32 @@ describe("Masset - Swap", () => {
                     await runSetup()
                 })
                 it("should fail if input basset has lost its peg", async () => {
-                    const { bAssets, mAsset } = details
-                    await assertBasketIsHealthy(mAssetMachine, details)
+                    const { bAssets, fAsset } = details
+                    await assertBasketIsHealthy(fAssetMachine, details)
 
                     const input = bAssets[0]
                     const output = bAssets[1]
 
-                    await mAsset.connect(sa.governor.signer).handlePegLoss(input.address, true)
-                    const inputBasset = await mAsset.getBasset(input.address)
+                    await fAsset.connect(sa.governor.signer).handlePegLoss(input.address, true)
+                    const inputBasset = await fAsset.getBasset(input.address)
                     expect(inputBasset.personal.status).to.eq(BassetStatus.BrokenBelowPeg)
-                    const outputBasset = await mAsset.getBasset(output.address)
+                    const outputBasset = await fAsset.getBasset(output.address)
                     expect(outputBasset.personal.status).to.eq(BassetStatus.Normal)
-                    await assertFailedSwap(mAsset, input, output, 1, 0, "Unhealthy", undefined, undefined, true, false, 0.999003)
+                    await assertFailedSwap(fAsset, input, output, 1, 0, "Unhealthy", undefined, undefined, true, false, 0.999003)
                 })
                 it("should fail if output basset has lost its peg", async () => {
-                    const { bAssets, mAsset } = details
-                    await assertBasketIsHealthy(mAssetMachine, details)
+                    const { bAssets, fAsset } = details
+                    await assertBasketIsHealthy(fAssetMachine, details)
 
                     const input = bAssets[0]
                     const output = bAssets[1]
 
-                    await mAsset.connect(sa.governor.signer).handlePegLoss(output.address, true)
-                    const inputBasset = await mAsset.getBasset(input.address)
+                    await fAsset.connect(sa.governor.signer).handlePegLoss(output.address, true)
+                    const inputBasset = await fAsset.getBasset(input.address)
                     expect(inputBasset.personal.status).to.eq(BassetStatus.Normal)
-                    const outputBasset = await mAsset.getBasset(output.address)
+                    const outputBasset = await fAsset.getBasset(output.address)
                     expect(outputBasset.personal.status).to.eq(BassetStatus.BrokenBelowPeg)
-                    await assertFailedSwap(mAsset, input, output, 1, 0, "Unhealthy", undefined, undefined, true, false, 0.999003)
+                    await assertFailedSwap(fAsset, input, output, 1, 0, "Unhealthy", undefined, undefined, true, false, 0.999003)
                 })
             })
         })
@@ -756,7 +756,7 @@ describe("Masset - Swap", () => {
                 const [input, output] = bAssets
                 // On setup, 25 of each bAsset, none of which in lending markets
                 // Calling seedWithWeightings will deposit 5 of each into lending market
-                await mAssetMachine.seedWithWeightings(details, [1, 1, 1, 1])
+                await fAssetMachine.seedWithWeightings(details, [1, 1, 1, 1])
                 // Swap in 7 and out 7, and it will do a deposit into lending market, and withdrawal
                 await assertSwap(details, input, output, 7)
                 // Swap in 1 and out 1, and it will do no deposit, but simply withdrawRaw

@@ -61,7 +61,7 @@ export const simpleToExactAmount = (amount: number | string | BN, decimals: numb
     return result
 }
 
-// How many mAssets is this bAsset worth using bAsset decimal length
+// How many fAssets is this bAsset worth using bAsset decimal length
 // eg convert 3679485 with 6 decimals (3.679485) to 3679485000000000000 with 18 decimals
 export const applyDecimals = (inputQuantity: number | string | BN, decimals = DEFAULT_DECIMALS): BN =>
     BN.from(10)
@@ -70,13 +70,13 @@ export const applyDecimals = (inputQuantity: number | string | BN, decimals = DE
 
 export const percentToWeight = (percent: number | string | BN): BN => simpleToExactAmount(percent, 16)
 
-// How many bAssets is this mAsset worth
-export const applyRatioMassetToBasset = (input: BN, ratio: BN | string): BN => input.mul(ratioScale).div(ratio)
+// How many bAssets is this fAsset worth
+export const applyRatioFassetToBasset = (input: BN, ratio: BN | string): BN => input.mul(ratioScale).div(ratio)
 
-// How many mAssets is this bAsset worth
+// How many fAssets is this bAsset worth
 export const applyRatio = (bAssetQ: BN | string | number, ratio: BN | string): BN => BN.from(bAssetQ).mul(ratio).div(ratioScale)
 
-// How many mAssets is this bAsset worth
+// How many fAssets is this bAsset worth
 export const applyRatioCeil = (bAssetQ: BN | string, ratio: BN | string): BN => {
     const scaled = BN.from(bAssetQ).mul(ratio)
     const ceil = BN.from(scaled).add(ratioScale.sub(1))

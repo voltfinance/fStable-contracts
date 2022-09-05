@@ -25,8 +25,8 @@ task("BoostDirector.deploy", "Deploys a new BoostDirector")
     .addOptionalParam("stakingToken", "Symbol of the staking token", "MTA", types.string)
     .addOptionalParam(
         "vaults",
-        "Comma separated list of vault underlying token symbols, eg mUSD,mBTC",
-        "mUSD,mBTC,GUSD,BUSD,alUSD,HBTC,TBTC",
+        "Comma separated list of vault underlying token symbols, eg fUSD,mBTC",
+        "fUSD,mBTC,GUSD,BUSD,alUSD,HBTC,TBTC",
         types.string,
     )
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
@@ -53,7 +53,7 @@ task("Vault.deploy", "Deploys a vault contract")
     .addParam("boosted", "True if a mainnet boosted vault", true, types.boolean)
     .addParam("vaultName", "Vault name", undefined, types.string, false)
     .addParam("vaultSymbol", "Vault symbol", undefined, types.string, false)
-    .addOptionalParam("stakingToken", "Symbol of staking token. eg MTA, BAL or mUSD", "MTA", types.string)
+    .addOptionalParam("stakingToken", "Symbol of staking token. eg MTA, BAL or fUSD", "MTA", types.string)
     .addOptionalParam("stakingType", "'address' or 'feederPool'", "feederPool", types.string)
     .addOptionalParam("rewardsToken", "Symbol of rewards token. eg MTA", "MTA", types.string)
     .addOptionalParam("dualRewardsToken", "Symbol of dual rewards token. eg WMATIC", undefined, types.string)

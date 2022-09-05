@@ -11,7 +11,7 @@ import { BoostedVault__factory, Poker, Poker__factory } from "types/generated"
 import { getSigner } from "./utils/signerFactory"
 import { deployContract, logTxDetails } from "./utils/deploy-utils"
 import { getChain, getChainAddress } from "./utils/networkAddressFactory"
-import { mBTC, mUSD, GUSD, BUSD, HBTC, TBTC, alUSD, TBTCv2, RAI, FEI } from "./utils/tokens"
+import { mBTC, fUSD, GUSD, BUSD, HBTC, TBTC, alUSD, TBTCv2, RAI, FEI } from "./utils/tokens"
 
 const maxVMTA = simpleToExactAmount(600000, 18)
 const maxBoost = simpleToExactAmount(3, 18)
@@ -66,7 +66,7 @@ task("over-boost", "Pokes accounts that are over boosted")
 
         let idFilter = ""
         if (taskArgs.account) {
-            const vaults = [mUSD, mBTC, GUSD, BUSD, HBTC, TBTC, TBTCv2, alUSD, RAI, FEI]
+            const vaults = [fUSD, mBTC, GUSD, BUSD, HBTC, TBTC, TBTCv2, alUSD, RAI, FEI]
             const vaultAddresses = vaults.map((v) => v.vault.toLowerCase())
             const vaultAccountIds = vaultAddresses.map((vaultAddress) => `"${vaultAddress}.${taskArgs.account.toLowerCase()}" `)
             idFilter = `id_in: [${vaultAccountIds}] `
@@ -121,7 +121,7 @@ task("over-boost", "Pokes accounts that are over boosted")
             accounts: string[]
         }[] = []
         // For each Boosted Vault
-        const vaults = gqlData.boostedSavingsVaults.filter((vault) => vault.id !== mUSD.vault.toLocaleLowerCase())
+        const vaults = gqlData.boostedSavingsVaults.filter((vault) => vault.id !== fUSD.vault.toLocaleLowerCase())
         for (const vault of vaults) {
             const boostVault = BoostedVault__factory.connect(vault.id, signer)
             const priceCoeff = await boostVault.priceCoeff()

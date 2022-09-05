@@ -9,7 +9,7 @@ interface ISavingsContractV1 {
 
     function depositSavings(uint256 _amount) external returns (uint256 creditsIssued);
 
-    function redeem(uint256 _amount) external returns (uint256 massetReturned);
+    function redeem(uint256 _amount) external returns (uint256 fassetReturned);
 
     function exchangeRate() external view returns (uint256);
 
@@ -18,7 +18,7 @@ interface ISavingsContractV1 {
 
 interface ISavingsContractV2 {
     // DEPRECATED but still backwards compatible
-    function redeem(uint256 _amount) external returns (uint256 massetReturned);
+    function redeem(uint256 _amount) external returns (uint256 fassetReturned);
 
     function creditBalances(address) external view returns (uint256); // V1 & V2 (use balanceOf)
 
@@ -44,12 +44,12 @@ interface ISavingsContractV2 {
 
     function creditsToUnderlying(uint256 _credits) external view returns (uint256 underlying); // V2
 
-    function underlying() external view returns (IERC20 underlyingMasset); // V2
+    function underlying() external view returns (IERC20 underlyingFasset); // V2
 }
 
 interface ISavingsContractV3 {
     // DEPRECATED but still backwards compatible
-    function redeem(uint256 _amount) external returns (uint256 massetReturned);
+    function redeem(uint256 _amount) external returns (uint256 fassetReturned);
 
     function creditBalances(address) external view returns (uint256); // V1 & V2 (use balanceOf)
 
@@ -79,7 +79,7 @@ interface ISavingsContractV3 {
     function creditsToUnderlying(uint256 _credits) external view returns (uint256 underlying); // V2
 
     /** @dev see IERC4626Vault.asset()(address assetTokenAddress);*/
-    function underlying() external view returns (IERC20 underlyingMasset); // V2
+    function underlying() external view returns (IERC20 underlyingFasset); // V2
 
     // --------------------------------------------
 
@@ -95,7 +95,7 @@ interface ISavingsContractV3 {
         external
         returns (
             uint256 creditsBurned,
-            uint256 massetRedeemed,
+            uint256 fassetRedeemed,
             uint256 outputQuantity
         ); // V3
 
@@ -110,7 +110,7 @@ interface ISavingsContractV4 is
     IERC4626Vault // V4
 {
     // DEPRECATED but still backwards compatible
-    function redeem(uint256 _amount) external returns (uint256 massetReturned); // V1  (use IERC4626Vault.redeem)
+    function redeem(uint256 _amount) external returns (uint256 fassetReturned); // V1  (use IERC4626Vault.redeem)
 
     function creditBalances(address) external view returns (uint256); // V1 & V2 (use balanceOf)
 
@@ -140,7 +140,7 @@ interface ISavingsContractV4 is
     function creditsToUnderlying(uint256 _credits) external view returns (uint256 underlying); // V2
 
     /** @dev see IERC4626Vault.asset()(address assetTokenAddress);*/
-    function underlying() external view returns (IERC20 underlyingMasset); // V2
+    function underlying() external view returns (IERC20 underlyingFasset); // V2
 
     function redeemAndUnwrap(
         uint256 _amount,
@@ -154,7 +154,7 @@ interface ISavingsContractV4 is
         external
         returns (
             uint256 creditsBurned,
-            uint256 massetRedeemed,
+            uint256 fassetRedeemed,
             uint256 outputQuantity
         ); // V3
 

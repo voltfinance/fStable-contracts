@@ -13,12 +13,12 @@ A dial recipient can be any contract that can either receive MTA tokens or can b
 Types of dial recipients include
 
 -   MTA staking contracts like MTA Staking Token and mBPT Staking Token
--   mStable vaults that stake interest-earning mAssets like imUSD and imBTC
--   mStable vaults that stake feeder pool liquidity provider tokens like fPmUSD/GUSD, fPmUSD/alUSD and fPmBTC/HBTC
+-   mStable vaults that stake interest-earning fAssets like ifUSD and imBTC
+-   mStable vaults that stake feeder pool liquidity provider tokens like fPfUSD/GUSD, fPfUSD/alUSD and fPmBTC/HBTC
 -   Third-party contracts like Visor Finance
 -   Polygon
-    -   mStable 's imUSD Vault on Polygon
-    -   FRAX’s farming contract for staked fPmUSD/FRAX tokens
+    -   mStable 's ifUSD Vault on Polygon
+    -   FRAX’s farming contract for staked fPfUSD/FRAX tokens
     -   An account that disperses MTA to an off-chain generated list of Balancer MTA/WMATIC/WETH Pool liquidity providers.
 
 Dials recipients can do anything with their received MTA rewards. Some possibilities are:
@@ -74,7 +74,7 @@ The emissions controller will allow anyone to donate MTA rewards to a dial that 
 
 Polygon’s [Proof of Stake (PoS) Bridge](https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/getting-started) will be used by the Emissions Controller to send MTA to the existing [Polygon MTA](https://polygonscan.com/token/0xF501dd45a1198C2E1b5aEF5314A68B9006D842E0) token on Polygon. This will be done indirectly using a dial recipient contract that interfaces with the PoS Bridge.
 
-MTA rewards can be sent directly to the dial contract on Polygon. eg FRAX. Or MTA rewards can be sent via the L2 Emissions Controller which will notify the recipient contract that the rewards have been transferred. eg the imUSD Vault on Polygon.
+MTA rewards can be sent directly to the dial contract on Polygon. eg FRAX. Or MTA rewards can be sent via the L2 Emissions Controller which will notify the recipient contract that the rewards have been transferred. eg the ifUSD Vault on Polygon.
 
 Voting can not be done on Polygon. All voting of dials is done on Ethereum mainnet.
 
@@ -122,9 +122,9 @@ It’s possible the MTA rewards can be calculated but not transferred. Each new 
 
 ![Weekly Emissions](../../docs/emissions/weeklyEmissions.png)
 
-### Distribution to imUSD Vault on Polygon
+### Distribution to ifUSD Vault on Polygon
 
-![Polygon Bridge imUSD Vault](../../docs/emissions/polygonBridge_vimUSD.png)
+![Polygon Bridge ifUSD Vault](../../docs/emissions/polygonBridge_vifUSD.png)
 
 ### Distribution to FRAX Farm on Polygon
 
@@ -146,7 +146,7 @@ Polygon's [Proof of Stake (PoS) Bridge](https://docs.polygon.technology/docs/dev
 
 ![Polygon Integration Contract Dependencies](../../docs/emissions/polygonContractDependencies.png)
 
-**Bridge Forwarder** - are separate Mainnet contracts for each L2 recipient contracts on Polygon. Initially, there would be a contract for the Polygon imUSD Vault and FRAX Vault.
+**Bridge Forwarder** - are separate Mainnet contracts for each L2 recipient contracts on Polygon. Initially, there would be a contract for the Polygon ifUSD Vault and FRAX Vault.
 
 The Bridge Forwarder contracts will receive MTA rewards from the Emissions Controller who call's the `notifyRewardsAmount` function. This then calls the `depositFor` function on the PoS Bridge. See the above sequence diagrams for another view of this process.
 
@@ -154,9 +154,9 @@ The Bridge Forwarder contracts will receive MTA rewards from the Emissions Contr
 
 `depositFor(userAddress, rootToken, abiEncodedAmount)`
 
-For sending to the Polygon imUSD Vault:
+For sending to the Polygon ifUSD Vault:
 
--   `userAddress` will be the L2 imUSD Recipient address
+-   `userAddress` will be the L2 ifUSD Recipient address
 -   `rootToken` is the Mainnet MTA address
 -   `abiEncodedAmount` is bytes of the ABI encoded amount of MTA rewards.
 
@@ -170,6 +170,6 @@ The bridged MTA Token grants the Child Chain Manager the `DEPOSITOR` role so it 
 
 **L2 Bridge Recipients** - Are contracts that receive bridged MTA tokens from the PoS Bridge. Separate contracts are used so the L2 Emissions Controller knows the amounts to be distributed to the final reward recipient contracts.
 
-**L2 Emission Controller** - is used transfer all bridged MTA Tokens from the L2 Bridge Recipients to the end contracts that implement the `IRewardsDistributionRecipient` interface. For example, the Polygon imUSD Vault. After the tokens are transferred, the `notifyRewardsAmount` is called on the recipient contract so it can process the rewards.
+**L2 Emission Controller** - is used transfer all bridged MTA Tokens from the L2 Bridge Recipients to the end contracts that implement the `IRewardsDistributionRecipient` interface. For example, the Polygon ifUSD Vault. After the tokens are transferred, the `notifyRewardsAmount` is called on the recipient contract so it can process the rewards.
 
 The L2 Bridge Recipients need to have approved the L2 Emissions Controller to transfer the Bridged MTA tokens.

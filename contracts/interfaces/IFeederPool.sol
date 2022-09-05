@@ -2,7 +2,7 @@
 pragma solidity 0.8.6;
 pragma abicoder v2;
 
-import "../masset/MassetStructs.sol";
+import "../fasset/FassetStructs.sol";
 
 abstract contract IFeederPool {
     // Mint
@@ -64,9 +64,9 @@ abstract contract IFeederPool {
     function redeemExactBassets(
         address[] calldata _outputs,
         uint256[] calldata _outputQuantities,
-        uint256 _maxMassetQuantity,
+        uint256 _maxFassetQuantity,
         address _recipient
-    ) external virtual returns (uint256 mAssetRedeemed);
+    ) external virtual returns (uint256 fAssetRedeemed);
 
     function getRedeemOutput(address _output, uint256 _fpTokenQuantity)
         external
@@ -77,10 +77,10 @@ abstract contract IFeederPool {
     function getRedeemExactBassetsOutput(
         address[] calldata _outputs,
         uint256[] calldata _outputQuantities
-    ) external view virtual returns (uint256 mAssetAmount);
+    ) external view virtual returns (uint256 fAssetAmount);
 
     // Views
-    function mAsset() external view virtual returns (address);
+    function fAsset() external view virtual returns (address);
 
     function getPrice() public view virtual returns (uint256 price, uint256 k);
 

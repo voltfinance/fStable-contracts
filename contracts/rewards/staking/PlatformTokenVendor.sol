@@ -2,7 +2,7 @@
 pragma solidity 0.8.6;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { MassetHelpers } from "../../shared/MassetHelpers.sol";
+import { FassetHelpers } from "../../shared/FassetHelpers.sol";
 
 /**
  * @title  PlatformTokenVendor
@@ -18,7 +18,7 @@ contract PlatformTokenVendor {
     constructor(IERC20 _platformToken) {
         parentStakingContract = msg.sender;
         platformToken = _platformToken;
-        MassetHelpers.safeInfiniteApprove(address(_platformToken), msg.sender);
+        FassetHelpers.safeInfiniteApprove(address(_platformToken), msg.sender);
     }
 
     /**
@@ -26,6 +26,6 @@ contract PlatformTokenVendor {
      * Just incase for some reason approval has been reset.
      */
     function reApproveOwner() external {
-        MassetHelpers.safeInfiniteApprove(address(platformToken), parentStakingContract);
+        FassetHelpers.safeInfiniteApprove(address(platformToken), parentStakingContract);
     }
 }

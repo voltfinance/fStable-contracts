@@ -2,7 +2,7 @@
 pragma solidity 0.8.6;
 
 import { IAaveATokenV2, IAaveLendingPoolV2, ILendingPoolAddressesProviderV2 } from "../peripheral/Aave/IAave.sol";
-import { AaveV2Integration } from "../masset/peripheral/AaveV2Integration.sol";
+import { AaveV2Integration } from "../fasset/peripheral/AaveV2Integration.sol";
 import { IAaveIncentivesController } from "../peripheral/Aave/IAaveIncentivesController.sol";
 
 /**

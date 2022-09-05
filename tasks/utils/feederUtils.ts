@@ -16,7 +16,7 @@ import {
     FeederPool__factory,
     NonPeggedFeederPool__factory,
     BoostedVault__factory,
-    Masset__factory,
+    Fasset__factory,
     BoostedDualVault,
     StakingRewardsWithPlatformToken,
     StakingRewards,
@@ -40,7 +40,7 @@ interface Config {
 }
 
 export interface FeederData {
-    mAsset: Token
+    fAsset: Token
     fdAsset: Token
     fdAssetRedemptionPriceGetter?: string
     name: string
@@ -96,10 +96,10 @@ export const deployFeederPool = async (signer: Signer, feederData: FeederData, h
     if (feederData.fdAssetRedemptionPriceGetter) {
         // Update fdAssetRedemptionPriceGetter price oracle
         await IRedemptionPriceSnap__factory.connect(feederData.fdAssetRedemptionPriceGetter, signer).updateSnappedPrice()
-        fpConstructorArgs = [getChainAddress("Nexus", chain), feederData.mAsset.address, feederData.fdAssetRedemptionPriceGetter]
+        fpConstructorArgs = [getChainAddress("Nexus", chain), feederData.fAsset.address, feederData.fdAssetRedemptionPriceGetter]
         impl = await deployContract(new NonPeggedFeederPool__factory(linkedAddress, signer), "NonPeggedFeederPool", fpConstructorArgs)
     } else {
-        fpConstructorArgs = [getChainAddress("Nexus", chain), feederData.mAsset.address]
+        fpConstructorArgs = [getChainAddress("Nexus", chain), feederData.fAsset.address]
         impl = await deployContract(new FeederPool__factory(linkedAddress, signer), "FeederPool", fpConstructorArgs)
     }
 
@@ -114,13 +114,13 @@ export const deployFeederPool = async (signer: Signer, feederData: FeederData, h
     })
 
     // Initialization Data
-    const mAsset = Masset__factory.connect(feederData.mAsset.address, signer)
-    const bAssets = await mAsset.getBassets()
+    const fAsset = Fasset__factory.connect(feederData.fAsset.address, signer)
+    const bAssets = await fAsset.getBassets()
     const mpAssets = bAssets.personal.map((bAsset) => bAsset.addr)
 
     console.log(`mpAssets. count = ${mpAssets.length}, list: `, mpAssets)
     console.log(
-        `Initializing FeederPool with: ${feederData.name}, ${feederData.symbol}, mAsset ${feederData.mAsset.address}, fdAsset ${
+        `Initializing FeederPool with: ${feederData.name}, ${feederData.symbol}, fAsset ${feederData.fAsset.address}, fdAsset ${
             feederData.fdAsset.address
         }, A: ${feederData.config.a.toString()}, min: ${formatEther(feederData.config.limits.min)}, max: ${formatEther(
             feederData.config.limits.max,
@@ -130,8 +130,8 @@ export const deployFeederPool = async (signer: Signer, feederData: FeederData, h
         feederData.name,
         feederData.symbol,
         {
-            addr: feederData.mAsset.address,
-            integrator: feederData.mAsset.integrator || ZERO_ADDRESS,
+            addr: feederData.fAsset.address,
+            integrator: feederData.fAsset.integrator || ZERO_ADDRESS,
             hasTxFee: false,
             status: 0,
         },
@@ -261,7 +261,7 @@ export const deployVault = async (
 //         await Promise.all(bAssets.map(async (b) => (await b.contract.balanceOf(await sender.getAddress())).toString())),
 //         bAssets.map((b) => b.address),
 //         (await feederData.pool.getBassets())[0].map((b) => b[0]),
-//         await feederData.pool.mAsset(),
+//         await feederData.pool.fAsset(),
 //     )
 //     const tx = await feederData.pool.mintMulti(
 //         bAssets.map((b) => b.address),
@@ -272,9 +272,9 @@ export const deployVault = async (
 //     const receiptMint = await tx.wait()
 
 //     // Log minted amount
-//     const mAssetAmount = formatEther(await feederData.pool.totalSupply())
+//     const fAssetAmount = formatEther(await feederData.pool.totalSupply())
 //     console.log(
-//         `Minted ${mAssetAmount} fpToken from ${formatEther(scaledTestQty)} Units for each [mAsset, fdAsset]. gas used ${
+//         `Minted ${fAssetAmount} fpToken from ${formatEther(scaledTestQty)} Units for each [fAsset, fdAsset]. gas used ${
 //             receiptMint.gasUsed
 //         }`,
 //     )
@@ -290,10 +290,10 @@ export const deployVault = async (
 //     const len = feederPools.length
 //     // eslint-disable-next-line
 //     for (let i = 0; i < len; i++) {
-//         const [[{ addr: massetAddr }, { addr: fdAssetAddr }]] = await feederPools[i].getBassets()
-//         const masset = Masset__factory.connect(massetAddr, sender)
-//         const [bassets] = await masset.getBassets()
-//         const assets = [massetAddr, fdAssetAddr, ...bassets.map(({ addr }) => addr)]
+//         const [[{ addr: fassetAddr }, { addr: fdAssetAddr }]] = await feederPools[i].getBassets()
+//         const fasset = Fasset__factory.connect(fassetAddr, sender)
+//         const [bassets] = await fasset.getBassets()
+//         const assets = [fassetAddr, fdAssetAddr, ...bassets.map(({ addr }) => addr)]
 
 //         // Make the approval in one tx
 //         const approveTx = await feederWrapper["approve(address,address,address[])"](feederPools[i].address, vaults[i].address, assets)
@@ -326,19 +326,19 @@ export const deployVault = async (
 //     }
 
 //     // 2.2   For each fdAsset
-//     //        - fetch fdAsset & mAsset
+//     //        - fetch fdAsset & fAsset
 //     const data: FeederData[] = []
 
 //     // eslint-disable-next-line
 //     for (const pair of pairs) {
-//         const mAssetContract = MV2__factory.connect(pair.mAsset.address, deployer)
+//         const fAssetContract = MV2__factory.connect(pair.fAsset.address, deployer)
 //         const fdAssetContract = MockERC20__factory.connect(pair.fdAsset.address, deployer)
-//         const deployedMasset: DeployedFasset = {
+//         const deployedFasset: DeployedFasset = {
 //             integrator: ZERO_ADDRESS,
 //             txFee: false,
-//             contract: mAssetContract,
-//             address: pair.mAsset.address,
-//             symbol: pair.mAsset.symbol,
+//             contract: fAssetContract,
+//             address: pair.fAsset.address,
+//             symbol: pair.fAsset.symbol,
 //         }
 //         const deployedFasset: DeployedFasset = {
 //             integrator: ZERO_ADDRESS,
@@ -351,11 +351,11 @@ export const deployVault = async (
 //             ...feederLibs,
 //             nexus: addresses.nexus,
 //             proxyAdmin: addresses.proxyAdmin,
-//             mAsset: deployedMasset,
+//             fAsset: deployedFasset,
 //             fdAsset: deployedFasset,
 //             aToken: pair.aToken,
-//             name: `${deployedMasset.symbol}/${deployedFasset.symbol} Feeder Pool`,
-//             symbol: `fP${deployedMasset.symbol}/${deployedFasset.symbol}`,
+//             name: `${deployedFasset.symbol}/${deployedFasset.symbol} Feeder Pool`,
+//             symbol: `fP${deployedFasset.symbol}/${deployedFasset.symbol}`,
 //             config: {
 //                 a: pair.A,
 //                 limits: {
@@ -363,12 +363,12 @@ export const deployVault = async (
 //                     max: simpleToExactAmount(90, 16),
 //                 },
 //             },
-//             vaultName: `${deployedMasset.symbol}/${deployedFasset.symbol} fPool Vault`,
-//             vaultSymbol: `v-fP${deployedMasset.symbol}/${deployedFasset.symbol}`,
+//             vaultName: `${deployedFasset.symbol}/${deployedFasset.symbol} fPool Vault`,
+//             vaultSymbol: `v-fP${deployedFasset.symbol}/${deployedFasset.symbol}`,
 //             priceCoeff: pair.priceCoeff,
 //         })
 //     }
-//     //        - create fPool (nexus, mAsset, name, integrator, config)
+//     //        - create fPool (nexus, fAsset, name, integrator, config)
 //     // eslint-disable-next-line
 //     for (const poolData of data) {
 //         console.log(`\n~~~~~ POOL ${poolData.symbol} ~~~~~\n\n`)
@@ -378,7 +378,7 @@ export const deployVault = async (
 //         poolData.pool = feederPool
 
 //         // Mint initial supply
-//         // await mint(deployer, [poolData.mAsset, poolData.fdAsset], poolData)
+//         // await mint(deployer, [poolData.fAsset, poolData.fdAsset], poolData)
 
 //         // Rewards Contract
 //         if (addresses.boostDirector) {

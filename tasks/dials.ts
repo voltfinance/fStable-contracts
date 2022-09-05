@@ -93,7 +93,7 @@ const calculateRewards = (latestDialVotes: Array<BN>, dialsData: Array<DialData>
 const dialNames = [
     "MTA Staking Contract",
     "BPT Staking Contract",
-    "mUSD Vault",
+    "fUSD Vault",
     "mBTC Vault",
     "GUSD FP Vault",
     "BUSD FP Vault",
@@ -102,7 +102,7 @@ const dialNames = [
     "FEI FP Vault",
     "HBTC FP Vault",
     "tBTCv2 FP Vault",
-    "Polygon mUSD Vault",
+    "Polygon fUSD Vault",
     "Polygon FRAX Farm",
     "Polygon Balancer Pool",
     "Treasury DAO",

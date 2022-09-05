@@ -1,5 +1,5 @@
 import { MAX_UINT256, ZERO_ADDRESS } from "@utils/constants"
-import { MassetMachine, StandardAccounts } from "@utils/machines"
+import { FassetMachine, StandardAccounts } from "@utils/machines"
 import { simpleToExactAmount } from "@utils/math"
 import { expect } from "chai"
 import { ethers } from "hardhat"
@@ -16,7 +16,7 @@ import {
 
 describe("DisperseForwarder", () => {
     let sa: StandardAccounts
-    let mAssetMachine: MassetMachine
+    let fAssetMachine: FassetMachine
     let nexus: MockNexus
     let rewardsToken: MockERC20
     let owner: Account
@@ -26,7 +26,7 @@ describe("DisperseForwarder", () => {
 
     /*
         Test Data
-        mAssets: mUSD and mBTC with 18 decimals
+        fAssets: fUSD and mBTC with 18 decimals
      */
     const setup = async (): Promise<void> => {
         // Deploy mock Nexus
@@ -38,7 +38,7 @@ describe("DisperseForwarder", () => {
         // Deploy mock Disperse
         disperse = await new MockDisperse__factory(sa.default.signer).deploy()
 
-        rewardsToken = await mAssetMachine.loadBassetProxy("Rewards Token", "RWD", 18)
+        rewardsToken = await fAssetMachine.loadBassetProxy("Rewards Token", "RWD", 18)
         owner = sa.default
         emissionsController = sa.dummy2
 
@@ -51,8 +51,8 @@ describe("DisperseForwarder", () => {
 
     before(async () => {
         const accounts = await ethers.getSigners()
-        mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        sa = mAssetMachine.sa
+        fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        sa = fAssetMachine.sa
         await setup()
     })
 
@@ -89,7 +89,7 @@ describe("DisperseForwarder", () => {
 
             await forwarder.connect(sa.governor.signer).disperseToken(recipients, values)
 
-            // check output balances: mAsset sender/recipient
+            // check output balances: fAsset sender/recipient
             expect(await rewardsToken.balanceOf(disperse.address), "end recipient balance after").eq(endRecipientBalBefore.add(amount))
         })
         describe("should fail if", () => {

@@ -40,17 +40,17 @@ interface IBoostedDualVaultWithLockup {
     /**
      * @notice Redeems staked interest-bearing asset tokens for either bAsset or fdAsset tokens.
      * Withdraws a given staked amount of interest-bearing assets from the vault,
-     * redeems the interest-bearing asset for the underlying mAsset and either
-     * 1. Redeems the underlying mAsset tokens for bAsset tokens.
-     * 2. Swaps the underlying mAsset tokens for fdAsset tokens in a Feeder Pool.
-     * @param _amount         Units of the staked interest-bearing asset tokens to withdraw. eg imUSD or imBTC.
+     * redeems the interest-bearing asset for the underlying fAsset and either
+     * 1. Redeems the underlying fAsset tokens for bAsset tokens.
+     * 2. Swaps the underlying fAsset tokens for fdAsset tokens in a Feeder Pool.
+     * @param _amount         Units of the staked interest-bearing asset tokens to withdraw. eg ifUSD or imBTC.
      * @param _minAmountOut   Minimum units of `output` tokens to be received by the beneficiary. This is to the same decimal places as the `output` token.
-     * @param _output         Asset to receive in exchange for the redeemed mAssets. This can be a bAsset or a fdAsset. For example:
-        - bAssets (USDC, DAI, sUSD or USDT) or fdAssets (GUSD, BUSD, alUSD, FEI or RAI) for mainnet imUSD Vault.
-        - bAssets (USDC, DAI or USDT) or fdAsset FRAX for Polygon imUSD Vault.
+     * @param _output         Asset to receive in exchange for the redeemed fAssets. This can be a bAsset or a fdAsset. For example:
+        - bAssets (USDC, DAI, sUSD or USDT) or fdAssets (GUSD, BUSD, alUSD, FEI or RAI) for mainnet ifUSD Vault.
+        - bAssets (USDC, DAI or USDT) or fdAsset FRAX for Polygon ifUSD Vault.
         - bAssets (WBTC, sBTC or renBTC) or fdAssets (HBTC or TBTCV2) for mainnet imBTC Vault.
      * @param _beneficiary    Address to send `output` tokens to.
-     * @param _router         mAsset address if the `output` is a bAsset. Feeder Pool address if the `output` is a fdAsset.
+     * @param _router         fAsset address if the `output` is a bAsset. Feeder Pool address if the `output` is a fdAsset.
      * @param _isBassetOut    `true` if `output` is a bAsset. `false` if `output` is a fdAsset.
      * @return outputQuantity Units of `output` tokens sent to the beneficiary. This is to the same decimal places as the `output` token.
      */

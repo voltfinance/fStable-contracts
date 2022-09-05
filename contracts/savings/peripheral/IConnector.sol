@@ -3,19 +3,19 @@ pragma solidity 0.8.6;
 
 interface IConnector {
     /**
-     * @notice Deposits the mAsset into the connector
-     * @param _amount Units of mAsset to receive and deposit
+     * @notice Deposits the fAsset into the connector
+     * @param _amount Units of fAsset to receive and deposit
      */
     function deposit(uint256 _amount) external;
 
     /**
-     * @notice Withdraws a specific amount of mAsset from the connector
-     * @param _amount Units of mAsset to withdraw
+     * @notice Withdraws a specific amount of fAsset from the connector
+     * @param _amount Units of fAsset to withdraw
      */
     function withdraw(uint256 _amount) external;
 
     /**
-     * @notice Withdraws all mAsset from the connector
+     * @notice Withdraws all fAsset from the connector
      */
     function withdrawAll() external;
 
@@ -25,7 +25,7 @@ interface IConnector {
      * exchange rates (e.g. with Curves `get_virtual_price`), it should return
      * max(deposited, balance) to avoid temporary negative yield. Any negative yield
      * should be corrected during a withdrawal or over time.
-     * @return Balance of mAsset in the connector
+     * @return Balance of fAsset in the connector
      */
     function checkBalance() external view returns (uint256);
 }

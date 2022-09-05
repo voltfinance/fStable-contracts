@@ -4,7 +4,7 @@
 import { network, ethers } from "hardhat"
 import { expect } from "chai"
 import { assertBNClose, assertBNClosePercent } from "@utils/assertions"
-import { MassetMachine, StandardAccounts } from "@utils/machines"
+import { FassetMachine, StandardAccounts } from "@utils/machines"
 import { advanceBlock, getTimestamp, increaseTime, increaseTimeTo, latestBlock } from "@utils/time"
 import { BN, simpleToExactAmount, maximum, sqrt } from "@utils/math"
 import { ONE_WEEK, ONE_HOUR, ONE_DAY, ONE_YEAR, DEFAULT_DECIMALS } from "@utils/constants"
@@ -19,7 +19,7 @@ import {
 import { Account } from "types"
 
 let sa: StandardAccounts
-let mAssetMachine: MassetMachine
+let fAssetMachine: FassetMachine
 let votingLockup: IncentivisedVotingLockup
 let mta: MintableToken
 let nexus: Nexus
@@ -27,8 +27,8 @@ let nexus: Nexus
 describe("IncentivisedVotingLockup", () => {
     before("Init contract", async () => {
         const accounts = await ethers.getSigners()
-        mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        sa = mAssetMachine.sa
+        fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        sa = fAssetMachine.sa
     })
 
     const isCoverage = network.name === "coverage"

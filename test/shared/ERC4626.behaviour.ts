@@ -1,5 +1,5 @@
 import { ZERO, ZERO_ADDRESS } from "@utils/constants"
-import { MassetDetails, MassetMachine, StandardAccounts } from "@utils/machines"
+import { FassetDetails, FassetMachine, StandardAccounts } from "@utils/machines"
 import { BN, simpleToExactAmount, safeInfinity } from "@utils/math"
 import { expect } from "chai"
 import { Account } from "types"
@@ -9,8 +9,8 @@ export interface IERC4626BehaviourContext {
     vault: IERC4626Vault
     asset: ERC20
     sa: StandardAccounts
-    mAssetMachine: MassetMachine
-    details: MassetDetails
+    fAssetMachine: FassetMachine
+    details: FassetDetails
 }
 
 export function shouldBehaveLikeERC4626(ctx: IERC4626BehaviourContext): void {

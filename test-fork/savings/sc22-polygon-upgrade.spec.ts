@@ -4,9 +4,9 @@ import { expect } from "chai"
 import { ethers, network } from "hardhat"
 import { deployContract } from "tasks/utils/deploy-utils"
 
-// Polygon imUSD Contract
-import { SavingsContractImusdPolygon22__factory } from "types/generated/factories/SavingsContractImusdPolygon22__factory"
-import { SavingsContractImusdPolygon22 } from "types/generated/SavingsContractImusdPolygon22"
+// Polygon ifUSD Contract
+import { SavingsContractIfusdPolygon22__factory } from "types/generated/factories/SavingsContractIfusdPolygon22__factory"
+import { SavingsContractIfusdPolygon22 } from "types/generated/SavingsContractIfusdPolygon22"
 
 import { DelayedProxyAdmin, DelayedProxyAdmin__factory, IERC20__factory, Unwrapper, Unwrapper__factory, IERC20 } from "types/generated"
 
@@ -22,13 +22,13 @@ const nexusAddress = getChainAddress("Nexus", chain)
 const deployerAddress = getChainAddress("OperationsSigner", chain)
 const unwrapperAddress = getChainAddress("Unwrapper", chain)
 
-const imusdHolderAddress = "0x9d8B7A637859668A903797D9f02DE2Aa05e5b0a0"
-const musdHolderAddress = "0xb14fFDB81E804D2792B6043B90aE5Ac973EcD53D"
+const ifusdHolderAddress = "0x9d8B7A637859668A903797D9f02DE2Aa05e5b0a0"
+const fusdHolderAddress = "0xb14fFDB81E804D2792B6043B90aE5Ac973EcD53D"
 
 const daiAddress = resolveAddress("DAI", chain)
 const fraxAddress = resolveAddress("FRAX", chain)
-const musdAddress = resolveAddress("mUSD", chain)
-const imusdAddress = resolveAddress("mUSD", chain, "savings")
+const fusdAddress = resolveAddress("fUSD", chain)
+const ifusdAddress = resolveAddress("fUSD", chain, "savings")
 const fraxFeederPool = resolveAddress("FRAX", chain, "feederPool")
 
 // DEPLOYMENT PIPELINE
@@ -47,23 +47,23 @@ context("SavingContract Vault4626 upgrades", () => {
     const redeemAndUnwrap = async (
         holderAddress: string,
         router: string,
-        input: "musd" | "mbtc",
+        input: "fusd" | "mbtc",
         outputAddress: string,
         isCredit = false,
     ) => {
         if (input === "mbtc") throw new Error("mbtc not supported")
 
         const holder = await impersonate(holderAddress)
-        const saveAddress = imusdAddress
-        let inputAddress = musdAddress
+        const saveAddress = ifusdAddress
+        let inputAddress = fusdAddress
 
-        if (input === "musd" && isCredit) {
-            inputAddress = imusdAddress
-        } else if (input === "musd" && !isCredit) {
-            inputAddress = musdAddress
+        if (input === "fusd" && isCredit) {
+            inputAddress = ifusdAddress
+        } else if (input === "fusd" && !isCredit) {
+            inputAddress = fusdAddress
         }
 
-        const amount = input === "musd" ? simpleToExactAmount(1, 14) : simpleToExactAmount(1, 14)
+        const amount = input === "fusd" ? simpleToExactAmount(1, 14) : simpleToExactAmount(1, 14)
 
         const config = {
             router,
@@ -83,11 +83,11 @@ context("SavingContract Vault4626 upgrades", () => {
             config.output,
             config.amount,
         )
-        expect(amountOut.toString().length).to.be.gte(input === "musd" ? 14 : 4)
+        expect(amountOut.toString().length).to.be.gte(input === "fusd" ? 14 : 4)
         const minAmountOut = amountOut.mul(98).div(1e2)
         const outContract = IERC20__factory.connect(config.output, holder)
         const tokenBalanceBefore = await outContract.balanceOf(holderAddress)
-        const saveContract = SavingsContractImusdPolygon22__factory.connect(saveAddress, holder)
+        const saveContract = SavingsContractIfusdPolygon22__factory.connect(saveAddress, holder)
 
         const holderVaultBalanceBefore = await saveContract.balanceOf(holderAddress)
 
@@ -129,15 +129,15 @@ context("SavingContract Vault4626 upgrades", () => {
         unwrapper = await Unwrapper__factory.connect(unwrapperAddress, deployer)
         // Set underlying assets balance for testing
         await setBalance(
-            imusdHolderAddress,
-            musdAddress,
+            ifusdHolderAddress,
+            fusdAddress,
             simpleToExactAmount(1000, 18),
             "0xebdbf4f1890ca99983c2897c9302f3ab589eca3b34a6b11235c02075312ad1e4",
         )
         // Set savings contract balance for testing
         await setBalance(
-            imusdHolderAddress,
-            imusdAddress,
+            ifusdHolderAddress,
+            ifusdAddress,
             simpleToExactAmount(1000, 18),
             "0xebdbf4f1890ca99983c2897c9302f3ab589eca3b34a6b11235c02075312ad1e4",
         )
@@ -150,28 +150,28 @@ context("SavingContract Vault4626 upgrades", () => {
 
     context("Stage 1", () => {
         describe("1.1 Upgrading savings contracts", () => {
-            it("Upgrades the imUSD contract", async () => {
-                const constructorArguments = [nexusAddress, musdAddress, unwrapper.address]
-                const musdSaveImpl = await deployContract<SavingsContractImusdPolygon22>(
-                    new SavingsContractImusdPolygon22__factory(deployer),
-                    "mStable: mUSD Savings Contract",
+            it("Upgrades the ifUSD contract", async () => {
+                const constructorArguments = [nexusAddress, fusdAddress, unwrapper.address]
+                const fusdSaveImpl = await deployContract<SavingsContractIfusdPolygon22>(
+                    new SavingsContractIfusdPolygon22__factory(deployer),
+                    "mStable: fUSD Savings Contract",
                     constructorArguments,
                 )
-                const saveContractProxy = await upgradeContract<SavingsContractImusdPolygon22>(
-                    SavingsContractImusdPolygon22__factory as unknown as ContractFactory,
-                    musdSaveImpl,
-                    imusdAddress,
+                const saveContractProxy = await upgradeContract<SavingsContractIfusdPolygon22>(
+                    SavingsContractIfusdPolygon22__factory as unknown as ContractFactory,
+                    fusdSaveImpl,
+                    ifusdAddress,
                     governor,
                     delayedProxyAdmin,
                 )
 
                 expect(await saveContractProxy.unwrapper()).to.eq(unwrapper.address)
-                expect(await delayedProxyAdmin.getProxyImplementation(imusdAddress)).eq(musdSaveImpl.address)
-                expect(musdAddress).eq(await musdSaveImpl.underlying())
+                expect(await delayedProxyAdmin.getProxyImplementation(ifusdAddress)).eq(fusdSaveImpl.address)
+                expect(fusdAddress).eq(await fusdSaveImpl.underlying())
             })
 
-            it("imUSD contract works after upgraded", async () => {
-                await redeemAndUnwrap(imusdHolderAddress, musdAddress, "musd", daiAddress)
+            it("ifUSD contract works after upgraded", async () => {
+                await redeemAndUnwrap(ifusdHolderAddress, fusdAddress, "fusd", daiAddress)
             })
         })
     })
@@ -179,38 +179,38 @@ context("SavingContract Vault4626 upgrades", () => {
     context("Stage 2 (regression)", () => {
         describe("2.1 Via SavingsContracts", () => {
             before("fund accounts", async () => {
-                const imusdHolder = await impersonate(imusdHolderAddress)
+                const ifusdHolder = await impersonate(ifusdHolderAddress)
 
-                const savingsContractImusd = SavingsContractImusdPolygon22__factory.connect(imusdAddress, imusdHolder)
+                const savingsContractIfusd = SavingsContractIfusdPolygon22__factory.connect(ifusdAddress, ifusdHolder)
 
-                const musd = IERC20__factory.connect(musdAddress, imusdHolder)
+                const fusd = IERC20__factory.connect(fusdAddress, ifusdHolder)
 
-                await musd.approve(savingsContractImusd.address, simpleToExactAmount(1, 21))
+                await fusd.approve(savingsContractIfusd.address, simpleToExactAmount(1, 21))
 
-                await savingsContractImusd["deposit(uint256,address)"](simpleToExactAmount(100), imusdHolderAddress)
+                await savingsContractIfusd["deposit(uint256,address)"](simpleToExactAmount(100), ifusdHolderAddress)
             })
-            it("mUSD contract redeem to bAsset", async () => {
-                await redeemAndUnwrap(imusdHolderAddress, musdAddress, "musd", daiAddress)
+            it("fUSD contract redeem to bAsset", async () => {
+                await redeemAndUnwrap(ifusdHolderAddress, fusdAddress, "fusd", daiAddress)
             })
 
-            it("mUSD contract redeem to fdAsset", async () => {
-                await redeemAndUnwrap(imusdHolderAddress, fraxFeederPool, "musd", fraxAddress)
+            it("fUSD contract redeem to fdAsset", async () => {
+                await redeemAndUnwrap(ifusdHolderAddress, fraxFeederPool, "fusd", fraxAddress)
             })
             // credits
-            it("imUSD contract redeem to bAsset", async () => {
-                await redeemAndUnwrap(imusdHolderAddress, musdAddress, "musd", daiAddress, true)
+            it("ifUSD contract redeem to bAsset", async () => {
+                await redeemAndUnwrap(ifusdHolderAddress, fusdAddress, "fusd", daiAddress, true)
             })
 
-            it("imUSD contract redeem to fdAsset", async () => {
-                await redeemAndUnwrap(imusdHolderAddress, fraxFeederPool, "musd", fraxAddress, true)
+            it("ifUSD contract redeem to fdAsset", async () => {
+                await redeemAndUnwrap(ifusdHolderAddress, fraxFeederPool, "fusd", fraxAddress, true)
             })
         })
     })
     context("Stage 3 Savings Contract ERC4626", () => {
-        const saveContracts = [{ name: "imusd", address: imusdAddress }]
+        const saveContracts = [{ name: "ifusd", address: ifusdAddress }]
 
         saveContracts.forEach((sc) => {
-            let ctxSaveContract: SavingsContractImusdPolygon22
+            let ctxSaveContract: SavingsContractIfusdPolygon22
             let assetAddress: string
             let holderAddress: string
             let anotherHolderAddress: string
@@ -234,11 +234,11 @@ context("SavingContract Vault4626 upgrades", () => {
             }
 
             before(async () => {
-                if (sc.name === "imusd") {
-                    holder = await impersonate(imusdHolderAddress)
-                    anotherHolder = await impersonate(musdHolderAddress)
-                    ctxSaveContract = SavingsContractImusdPolygon22__factory.connect(sc.address, holder)
-                    assetAddress = musdAddress
+                if (sc.name === "ifusd") {
+                    holder = await impersonate(ifusdHolderAddress)
+                    anotherHolder = await impersonate(fusdHolderAddress)
+                    ctxSaveContract = SavingsContractIfusdPolygon22__factory.connect(sc.address, holder)
+                    assetAddress = fusdAddress
                     assetsAmount = simpleToExactAmount(1, 18)
                 } else {
                     // not needed now.

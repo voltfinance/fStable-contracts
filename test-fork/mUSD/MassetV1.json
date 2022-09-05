@@ -1,6 +1,6 @@
 {
     "_format": "hh-sol-artifact-1",
-    "contractName": "MassetV2",
+    "contractName": "FassetV2",
     "abi": [
         {
             "anonymous": false,
@@ -71,7 +71,7 @@
                 {
                     "indexed": false,
                     "internalType": "uint256",
-                    "name": "mAssetQuantity",
+                    "name": "fAssetQuantity",
                     "type": "uint256"
                 },
                 {
@@ -108,7 +108,7 @@
                 {
                     "indexed": false,
                     "internalType": "uint256",
-                    "name": "mAssetQuantity",
+                    "name": "fAssetQuantity",
                     "type": "uint256"
                 },
                 {
@@ -170,7 +170,7 @@
                 {
                     "indexed": false,
                     "internalType": "uint256",
-                    "name": "mAssetQuantity",
+                    "name": "fAssetQuantity",
                     "type": "uint256"
                 },
                 {
@@ -207,11 +207,11 @@
                 {
                     "indexed": false,
                     "internalType": "uint256",
-                    "name": "mAssetQuantity",
+                    "name": "fAssetQuantity",
                     "type": "uint256"
                 }
             ],
-            "name": "RedeemedMasset",
+            "name": "RedeemedFasset",
             "type": "event"
         },
         {
@@ -630,7 +630,7 @@
             "outputs": [
                 {
                     "internalType": "uint256",
-                    "name": "massetMinted",
+                    "name": "fassetMinted",
                     "type": "uint256"
                 }
             ],
@@ -661,7 +661,7 @@
             "outputs": [
                 {
                     "internalType": "uint256",
-                    "name": "massetMinted",
+                    "name": "fassetMinted",
                     "type": "uint256"
                 }
             ],
@@ -692,7 +692,7 @@
             "outputs": [
                 {
                     "internalType": "uint256",
-                    "name": "massetMinted",
+                    "name": "fassetMinted",
                     "type": "uint256"
                 }
             ],
@@ -748,7 +748,7 @@
             "outputs": [
                 {
                     "internalType": "uint256",
-                    "name": "massetRedeemed",
+                    "name": "fassetRedeemed",
                     "type": "uint256"
                 }
             ],
@@ -761,7 +761,7 @@
             "inputs": [
                 {
                     "internalType": "uint256",
-                    "name": "_mAssetQuantity",
+                    "name": "_fAssetQuantity",
                     "type": "uint256"
                 },
                 {
@@ -770,7 +770,7 @@
                     "type": "address"
                 }
             ],
-            "name": "redeemMasset",
+            "name": "redeemFasset",
             "outputs": [],
             "payable": false,
             "stateMutability": "nonpayable",
@@ -799,7 +799,7 @@
             "outputs": [
                 {
                     "internalType": "uint256",
-                    "name": "massetRedeemed",
+                    "name": "fassetRedeemed",
                     "type": "uint256"
                 }
             ],
@@ -830,7 +830,7 @@
             "outputs": [
                 {
                     "internalType": "uint256",
-                    "name": "massetRedeemed",
+                    "name": "fassetRedeemed",
                     "type": "uint256"
                 }
             ],

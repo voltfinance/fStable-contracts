@@ -6,7 +6,7 @@ import { ERC20WithFee } from "./MockERC20WithFee.sol";
 /**
  * @title  InitializableToken
  * @author mStable
- * @dev    Basic ERC20Detailed Token functionality for Masset
+ * @dev    Basic ERC20Detailed Token functionality for Fasset
  */
 contract MockInitializableTokenWithFee is ERC20WithFee {
     /**

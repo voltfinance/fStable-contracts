@@ -2,7 +2,7 @@ import { ethers } from "hardhat"
 import { expect } from "chai"
 
 import { simpleToExactAmount, BN } from "@utils/math"
-import { ExposedMassetLogic } from "types/generated"
+import { ExposedFassetLogic } from "types/generated"
 
 const config = {
     supply: BN.from(0),
@@ -31,18 +31,18 @@ const getReserves = (simpleUnits: number[], decimals: number[] = simpleUnits.map
     }))
 
 describe("Invariant Validator", () => {
-    let validator: ExposedMassetLogic
+    let validator: ExposedFassetLogic
 
     const redeployValidator = async () => {
-        const LogicFactory = await ethers.getContractFactory("MassetLogic")
+        const LogicFactory = await ethers.getContractFactory("FassetLogic")
         const logicLib = await LogicFactory.deploy()
         const linkedAddress = {
             libraries: {
-                MassetLogic: logicLib.address,
+                FassetLogic: logicLib.address,
             },
         }
-        const massetFactory = await ethers.getContractFactory("ExposedMassetLogic", linkedAddress)
-        validator = (await massetFactory.deploy()) as ExposedMassetLogic
+        const fassetFactory = await ethers.getContractFactory("ExposedFassetLogic", linkedAddress)
+        validator = (await fassetFactory.deploy()) as ExposedFassetLogic
     }
     before(async () => {
         await redeployValidator()

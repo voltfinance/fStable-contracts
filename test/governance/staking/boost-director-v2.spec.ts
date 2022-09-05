@@ -3,7 +3,7 @@
 import { ethers } from "hardhat"
 import { expect } from "chai"
 import { BN } from "@utils/math"
-import { StandardAccounts, MassetMachine } from "@utils/machines"
+import { StandardAccounts, FassetMachine } from "@utils/machines"
 import { DEAD_ADDRESS } from "@utils/constants"
 import {
     MockStakingContract,
@@ -22,7 +22,7 @@ const vaultNumbers = [...Array(7).keys()]
 
 context("Govern boost director v2", () => {
     let sa: StandardAccounts
-    let mAssetMachine: MassetMachine
+    let fAssetMachine: FassetMachine
 
     let nexus: MockNexus
     let stakingContract: MockStakingContract
@@ -39,8 +39,8 @@ context("Govern boost director v2", () => {
 
     before(async () => {
         const accounts = await ethers.getSigners()
-        mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        sa = mAssetMachine.sa
+        fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        sa = fAssetMachine.sa
 
         vaults = [sa.dummy1, sa.dummy2, sa.dummy3, sa.dummy4, sa.dummy5, sa.dummy6, sa.dummy7]
         vaultUnlisted = sa.all[11]

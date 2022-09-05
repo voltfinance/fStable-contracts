@@ -3,8 +3,8 @@ import { Signer } from "ethers"
 import { formatUnits } from "ethers/lib/utils"
 import { task, types } from "hardhat/config"
 import { BN } from "@utils/math"
-import { MusdEth__factory } from "types/generated/factories/MusdEth__factory"
-import { MusdEth } from "types/generated/MusdEth"
+import { FusdEth__factory } from "types/generated/factories/FusdEth__factory"
+import { FusdEth } from "types/generated/FusdEth"
 import { SavingsManager__factory } from "types/generated"
 import { dumpBassetStorage, dumpConfigStorage, dumpTokenStorage } from "./utils/storage-utils"
 import {
@@ -34,7 +34,7 @@ const btcFormatter = (amount, decimals = 18, pad = 7, displayDecimals = 3): stri
     return string2decimals.replace(/\B(?=(\d{3})+(?!\d))/g, ",").padStart(pad)
 }
 
-const getMasset = (signer: Signer, contractAddress = mBTC.address): MusdEth => MusdEth__factory.connect(contractAddress, signer)
+const getFasset = (signer: Signer, contractAddress = mBTC.address): FusdEth => FusdEth__factory.connect(contractAddress, signer)
 
 task("mBTC-storage", "Dumps mBTC's storage data")
     .addOptionalParam("block", "Block number to get storage from. (default: current block)", 0, types.int)
@@ -44,11 +44,11 @@ task("mBTC-storage", "Dumps mBTC's storage data")
         const toBlockNumber = taskArgs.block ? taskArgs.block : await hre.ethers.provider.getBlockNumber()
         console.log(`Block number ${toBlockNumber}`)
 
-        const mAsset = getMasset(signer)
+        const fAsset = getFasset(signer)
 
-        await dumpTokenStorage(mAsset, toBlockNumber)
-        await dumpBassetStorage(mAsset, toBlockNumber)
-        await dumpConfigStorage(mAsset, toBlockNumber)
+        await dumpTokenStorage(fAsset, toBlockNumber)
+        await dumpBassetStorage(fAsset, toBlockNumber)
+        await dumpConfigStorage(fAsset, toBlockNumber)
     })
 
 task("mBTC-snap", "Get the latest data from the mBTC contracts")
@@ -61,28 +61,28 @@ task("mBTC-snap", "Get the latest data from the mBTC contracts")
 
         let exposedValidator
         if (network.name === "hardhat") {
-            const LogicFactory = await ethers.getContractFactory("MassetLogic")
+            const LogicFactory = await ethers.getContractFactory("FassetLogic")
             const logicLib = await LogicFactory.deploy()
             const linkedAddress = {
                 libraries: {
-                    MassetLogic: logicLib.address,
+                    FassetLogic: logicLib.address,
                 },
             }
-            const massetFactory = await ethers.getContractFactory("ExposedMassetLogic", linkedAddress)
-            exposedValidator = await massetFactory.deploy()
+            const fassetFactory = await ethers.getContractFactory("ExposedFassetLogic", linkedAddress)
+            exposedValidator = await fassetFactory.deploy()
         }
 
-        const mAsset = getMasset(signer)
+        const fAsset = getFasset(signer)
         const savingsManagerAddress = getChainAddress("SavingsManager", chain)
         const savingsManager = SavingsManager__factory.connect(savingsManagerAddress, signer)
 
         const { fromBlock, toBlock } = await getBlockRange(ethers, taskArgs.from, taskArgs.to)
 
-        const mintSummary = await getMints(bAssets, mAsset, fromBlock.blockNumber, toBlock.blockNumber, btcFormatter)
-        const mintMultiSummary = await getMultiMints(bAssets, mAsset, fromBlock.blockNumber, toBlock.blockNumber, btcFormatter)
-        const redeemSummary = await getRedemptions(bAssets, mAsset, fromBlock.blockNumber, toBlock.blockNumber, btcFormatter)
-        const redeemMultiSummary = await getMultiRedemptions(bAssets, mAsset, fromBlock.blockNumber, toBlock.blockNumber, btcFormatter)
-        const swapSummary = await getSwaps(bAssets, mAsset, fromBlock.blockNumber, toBlock.blockNumber, btcFormatter)
+        const mintSummary = await getMints(bAssets, fAsset, fromBlock.blockNumber, toBlock.blockNumber, btcFormatter)
+        const mintMultiSummary = await getMultiMints(bAssets, fAsset, fromBlock.blockNumber, toBlock.blockNumber, btcFormatter)
+        const redeemSummary = await getRedemptions(bAssets, fAsset, fromBlock.blockNumber, toBlock.blockNumber, btcFormatter)
+        const redeemMultiSummary = await getMultiRedemptions(bAssets, fAsset, fromBlock.blockNumber, toBlock.blockNumber, btcFormatter)
+        const swapSummary = await getSwaps(bAssets, fAsset, fromBlock.blockNumber, toBlock.blockNumber, btcFormatter)
 
         const tvlConfig = {
             startingCap,
@@ -90,7 +90,7 @@ task("mBTC-snap", "Get the latest data from the mBTC contracts")
             invariantValidatorAddress: contracts.mainnet.InvariantValidator,
         }
         await getBasket(
-            mAsset,
+            fAsset,
             btcBassets.map((b) => b.symbol),
             "mBTC",
             btcFormatter,
@@ -98,7 +98,7 @@ task("mBTC-snap", "Get the latest data from the mBTC contracts")
             tvlConfig,
             exposedValidator,
         )
-        await snapConfig(mAsset, toBlock.blockNumber)
+        await snapConfig(fAsset, toBlock.blockNumber)
 
         let accounts = []
         if (chain === Chain.mainnet) {
@@ -117,9 +117,9 @@ task("mBTC-snap", "Get the latest data from the mBTC contracts")
                 },
             ]
         }
-        const balances = await getBalances(mAsset, accounts, btcFormatter, toBlock.blockNumber)
+        const balances = await getBalances(fAsset, accounts, btcFormatter, toBlock.blockNumber)
 
-        await getCollectedInterest(bAssets, mAsset, savingsManager, fromBlock, toBlock, btcFormatter, balances.save)
+        await getCollectedInterest(bAssets, fAsset, savingsManager, fromBlock, toBlock, btcFormatter, balances.save)
 
         outputFees(
             mintSummary,
@@ -141,14 +141,14 @@ task("mBTC-rates", "mBTC rate comparison to Curve")
         const signer = await getSigner(hre)
         const chain = getChain(hre)
 
-        const mAsset = await getMasset(signer)
+        const fAsset = await getFasset(signer)
         const block = await getBlock(hre.ethers, taskArgs.block)
 
         console.log(`\nGetting rates for mBTC at block ${block.blockNumber}, ${block.blockTime}`)
 
         console.log("      Qty Input     Output      Qty Out    Rate             Output    Rate   Diff      Arb$")
-        await getSwapRates(bAssets, bAssets, mAsset, block.blockNumber, btcFormatter, BN.from(taskArgs.swapSize), chain)
-        await snapConfig(mAsset, block.blockNumber)
+        await getSwapRates(bAssets, bAssets, fAsset, block.blockNumber, btcFormatter, BN.from(taskArgs.swapSize), chain)
+        await snapConfig(fAsset, block.blockNumber)
     })
 
 module.exports = {}

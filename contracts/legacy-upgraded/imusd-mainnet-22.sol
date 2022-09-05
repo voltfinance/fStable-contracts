@@ -149,7 +149,7 @@ interface IERC4626Vault {
 interface IUnwrapper {
     // @dev Get bAssetOut status
     function getIsBassetOut(
-        address _masset,
+        address _fasset,
         bool _inputIsCredit,
         address _output
     ) external view returns (bool isBassetOut);
@@ -178,16 +178,16 @@ interface IUnwrapper {
 
 interface ISavingsManager {
     /** @dev Admin privs */
-    function distributeUnallocatedInterest(address _mAsset) external;
+    function distributeUnallocatedInterest(address _fAsset) external;
 
     /** @dev Liquidator */
-    function depositLiquidation(address _mAsset, uint256 _liquidation) external;
+    function depositLiquidation(address _fAsset, uint256 _liquidation) external;
 
     /** @dev Liquidator */
-    function collectAndStreamInterest(address _mAsset) external;
+    function collectAndStreamInterest(address _fAsset) external;
 
     /** @dev Public privs */
-    function collectAndDistributeInterest(address _mAsset) external;
+    function collectAndDistributeInterest(address _fAsset) external;
 }
 
 interface ISavingsContractV1 {
@@ -195,7 +195,7 @@ interface ISavingsContractV1 {
 
     function depositSavings(uint256 _amount) external returns (uint256 creditsIssued);
 
-    function redeem(uint256 _amount) external returns (uint256 massetReturned);
+    function redeem(uint256 _amount) external returns (uint256 fassetReturned);
 
     function exchangeRate() external view returns (uint256);
 
@@ -204,7 +204,7 @@ interface ISavingsContractV1 {
 
 interface ISavingsContractV4 {
     // DEPRECATED but still backwards compatible
-    function redeem(uint256 _amount) external returns (uint256 massetReturned);
+    function redeem(uint256 _amount) external returns (uint256 fassetReturned);
 
     function creditBalances(address) external view returns (uint256); // V1 & V2 (use balanceOf)
 
@@ -244,7 +244,7 @@ interface ISavingsContractV4 {
         external
         returns (
             uint256 creditsBurned,
-            uint256 massetRedeemed,
+            uint256 fassetRedeemed,
             uint256 outputQuantity
         );
 
@@ -1004,19 +1004,19 @@ contract InitializableModule2 is ModuleKeys {
 
 interface IConnector {
     /**
-     * @notice Deposits the mAsset into the connector
-     * @param _amount Units of mAsset to receive and deposit
+     * @notice Deposits the fAsset into the connector
+     * @param _amount Units of fAsset to receive and deposit
      */
     function deposit(uint256 _amount) external;
 
     /**
-     * @notice Withdraws a specific amount of mAsset from the connector
-     * @param _amount Units of mAsset to withdraw
+     * @notice Withdraws a specific amount of fAsset from the connector
+     * @param _amount Units of fAsset to withdraw
      */
     function withdraw(uint256 _amount) external;
 
     /**
-     * @notice Withdraws all mAsset from the connector
+     * @notice Withdraws all fAsset from the connector
      */
     function withdrawAll() external;
 
@@ -1026,7 +1026,7 @@ interface IConnector {
      * exchange rates (e.g. with Curves `get_virtual_price`), it should return
      * max(deposited, balance) to avoid temporary negative yield. Any negative yield
      * should be corrected during a withdrawal or over time.
-     * @return Balance of mAsset in the connector
+     * @return Balance of fAsset in the connector
      */
     function checkBalance() external view returns (uint256);
 }
@@ -1093,10 +1093,10 @@ library StableMath {
     uint256 private constant FULL_SCALE = 1e18;
 
     /**
-     * @notice Token Ratios are used when converting between units of bAsset, mAsset and MTA
+     * @notice Token Ratios are used when converting between units of bAsset, fAsset and MTA
      * Reasoning: Takes into account token decimals, and difference in base unit (i.e. grams to Troy oz for gold)
      * @dev bAsset ratio unit for use in exact calculations,
-     * where (1 bAsset unit * bAsset.ratio) / ratioScale == x mAsset unit
+     * where (1 bAsset unit * bAsset.ratio) / ratioScale == x fAsset unit
      */
     uint256 private constant RATIO_SCALE = 1e8;
 
@@ -1198,7 +1198,7 @@ library StableMath {
 
     /**
      * @dev Multiplies and truncates a token ratio, essentially flooring the result
-     *      i.e. How much mAsset is this bAsset worth?
+     *      i.e. How much fAsset is this bAsset worth?
      * @param x     Left hand operand to multiplication (i.e Exact quantity)
      * @param ratio bAsset ratio
      * @return      Result after multiplying the two inputs and then dividing by the ratio scale
@@ -1209,14 +1209,14 @@ library StableMath {
 
     /**
      * @dev Multiplies and truncates a token ratio, rounding up the result
-     *      i.e. How much mAsset is this bAsset worth?
+     *      i.e. How much fAsset is this bAsset worth?
      * @param x     Left hand input to multiplication (i.e Exact quantity)
      * @param ratio bAsset ratio
      * @return      Result after multiplying the two inputs and then dividing by the shared
      *              ratio scale, rounded up to the closest base unit.
      */
     function mulRatioTruncateCeil(uint256 x, uint256 ratio) internal pure returns (uint256) {
-        // e.g. How much mAsset should I burn for this bAsset (x)?
+        // e.g. How much fAsset should I burn for this bAsset (x)?
         // 1e18 * 1e8 = 1e26
         uint256 scaled = x.mul(ratio);
         // 1e26 + 9.99e7 = 100..00.999e8
@@ -1227,7 +1227,7 @@ library StableMath {
 
     /**
      * @dev Precisely divides two ratioed units, by first scaling the left hand operand
-     *      i.e. How much bAsset is this mAsset worth?
+     *      i.e. How much bAsset is this fAsset worth?
      * @param x     Left hand operand in division
      * @param ratio bAsset ratio
      * @return      Result after multiplying the left operand by the scale, and
@@ -1284,7 +1284,7 @@ library StableMath {
  * @dev     VERSION: 2.1
  *          DATE:    2021-11-25
  */
-contract SavingsContract_imusd_mainnet_22 is
+contract SavingsContract_ifusd_mainnet_22 is
     ISavingsContractV1,
     ISavingsContractV4,
     IERC4626Vault,
@@ -1387,7 +1387,7 @@ contract SavingsContract_imusd_mainnet_22 is
     /**
      * @dev Converts a given underlying amount into credits
      * @param _underlying  Units of underlying
-     * @return credits     Credit units (a.k.a imUSD)
+     * @return credits     Credit units (a.k.a ifUSD)
      */
     function underlyingToCredits(uint256 _underlying) external view returns (uint256 credits) {
         (credits, ) = _underlyingToCredits(_underlying);
@@ -1453,8 +1453,8 @@ contract SavingsContract_imusd_mainnet_22 is
     /**
      * @dev During a migration period, allow savers to deposit underlying here before the interest has been redirected
      * @param _underlying      Units of underlying to deposit into savings vault
-     * @param _beneficiary     Immediately transfer the imUSD token to this beneficiary address
-     * @return creditsIssued   Units of credits (imUSD) issued
+     * @param _beneficiary     Immediately transfer the ifUSD token to this beneficiary address
+     * @return creditsIssued   Units of credits (ifUSD) issued
      */
     function preDeposit(uint256 _underlying, address _beneficiary)
         external
@@ -1470,7 +1470,7 @@ contract SavingsContract_imusd_mainnet_22 is
      *                    credits = underlying / exchangeRate
      *      We will first update the internal exchange rate by collecting any interest generated on the underlying.
      * @param _underlying      Units of underlying to deposit into savings vault
-     * @return creditsIssued   Units of credits (imUSD) issued
+     * @return creditsIssued   Units of credits (ifUSD) issued
      */
     function depositSavings(uint256 _underlying) external returns (uint256 creditsIssued) {
         return _deposit(_underlying, msg.sender, true);
@@ -1482,8 +1482,8 @@ contract SavingsContract_imusd_mainnet_22 is
      *                    credits = underlying / exchangeRate
      *      We will first update the internal exchange rate by collecting any interest generated on the underlying.
      * @param _underlying      Units of underlying to deposit into savings vault
-     * @param _beneficiary     Immediately transfer the imUSD token to this beneficiary address
-     * @return creditsIssued   Units of credits (imUSD) issued
+     * @param _beneficiary     Immediately transfer the ifUSD token to this beneficiary address
+     * @return creditsIssued   Units of credits (ifUSD) issued
      */
     function depositSavings(uint256 _underlying, address _beneficiary)
         external
@@ -1495,9 +1495,9 @@ contract SavingsContract_imusd_mainnet_22 is
     /**
      * @dev Overloaded `depositSavings` method with an optional referrer address.
      * @param _underlying      Units of underlying to deposit into savings vault
-     * @param _beneficiary     Immediately transfer the imUSD token to this beneficiary address
+     * @param _beneficiary     Immediately transfer the ifUSD token to this beneficiary address
      * @param _referrer        Referrer address for this deposit
-     * @return creditsIssued   Units of credits (imUSD) issued
+     * @return creditsIssued   Units of credits (ifUSD) issued
      */
     function depositSavings(
         uint256 _underlying,
@@ -1509,7 +1509,7 @@ contract SavingsContract_imusd_mainnet_22 is
     }
 
     /**
-     * @dev Internally deposit the _underlying from the sender and credit the beneficiary with new imUSD
+     * @dev Internally deposit the _underlying from the sender and credit the beneficiary with new ifUSD
      */
     function _deposit(
         uint256 _underlying,
@@ -1526,7 +1526,7 @@ contract SavingsContract_imusd_mainnet_22 is
     // Deprecated in favour of redeemCredits
     // Maintaining backwards compatibility, this fn minimics the old redeem fn, in which
     // credits are redeemed but the interest from the underlying is not collected.
-    function redeem(uint256 _credits) external returns (uint256 massetReturned) {
+    function redeem(uint256 _credits) external returns (uint256 fassetReturned) {
         require(_credits > 0, "Must withdraw something");
 
         (, uint256 payout) = _redeem(_credits, true, true);
@@ -1544,9 +1544,9 @@ contract SavingsContract_imusd_mainnet_22 is
      *      Payout amount is calculated as a ratio of credits and exchange rate:
      *                    payout = credits * exchangeRate
      * @param _credits         Amount of credits to redeem
-     * @return massetReturned  Units of underlying mAsset paid out
+     * @return fassetReturned  Units of underlying fAsset paid out
      */
-    function redeemCredits(uint256 _credits) external returns (uint256 massetReturned) {
+    function redeemCredits(uint256 _credits) external returns (uint256 fassetReturned) {
         require(_credits > 0, "Must withdraw something");
 
         // Collect recent interest generated by basket and update exchange rate
@@ -1575,8 +1575,8 @@ contract SavingsContract_imusd_mainnet_22 is
         }
 
         // Ensure that the payout was sufficient
-        (uint256 credits, uint256 massetReturned) = _redeem(_underlying, false, true);
-        require(massetReturned == _underlying, "Invalid output");
+        (uint256 credits, uint256 fassetReturned) = _redeem(_underlying, false, true);
+        require(fassetReturned == _underlying, "Invalid output");
 
         return credits;
     }
@@ -1587,17 +1587,17 @@ contract SavingsContract_imusd_mainnet_22 is
      *      Credits needed to burn is calculated using:
      *                    credits = underlying / exchangeRate
      * @param _amount         Units to redeem (either underlying or credit amount).
-     * @param _isCreditAmt    `true` if `amount` is in credits. eg imUSD. `false` if `amount` is in underlying. eg mUSD.
+     * @param _isCreditAmt    `true` if `amount` is in credits. eg ifUSD. `false` if `amount` is in underlying. eg fUSD.
      * @param _minAmountOut   Minimum amount of `output` tokens to unwrap for. This is to the same decimal places as the `output` token.
-     * @param _output         Asset to receive in exchange for the redeemed mAssets. This can be a bAsset or a fdAsset. For example:
-        - bAssets (USDC, DAI, sUSD or USDT) or fdAssets (GUSD, BUSD, alUSD, FEI or RAI) for mainnet imUSD Vault.
-        - bAssets (USDC, DAI or USDT) or fdAsset FRAX for Polygon imUSD Vault.
+     * @param _output         Asset to receive in exchange for the redeemed fAssets. This can be a bAsset or a fdAsset. For example:
+        - bAssets (USDC, DAI, sUSD or USDT) or fdAssets (GUSD, BUSD, alUSD, FEI or RAI) for mainnet ifUSD Vault.
+        - bAssets (USDC, DAI or USDT) or fdAsset FRAX for Polygon ifUSD Vault.
         - bAssets (WBTC, sBTC or renBTC) or fdAssets (HBTC or TBTCV2) for mainnet imBTC Vault.
      * @param _beneficiary    Address to send `output` tokens to.
-     * @param _router         mAsset address if the output is a bAsset. Feeder Pool address if the output is a fdAsset.
+     * @param _router         fAsset address if the output is a bAsset. Feeder Pool address if the output is a fdAsset.
      * @param _isBassetOut    `true` if `output` is a bAsset. `false` if `output` is a fdAsset.
-     * @return creditsBurned  Units of credits burned from sender. eg imUSD or imBTC.
-     * @return massetReturned Units of the underlying mAssets that were redeemed or swapped for the output tokens. eg mUSD or mBTC.
+     * @return creditsBurned  Units of credits burned from sender. eg ifUSD or imBTC.
+     * @return fassetReturned Units of the underlying fAssets that were redeemed or swapped for the output tokens. eg fUSD or mBTC.
      * @return outputQuantity Units of `output` tokens sent to the beneficiary.
      */
     function redeemAndUnwrap(
@@ -1612,7 +1612,7 @@ contract SavingsContract_imusd_mainnet_22 is
         external
         returns (
             uint256 creditsBurned,
-            uint256 massetReturned,
+            uint256 fassetReturned,
             uint256 outputQuantity
         )
     {
@@ -1627,14 +1627,14 @@ contract SavingsContract_imusd_mainnet_22 is
         }
 
         // Ensure that the payout was sufficient
-        (creditsBurned, massetReturned) = _redeem(_amount, _isCreditAmt, false);
+        (creditsBurned, fassetReturned) = _redeem(_amount, _isCreditAmt, false);
         require(
-            _isCreditAmt ? creditsBurned == _amount : massetReturned == _amount,
+            _isCreditAmt ? creditsBurned == _amount : fassetReturned == _amount,
             "Invalid output"
         );
 
         // Approve wrapper to spend contract's underlying; just for this tx
-        underlying.approve(unwrapper, massetReturned);
+        underlying.approve(unwrapper, fassetReturned);
 
         // Unwrap the underlying into `output` and transfer to `beneficiary`
         outputQuantity = IUnwrapper(unwrapper).unwrapAndSend(
@@ -1642,7 +1642,7 @@ contract SavingsContract_imusd_mainnet_22 is
             _router,
             address(underlying),
             _output,
-            massetReturned,
+            fassetReturned,
             _minAmountOut,
             _beneficiary
         );
@@ -1655,7 +1655,7 @@ contract SavingsContract_imusd_mainnet_22 is
         uint256 _amt,
         bool _isCreditAmt,
         bool _transferUnderlying
-    ) internal returns (uint256 creditsBurned, uint256 massetReturned) {
+    ) internal returns (uint256 creditsBurned, uint256 fassetReturned) {
         // Centralise credit <> underlying calcs and minimise SLOAD count
         uint256 credits_;
         uint256 underlying_;
@@ -1839,13 +1839,13 @@ contract SavingsContract_imusd_mainnet_22 is
             // 3. Level the assets to Fraction (connector) & 100-fraction (raw)
             uint256 sum = _data.rawBalance.add(connectorBalance);
             uint256 ideal = sum.mulTruncate(_data.fraction);
-            //     If there is not enough mAsset in the connector, then deposit
+            //     If there is not enough fAsset in the connector, then deposit
             if (ideal > connectorBalance) {
                 uint256 deposit = ideal.sub(connectorBalance);
                 underlying.approve(address(connector_), deposit);
                 connector_.deposit(deposit);
             }
-            //     Else withdraw, if there is too much mAsset in the connector
+            //     Else withdraw, if there is too much fAsset in the connector
             else if (connectorBalance > ideal) {
                 // If fraction == 0, then withdraw everything
                 if (ideal == 0) {
@@ -1950,8 +1950,8 @@ contract SavingsContract_imusd_mainnet_22 is
     }
 
     /**
-     * @dev Converts masset amount into credits based on exchange rate
-     *               c = (masset / exchangeRate) + 1
+     * @dev Converts fasset amount into credits based on exchange rate
+     *               c = (fasset / exchangeRate) + 1
      */
     function _underlyingToCredits(uint256 _underlying)
         internal
@@ -1978,7 +1978,7 @@ contract SavingsContract_imusd_mainnet_22 is
     }
 
     /**
-     * @dev Converts credit amount into masset based on exchange rate
+     * @dev Converts credit amount into fasset based on exchange rate
      *               m = credits * exchangeRate
      */
     function _creditsToUnderlying(uint256 _credits)
@@ -1999,7 +1999,7 @@ contract SavingsContract_imusd_mainnet_22 is
     /**
      * @notice it must be an ERC-20 token contract. Must not revert.
      *
-     * @return assetTokenAddress the address of the underlying asset token. eg mUSD or mBTC
+     * @return assetTokenAddress the address of the underlying asset token. eg fUSD or mBTC
      */
     function asset() external view returns (address assetTokenAddress) {
         return address(underlying);
@@ -2057,9 +2057,9 @@ contract SavingsContract_imusd_mainnet_22 is
      *                    credits = underlying / exchangeRate
      *      We will first update the internal exchange rate by collecting any interest generated on the underlying.
      * Emits a {Deposit} event.
-     * @param assets      Units of underlying to deposit into savings vault. eg mUSD or mBTC
+     * @param assets      Units of underlying to deposit into savings vault. eg fUSD or mBTC
      * @param receiver    The address to receive the Vault shares.
-     * @return shares     Units of credits issued. eg imUSD or imBTC
+     * @return shares     Units of credits issued. eg ifUSD or imBTC
      */
     function deposit(uint256 assets, address receiver) external returns (uint256 shares) {
         shares = _transferAndMint(assets, receiver, true);
@@ -2068,10 +2068,10 @@ contract SavingsContract_imusd_mainnet_22 is
     /**
      *
      * @notice Overloaded `deposit` method with an optional referrer address.
-     * @param assets    Units of underlying to deposit into savings vault. eg mUSD or mBTC
+     * @param assets    Units of underlying to deposit into savings vault. eg fUSD or mBTC
      * @param receiver  Address to the new credits will be issued to.
      * @param referrer  Referrer address for this deposit.
-     * @return shares   Units of credits issued. eg imUSD or imBTC
+     * @return shares   Units of credits issued. eg ifUSD or imBTC
      */
     function deposit(
         uint256 assets,
@@ -2232,13 +2232,13 @@ contract SavingsContract_imusd_mainnet_22 is
         require(receiver != address(0), "Invalid beneficiary address");
 
         // Collect recent interest generated by basket and update exchange rate
-        IERC20 mAsset = underlying;
+        IERC20 fAsset = underlying;
         if (_collectInterest) {
-            ISavingsManager(_savingsManager()).collectAndDistributeInterest(address(mAsset));
+            ISavingsManager(_savingsManager()).collectAndDistributeInterest(address(fAsset));
         }
 
         // Transfer tokens from sender to here
-        require(mAsset.transferFrom(msg.sender, address(this), assets), "Must receive tokens");
+        require(fAsset.transferFrom(msg.sender, address(this), assets), "Must receive tokens");
 
         // Calc how many credits they receive based on currentRatio
         (shares, ) = _underlyingToCredits(assets);

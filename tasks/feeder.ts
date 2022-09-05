@@ -10,7 +10,7 @@ import {
     FeederWrapper__factory,
     IERC20__factory,
     InterestValidator__factory,
-    Masset,
+    Fasset,
     SavingsManager__factory,
 } from "types/generated"
 import { BN, simpleToExactAmount } from "@utils/math"
@@ -30,7 +30,7 @@ import {
     outputFees,
     getCollectedInterest,
 } from "./utils/snap-utils"
-import { Chain, PFRAX, PmUSD, Token, tokens } from "./utils/tokens"
+import { Chain, PFRAX, PfUSD, Token, tokens } from "./utils/tokens"
 import { btcFormatter, QuantityFormatter, usdFormatter } from "./utils/quantity-formatters"
 import { getSwapRates } from "./utils/rates-utils"
 import { getSigner } from "./utils/signerFactory"
@@ -39,7 +39,7 @@ import { getChain, getChainAddress, resolveAddress, resolveToken } from "./utils
 import { params } from "./utils/params"
 
 const getBalances = async (
-    feederPool: Masset | FeederPool,
+    feederPool: Fasset | FeederPool,
     block: number,
     asset: Token,
     quantityFormatter: QuantityFormatter,
@@ -126,8 +126,8 @@ task("feeder-snap", "Gets feeder transactions over a period of time")
             process.exit(1)
         }
         console.log(`\nGetting snap for feeder pool ${fdAsset.symbol} from block ${fromBlock.blockNumber}, to ${toBlock.blockNumber}`)
-        const mAsset = tokens.find((t) => t.symbol === fdAsset.parent)
-        const fpAssets = [mAsset, fdAsset]
+        const fAsset = tokens.find((t) => t.symbol === fdAsset.parent)
+        const fpAssets = [fAsset, fdAsset]
 
         const feederPool = getFeederPool(signer, fdAsset.feederPool)
         const savingsManagerAddress = getChainAddress("SavingsManager", chain)
@@ -151,7 +151,7 @@ task("feeder-snap", "Gets feeder transactions over a period of time")
         await getBasket(
             feederPool,
             fpAssets.map((b) => b.symbol),
-            mAsset.symbol,
+            fAsset.symbol,
             usdFormatter,
             toBlock.blockNumber,
         )
@@ -194,10 +194,10 @@ task("feeder-rates", "Feeder rate comparison to Curve")
         console.log(`\nGetting rates for feeder pool ${fdAsset.symbol} at block ${block.blockNumber}, ${block.blockTime}`)
         const feederPool = getFeederPool(signer, fdAsset.feederPool)
 
-        const mAsset = tokens.find((t) => t.symbol === fdAsset.parent)
-        const fpAssets = [mAsset, fdAsset]
+        const fAsset = tokens.find((t) => t.symbol === fdAsset.parent)
+        const fpAssets = [fAsset, fdAsset]
 
-        // Get the bAssets for the main pool. eg bAssets in mUSD or mBTC
+        // Get the bAssets for the main pool. eg bAssets in fUSD or mBTC
         // These are the assets that are not feeder pools and parent matches the fdAsset's parent
         const mpAssets = tokens.filter((t) => t.parent === fdAsset.parent && !t.feederPool)
 
@@ -217,7 +217,7 @@ task("frax-post-deploy", "Mint FRAX Feeder Pool")
 
         const frax = ERC20__factory.connect(PFRAX.address, signer)
         const fraxFp = FeederPool__factory.connect(PFRAX.feederPool, signer)
-        const musd = await IERC20__factory.connect(PmUSD.address, signer)
+        const fusd = await IERC20__factory.connect(PfUSD.address, signer)
 
         const approveAmount = simpleToExactAmount(100)
         const bAssetAmount = simpleToExactAmount(10)
@@ -226,10 +226,10 @@ task("frax-post-deploy", "Mint FRAX Feeder Pool")
         let tx = await frax.approve(PFRAX.feederPool, approveAmount)
         await logTxDetails(tx, "approve FRAX")
 
-        tx = await musd.approve(PFRAX.feederPool, approveAmount)
-        await logTxDetails(tx, "approve mUSD")
+        tx = await fusd.approve(PFRAX.feederPool, approveAmount)
+        await logTxDetails(tx, "approve fUSD")
 
-        tx = await fraxFp.mintMulti([PFRAX.address, PmUSD.address], [bAssetAmount, bAssetAmount], minAmount, await signer.getAddress())
+        tx = await fraxFp.mintMulti([PFRAX.address, PfUSD.address], [bAssetAmount, bAssetAmount], minAmount, await signer.getAddress())
         await logTxDetails(tx, "mint FRAX FP")
     })
 
@@ -283,9 +283,9 @@ task("FeederWrapper-approve", "Sets approvals for a single token/spender")
     })
 
 task("feeder-mint", "Mint some Feeder Pool tokens")
-    .addOptionalParam("amount", "Amount of the mAsset and fdAsset to deposit", undefined, types.float)
+    .addOptionalParam("amount", "Amount of the fAsset and fdAsset to deposit", undefined, types.float)
     .addParam("fdAsset", "Token symbol of the feeder pool asset. eg HBTC, GUSD, PFRAX or alUSD", undefined, types.string)
-    .addOptionalParam("single", "Only mint using fdAsset. If false, does a multi mint using fdAsset and masset", false, types.boolean)
+    .addOptionalParam("single", "Only mint using fdAsset. If false, does a multi mint using fdAsset and fasset", false, types.boolean)
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
         const signer = await getSigner(hre, taskArgs.speed)
@@ -297,10 +297,10 @@ task("feeder-mint", "Mint some Feeder Pool tokens")
         if (!feederPoolToken) throw Error(`Could not find feeder pool asset token with symbol ${fdAssetSymbol}`)
         if (!feederPoolToken.feederPool) throw Error(`No feeder pool configured for token ${fdAssetSymbol}`)
 
-        const mAssetSymbol = feederPoolToken.parent
-        if (!mAssetSymbol) throw Error(`No parent mAsset configured for feeder pool asset ${mAssetSymbol}`)
-        const mAssetToken = tokens.find((t) => t.symbol === mAssetSymbol && t.chain === chain)
-        if (!mAssetToken) throw Error(`Could not find mAsset token with symbol ${mAssetToken}`)
+        const fAssetSymbol = feederPoolToken.parent
+        if (!fAssetSymbol) throw Error(`No parent fAsset configured for feeder pool asset ${fAssetSymbol}`)
+        const fAssetToken = tokens.find((t) => t.symbol === fAssetSymbol && t.chain === chain)
+        if (!fAssetToken) throw Error(`Could not find fAsset token with symbol ${fAssetToken}`)
 
         const fp = FeederPool__factory.connect(feederPoolToken.feederPool, signer)
         const fpSymbol = await fp.symbol()
@@ -313,10 +313,10 @@ task("feeder-mint", "Mint some Feeder Pool tokens")
             await logTxDetails(tx, `Mint ${fpSymbol} from ${formatUnits(mintAmount)} ${fdAssetSymbol}`)
         } else {
             // multi mint Feeder Pool tokens
-            const tx = await fp.mintMulti([mAssetToken.address, feederPoolToken.address], [mintAmount, mintAmount], 0, signerAddress)
+            const tx = await fp.mintMulti([fAssetToken.address, feederPoolToken.address], [mintAmount, mintAmount], 0, signerAddress)
             await logTxDetails(
                 tx,
-                `Multi mint ${fpSymbol} from ${formatUnits(mintAmount)} ${mAssetSymbol} and ${formatUnits(mintAmount)} ${fdAssetSymbol}`,
+                `Multi mint ${fpSymbol} from ${formatUnits(mintAmount)} ${fAssetSymbol} and ${formatUnits(mintAmount)} ${fdAssetSymbol}`,
             )
         }
     })
@@ -347,8 +347,8 @@ task("feeder-redeem", "Redeem some Feeder Pool tokens")
     })
 
 task("feeder-swap", "Swap some Feeder Pool tokens")
-    .addParam("input", "Token symbol of the input token to the swap. eg mUSD, mBTC, HBTC, GUSD, FRAX or alUSD", undefined, types.string)
-    .addParam("output", "Token symbol of the output token from the swap. eg mUSD, mBTC, HBTC, GUSD, FRAX or alUSD", undefined, types.string)
+    .addParam("input", "Token symbol of the input token to the swap. eg fUSD, mBTC, HBTC, GUSD, FRAX or alUSD", undefined, types.string)
+    .addParam("output", "Token symbol of the output token from the swap. eg fUSD, mBTC, HBTC, GUSD, FRAX or alUSD", undefined, types.string)
     .addParam("amount", "Amount of input tokens to swap", undefined, types.float)
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {

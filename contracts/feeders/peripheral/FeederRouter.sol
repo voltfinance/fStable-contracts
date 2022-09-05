@@ -7,7 +7,7 @@ pragma abicoder v2;
  * @author  mStable
  * @notice  Routes trades efficiently between n Feeder Pools
  *          Routes:
- *           1) multiMint and multiRedeem from fPool (fp) to mAsset pools (mp)
+ *           1) multiMint and multiRedeem from fPool (fp) to fAsset pools (mp)
  *              e.g.
  *               - mintMulti (fdAsset / mpAsset)
  *               - redeemExact (fdAsset / mpAsset)

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.6;
 
-import "../../masset/MassetStructs.sol";
+import "../../fasset/FassetStructs.sol";
 import { FeederLogic } from "../../feeders/FeederLogic.sol";
 
 contract ExposedFeederLogic {
@@ -37,10 +37,10 @@ contract ExposedFeederLogic {
     function computeRedeem(
         BassetData[] memory _bAssets,
         uint8 _o,
-        uint256 _netMassetQuantity,
+        uint256 _netFassetQuantity,
         FeederConfig memory _config
     ) public pure returns (uint256 rawOutputUnits) {
-        return FeederLogic.computeRedeem(_bAssets, _o, _netMassetQuantity, _config);
+        return FeederLogic.computeRedeem(_bAssets, _o, _netFassetQuantity, _config);
     }
 
     function computeRedeemExact(
@@ -48,7 +48,7 @@ contract ExposedFeederLogic {
         uint8[] memory _indices,
         uint256[] memory _rawOutputs,
         FeederConfig memory _config
-    ) public pure returns (uint256 totalmAssets) {
+    ) public pure returns (uint256 totalfAssets) {
         return FeederLogic.computeRedeemExact(_bAssets, _indices, _rawOutputs, _config);
     }
 }

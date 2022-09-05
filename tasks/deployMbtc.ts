@@ -9,7 +9,7 @@ import { task } from "hardhat/config"
 import { formatEther } from "ethers/lib/utils"
 import {
     SavingsContract,
-    Masset,
+    Fasset,
     AssetProxy__factory,
     MockERC20,
     MockERC20__factory,
@@ -62,10 +62,10 @@ const deployBasset = async (sender: Signer, name: string, symbol: string, decima
     return new MockERC20__factory(sender).attach(proxy.address)
 }
 
-const deployMasset = async (sender: Signer, addresses: CommonAddresses, ethers, bAssetContracts: DeployedBasset[]): Promise<Masset> => {
+const deployFasset = async (sender: Signer, addresses: CommonAddresses, ethers, bAssetContracts: DeployedBasset[]): Promise<Fasset> => {
     // Invariant Validator
     console.log(`Deploying Invariant Validator`)
-    const LogicFactory = await ethers.getContractFactory("MassetLogic")
+    const LogicFactory = await ethers.getContractFactory("FassetLogic")
     const logicLib = await LogicFactory.deploy()
     const receiptForgeVal = await logicLib.deployTransaction.wait()
     console.log(`Deployed Invariant Validator to ${logicLib.address}. gas used ${receiptForgeVal.gasUsed}`)
@@ -78,25 +78,25 @@ const deployMasset = async (sender: Signer, addresses: CommonAddresses, ethers, 
 
     const linkedAddress = {
         libraries: {
-            MassetLogic: logicLib.address,
-            MassetManager: managerLib.address,
+            FassetLogic: logicLib.address,
+            FassetManager: managerLib.address,
         },
     }
-    const massetFactory = await ethers.getContractFactory("Masset", linkedAddress)
-    const size = massetFactory.bytecode.length / 2 / 1000
+    const fassetFactory = await ethers.getContractFactory("Fasset", linkedAddress)
+    const size = fassetFactory.bytecode.length / 2 / 1000
     if (size > 24.576) {
-        console.error(`Masset size is ${size} kb: ${size - 24.576} kb too big`)
+        console.error(`Fasset size is ${size} kb: ${size - 24.576} kb too big`)
     } else {
-        console.log(`Masset = ${size} kb`)
+        console.log(`Fasset = ${size} kb`)
     }
-    console.log(`Deploying Masset with ManagerAddr: ${managerLib.address} and nexus ${addresses.nexus}`)
-    const impl = await massetFactory.deploy(addresses.nexus)
+    console.log(`Deploying Fasset with ManagerAddr: ${managerLib.address} and nexus ${addresses.nexus}`)
+    const impl = await fassetFactory.deploy(addresses.nexus)
     const receiptImpl = await impl.deployTransaction.wait()
-    console.log(`Deployed Masset to ${impl.address}. gas used ${receiptImpl.gasUsed}`)
+    console.log(`Deployed Fasset to ${impl.address}. gas used ${receiptImpl.gasUsed}`)
 
     // Initialization Data
     console.log(
-        `Initializing Masset with: ${mBtcName}, ${mBtcSymbol}, [${bAssetContracts.map(
+        `Initializing Fasset with: ${mBtcName}, ${mBtcSymbol}, [${bAssetContracts.map(
             // eslint-disable-next-line
             (b) => "{" + b.contract.address + ", " + b.integrator + ", " + b.txFee + ", " + 0 + "}",
         )} ] , ${config.a.toString()}, ${config.limits.min.toString()}, ${config.limits.max.toString()}`,
@@ -125,11 +125,11 @@ const deployMasset = async (sender: Signer, addresses: CommonAddresses, ethers, 
         console.log(`Deployed Ren Gateway wrapper to address ${gateway.address}. gas used ${receiptGateway.gasUsed}`)
     }
 
-    // Create a Masset contract pointing to the deployed proxy contract
-    return massetFactory.attach(mBtcProxy.address)
+    // Create a Fasset contract pointing to the deployed proxy contract
+    return fassetFactory.attach(mBtcProxy.address)
 }
 
-const mint = async (sender: Signer, bAssets: DeployedBasset[], mBTC: Masset) => {
+const mint = async (sender: Signer, bAssets: DeployedBasset[], mBTC: Fasset) => {
     // Mint 3/5 of starting cap
     const scaledTestQty = startingCap.div(5)
 
@@ -167,8 +167,8 @@ const mint = async (sender: Signer, bAssets: DeployedBasset[], mBTC: Masset) => 
     const receiptMint = await tx.wait()
 
     // Log minted amount
-    const mAssetAmount = formatEther(await mBTC.totalSupply())
-    console.log(`Minted ${mAssetAmount} mBTC from ${formatEther(scaledTestQty)} BTC for each bAsset. gas used ${receiptMint.gasUsed}`)
+    const fAssetAmount = formatEther(await mBTC.totalSupply())
+    console.log(`Minted ${fAssetAmount} mBTC from ${formatEther(scaledTestQty)} BTC for each bAsset. gas used ${receiptMint.gasUsed}`)
 }
 
 interface SaveContracts {
@@ -179,7 +179,7 @@ interface SaveContracts {
 const deploySave = async (
     sender: Signer,
     addresses: CommonAddresses,
-    mBTC: Masset,
+    mBTC: Fasset,
     bAssets: Array<string>,
     deployVault = true,
 ): Promise<SaveContracts> => {
@@ -235,7 +235,7 @@ const deploySave = async (
             bassets,
         )
         const approveTxReceipt = await approveTx.wait()
-        console.log(`Approve mAsset on SaveWrapper. gas used ${approveTxReceipt.gasUsed}`)
+        console.log(`Approve fAsset on SaveWrapper. gas used ${approveTxReceipt.gasUsed}`)
 
         return { savingContract, savingsVault }
     }
@@ -248,7 +248,7 @@ const deploySave = async (
     return { savingContract, savingsVault: null }
 }
 
-const depositToVault = async (sender: Signer, mBTC: Masset, save: SaveContracts): Promise<void> => {
+const depositToVault = async (sender: Signer, mBTC: Fasset, save: SaveContracts): Promise<void> => {
     // Mint imBTC
     const deposit = startingCap.div(BN.from(3))
     let tx = await mBTC.approve(save.savingContract.address, deposit)
@@ -314,7 +314,7 @@ task("deployMBTC", "Deploys the mBTC contracts").setAction(async (_, hre) => {
     }
 
     // 2. Deploy mBTC
-    const mBTC = await deployMasset(deployer, addresses, ethers, bAssets)
+    const mBTC = await deployFasset(deployer, addresses, ethers, bAssets)
 
     // 3. Mint initial supply
     await mint(deployer, bAssets, mBTC)
@@ -398,7 +398,7 @@ task("reDeployMBTC", "Re-deploys the mBTC contracts given bAsset addresses").set
     )
 
     // 2. Deploy mBTC
-    const mBTC = await deployMasset(deployer, addresses, ethers, bAssets)
+    const mBTC = await deployFasset(deployer, addresses, ethers, bAssets)
 
     // 3. Mint initial supply
     await mint(deployer, bAssets, mBTC)
@@ -470,7 +470,7 @@ task("deployMBTC-mainnet", "Deploys the mBTC contracts to Mainnet").setAction(as
     )
 
     // 2. Deploy mBTC
-    const mBTC = await deployMasset(deployer, addresses, ethers, bAssets)
+    const mBTC = await deployFasset(deployer, addresses, ethers, bAssets)
 
     // 3. Create savings contract
     await deploySave(
@@ -503,12 +503,12 @@ task("initMBTC", "Initializes the mBTC and imBTC implementations").setAction(asy
     // mBTC Implementation
     const linkedAddress = {
         libraries: {
-            MassetLogic: addresses.mBtcLogic,
-            MassetManager: addresses.mBtcManager,
+            FassetLogic: addresses.mBtcLogic,
+            FassetManager: addresses.mBtcManager,
         },
     }
-    const massetFactory = await ethers.getContractFactory("Masset", linkedAddress)
-    const mBtcImpl = massetFactory.attach(addresses.mBtcImpl)
+    const fassetFactory = await ethers.getContractFactory("Fasset", linkedAddress)
+    const mBtcImpl = fassetFactory.attach(addresses.mBtcImpl)
     const tx1 = await mBtcImpl.initialize(
         "DEAD",
         "DEAD",

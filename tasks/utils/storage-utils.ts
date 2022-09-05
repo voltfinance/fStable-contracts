@@ -1,15 +1,15 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-restricted-syntax */
-import { FeederPool, Masset, MV1, MV2 } from "types/generated"
+import { FeederPool, Fasset, MV1, MV2 } from "types/generated"
 import { BasketManager__factory } from "types/generated/factories/BasketManager__factory"
-import { MusdEth } from "types/generated/MusdEth"
-import { MusdLegacy } from "types/generated/MusdLegacy"
+import { FusdEth } from "types/generated/FusdEth"
+import { FusdLegacy } from "types/generated/FusdLegacy"
 import { getChainAddress } from "./networkAddressFactory"
-import { isFeederPool, isMusdEth, isMusdLegacy } from "./snap-utils"
+import { isFeederPool, isFusdEth, isFusdLegacy } from "./snap-utils"
 import { Chain } from "./tokens"
 
-// Get mAsset token storage variables
-export const dumpTokenStorage = async (token: Masset | MusdEth | MusdLegacy | FeederPool, toBlock: number): Promise<void> => {
+// Get fAsset token storage variables
+export const dumpTokenStorage = async (token: Fasset | FusdEth | FusdLegacy | FeederPool, toBlock: number): Promise<void> => {
     const override = {
         blockTag: toBlock,
     }
@@ -21,7 +21,7 @@ export const dumpTokenStorage = async (token: Masset | MusdEth | MusdLegacy | Fe
 
 // Get bAsset storage variables
 export const dumpBassetStorage = async (
-    mAsset: Masset | MusdEth | MusdLegacy | MV1 | MV2,
+    fAsset: Fasset | FusdEth | FusdLegacy | MV1 | MV2,
     block: number,
     chain = Chain.mainnet,
 ): Promise<void> => {
@@ -30,9 +30,9 @@ export const dumpBassetStorage = async (
     }
 
     console.log("\nbAssets")
-    // After the mUSD upgrade to MusdV3
-    if (!isMusdLegacy(mAsset)) {
-        const bAssets = await mAsset.getBassets(override)
+    // After the fUSD upgrade to FusdV3
+    if (!isFusdLegacy(fAsset)) {
+        const bAssets = await fAsset.getBassets(override)
         bAssets.personal.forEach(async (personal, i) => {
             console.log(`bAsset with index ${i}`)
             console.log(` Address    :`, personal.addr.toString())
@@ -44,9 +44,9 @@ export const dumpBassetStorage = async (
             console.log("\n")
         })
     } else {
-        // Before the mUSD upgrade to MusdV3 where the bAssets were in a separate Basket Manager contract
+        // Before the fUSD upgrade to FusdV3 where the bAssets were in a separate Basket Manager contract
         const basketManagerAddress = getChainAddress("BasketManager", chain)
-        const basketManager = BasketManager__factory.connect(basketManagerAddress, mAsset.signer)
+        const basketManager = BasketManager__factory.connect(basketManagerAddress, fAsset.signer)
         const basket = await basketManager.getBassets(override)
         let i = 0
         for (const bAsset of basket.bAssets) {
@@ -85,38 +85,38 @@ export const dumpFassetStorage = async (pool: FeederPool, bock: number): Promise
     })
 }
 
-// Get Masset storage variables
-export const dumpConfigStorage = async (mAsset: Masset | MusdEth | MusdLegacy | FeederPool, block: number): Promise<void> => {
+// Get Fasset storage variables
+export const dumpConfigStorage = async (fAsset: Fasset | FusdEth | FusdLegacy | FeederPool, block: number): Promise<void> => {
     const override = {
         blockTag: block,
     }
 
-    if (!isMusdLegacy(mAsset)) {
-        const invariantConfig = await mAsset.getConfig(override)
+    if (!isFusdLegacy(fAsset)) {
+        const invariantConfig = await fAsset.getConfig(override)
         console.log("A              : ", invariantConfig.a.toString())
         console.log("Min            : ", invariantConfig.limits.min.toString())
         console.log("Max            : ", invariantConfig.limits.max.toString())
     }
 
-    if (!isMusdEth(mAsset) && !isMusdLegacy(mAsset)) {
-        // Masset and FeederPool
-        const data = await (mAsset as FeederPool).data(override)
+    if (!isFusdEth(fAsset) && !isFusdLegacy(fAsset)) {
+        // Fasset and FeederPool
+        const data = await (fAsset as FeederPool).data(override)
 
         console.log("\nCacheSize      : ", data.cacheSize.toString())
         console.log("\nSwapFee        : ", data.swapFee.toString())
         console.log("RedemptionFee  : ", data.redemptionFee.toString())
 
-        if (isFeederPool(mAsset)) {
+        if (isFeederPool(fAsset)) {
             // Only FeederPools
             console.log("GovFee         : ", data.govFee.toString())
             console.log("pendingFees    : ", data.pendingFees.toString())
         }
     } else {
-        // mUSD or mBTC
+        // fUSD or mBTC
         console.log(
             "\nSwapFee        : ",
             (
-                await mAsset.swapFee({
+                await fAsset.swapFee({
                     blockTag: block,
                 })
             ).toString(),
@@ -124,7 +124,7 @@ export const dumpConfigStorage = async (mAsset: Masset | MusdEth | MusdLegacy | 
         console.log(
             "RedemptionFee  : ",
             (
-                await mAsset.redemptionFee({
+                await fAsset.redemptionFee({
                     blockTag: block,
                 })
             ).toString(),
@@ -132,7 +132,7 @@ export const dumpConfigStorage = async (mAsset: Masset | MusdEth | MusdLegacy | 
         console.log(
             "Surplus        : ",
             (
-                await mAsset.surplus({
+                await fAsset.surplus({
                     blockTag: block,
                 })
             ).toString(),

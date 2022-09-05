@@ -7,7 +7,7 @@ pragma solidity 0.8.6;
 interface IUnwrapper {
     // @dev Get bAssetOut status
     function getIsBassetOut(
-        address _masset,
+        address _fasset,
         bool _inputIsCredit,
         address _output
     ) external view returns (bool isBassetOut);

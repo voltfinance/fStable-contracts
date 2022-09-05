@@ -24,7 +24,7 @@ contract InterestValidator is PausableModule {
         uint256 newTotalSupply,
         uint256 apy
     );
-    event GovFeeCollected(address indexed feederPool, address mAsset, uint256 amount);
+    event GovFeeCollected(address indexed feederPool, address fAsset, uint256 amount);
 
     mapping(address => uint256) public lastBatchCollected;
 
@@ -70,7 +70,7 @@ contract InterestValidator is PausableModule {
 
     /**
      * @dev Collects gov fees from fPools in the form of fPtoken, then converts to
-     * mAsset and sends directly to the SavingsManager as unallocated interest.
+     * fAsset and sends directly to the SavingsManager as unallocated interest.
      */
     function collectGovFees(address[] calldata _fPools) external onlyGovernor {
         uint256 len = _fPools.length;
@@ -81,16 +81,16 @@ contract InterestValidator is PausableModule {
             // 1. Collect pending fees
             IFeederPool(fPool).collectPendingFees();
             uint256 fpTokenBal = IERC20(fPool).balanceOf(address(this));
-            // 2. If fpTokenBal > 0, convert to mAsset and transfer to savingsManager
+            // 2. If fpTokenBal > 0, convert to fAsset and transfer to savingsManager
             if (fpTokenBal > 0) {
-                address mAsset = IFeederPool(fPool).mAsset();
+                address fAsset = IFeederPool(fPool).fAsset();
                 uint256 outputAmt = IFeederPool(fPool).redeem(
-                    mAsset,
+                    fAsset,
                     fpTokenBal,
                     (fpTokenBal * 7) / 10,
                     savingsManager
                 );
-                emit GovFeeCollected(fPool, mAsset, outputAmt);
+                emit GovFeeCollected(fPool, fAsset, outputAmt);
             }
         }
     }

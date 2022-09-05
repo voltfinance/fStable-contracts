@@ -9,7 +9,7 @@ import { ethers } from "hardhat"
 import { Account } from "types"
 import {
     AssetProxy__factory,
-    ExposedMasset,
+    ExposedFasset,
     FeederPool,
     MockERC20,
     MockERC20__factory,
@@ -48,7 +48,7 @@ interface ConfigRedeemAndUnwrap {
     isBassetOut: boolean
     beneficiary: Account
     output: MockERC20 // Asset to unwrap from underlying
-    router: ExposedMasset | FeederPool | MockERC20 // Router address = mAsset || feederPool
+    router: ExposedFasset | FeederPool | MockERC20 // Router address = fAsset || feederPool
 }
 
 describe("StakingRewardsWithPlatformToken", async () => {
@@ -76,14 +76,14 @@ describe("StakingRewardsWithPlatformToken", async () => {
             rewardsDistributor.address,
             1000000,
         )
-        const mAsset = await new MockERC20__factory(sa.default.signer).deploy("mUSD", "mUSD", stakingDecimals, sa.default.address, 1000000)
+        const fAsset = await new MockERC20__factory(sa.default.signer).deploy("fUSD", "fUSD", stakingDecimals, sa.default.address, 1000000)
         stakingToken = await new MockSavingsContract__factory(sa.default.signer).deploy(
             "Staking",
             "ST8k",
             stakingDecimals,
             sa.default.address,
             1000000,
-            mAsset.address,
+            fAsset.address,
         )
 
         const stakingRewardsImpl = await new StakingRewardsWithPlatformToken__factory(deployer).deploy(
@@ -1168,7 +1168,7 @@ describe("StakingRewardsWithPlatformToken", async () => {
                     isBassetOut: true,
                     beneficiary: sa.default,
                     output: stakingToken, // bAsset,
-                    router: stakingToken, // mAsset,
+                    router: stakingToken, // fAsset,
                 }
             })
             it("should revert for a non-staker", async () => {

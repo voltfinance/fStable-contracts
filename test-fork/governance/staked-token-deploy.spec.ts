@@ -53,7 +53,7 @@ const staker2 = "0x0fc4b69958cb2fa320a96d54168b89953a953fbf"
 const staker3 = "0x25953c127efd1e15f4d2be82b753d49b12d626d7"
 
 const vaultAddresses = [
-    resolveAddress("mUSD", Chain.mainnet, "vault"),
+    resolveAddress("fUSD", Chain.mainnet, "vault"),
     resolveAddress("mBTC", Chain.mainnet, "vault"),
     resolveAddress("GUSD", Chain.mainnet, "vault"),
     resolveAddress("BUSD", Chain.mainnet, "vault"),
@@ -377,7 +377,7 @@ context("StakedToken deployments and vault upgrades", () => {
 
                 console.log(`About to verify the ${vault.underlyingTokenSymbol} vault`)
 
-                if (vault.underlyingTokenSymbol !== "mUSD") {
+                if (vault.underlyingTokenSymbol !== "fUSD") {
                     expect(await proxy.name(), `${vault.underlyingTokenSymbol} vault name`).to.eq(vault.name)
                     expect(await proxy.symbol(), `${vault.underlyingTokenSymbol} vault symbol`).to.eq(vault.symbol)
                     expect(await proxy.decimals(), `${vault.underlyingTokenSymbol} decimals`).to.eq(18)
@@ -736,8 +736,8 @@ const vaults: VaultData[] = [
     {
         underlyingTokenSymbol: "GUSD",
         stakingTokenType: "feederPool",
-        name: "mUSD/GUSD fPool Vault",
-        symbol: "v-fPmUSD/GUSD",
+        name: "fUSD/GUSD fPool Vault",
+        symbol: "v-fPfUSD/GUSD",
         userBal: {
             user: "0xf794CF2d946BC6eE6eD905F47db211EBd451Aa5F",
             balance: simpleToExactAmount(425000),
@@ -746,8 +746,8 @@ const vaults: VaultData[] = [
     {
         underlyingTokenSymbol: "BUSD",
         stakingTokenType: "feederPool",
-        name: "mUSD/BUSD fPool Vault",
-        symbol: "v-fPmUSD/BUSD",
+        name: "fUSD/BUSD fPool Vault",
+        symbol: "v-fPfUSD/BUSD",
         userBal: {
             user: "0xc09111f9d094d07fc013fd45c4081510ca4275cf",
             balance: simpleToExactAmount(1400000),
@@ -778,8 +778,8 @@ const vaults: VaultData[] = [
     {
         underlyingTokenSymbol: "alUSD",
         stakingTokenType: "feederPool",
-        name: "mUSD/alUSD fPool Vault",
-        symbol: "v-fPmUSD/alUSD",
+        name: "fUSD/alUSD fPool Vault",
+        symbol: "v-fPfUSD/alUSD",
         platformToken: "ALCX",
         userBal: {
             user: "0x97020c9ec66e0f59231918b1d2f167a66026aff2",
@@ -787,11 +787,11 @@ const vaults: VaultData[] = [
         },
     },
     {
-        underlyingTokenSymbol: "mUSD",
+        underlyingTokenSymbol: "fUSD",
         stakingTokenType: "savings",
         priceCoeff: simpleToExactAmount(1, 17),
-        name: "imUSD Vault",
-        symbol: "v-imUSD",
+        name: "ifUSD Vault",
+        symbol: "v-ifUSD",
         userBal: {
             user: "0x7606ccf1c5f2a908423eb8dd2fa5d82a12255700",
             balance: simpleToExactAmount(68000),

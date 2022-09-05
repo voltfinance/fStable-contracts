@@ -2,7 +2,7 @@
 pragma solidity 0.8.6;
 
 import { ISavingsManager } from "../interfaces/ISavingsManager.sol";
-import { IMasset } from "../interfaces/IMasset.sol";
+import { IFasset } from "../interfaces/IFasset.sol";
 import { IPLiquidator } from "./IPLiquidator.sol";
 import { IUniswapV2Router02 } from "../peripheral/Uniswap/IUniswapV2Router02.sol";
 import { ImmutableModule } from "../shared/ImmutableModule.sol";
@@ -23,9 +23,9 @@ contract PLiquidator is IPLiquidator, ImmutableModule {
 
     event LiquidationModified(address indexed integration);
     event LiquidationEnded(address indexed integration);
-    event Liquidated(address indexed sellToken, address mUSD, uint256 mUSDAmount, address buyToken);
+    event Liquidated(address indexed sellToken, address fUSD, uint256 fUSDAmount, address buyToken);
 
-    address public immutable mUSD;
+    address public immutable fUSD;
     IUniswapV2Router02 public immutable quickSwap;
 
     mapping(address => PLiquidation) public liquidations;
@@ -41,12 +41,12 @@ contract PLiquidator is IPLiquidator, ImmutableModule {
     constructor(
         address _nexus,
         address _quickswapRouter,
-        address _mUSD
+        address _fUSD
     ) ImmutableModule(_nexus) {
         require(_quickswapRouter != address(0), "Invalid quickSwap address");
         quickSwap = IUniswapV2Router02(_quickswapRouter);
-        require(_mUSD != address(0), "Invalid mUSD address");
-        mUSD = _mUSD;
+        require(_fUSD != address(0), "Invalid fUSD address");
+        fUSD = _fUSD;
     }
 
     /***************************************
@@ -161,7 +161,7 @@ contract PLiquidator is IPLiquidator, ImmutableModule {
     /**
      * @dev Triggers a liquidation, flow (once per week):
      *    - Sells $COMP for $USDC (or other) on Uniswap (up to trancheAmount)
-     *    - Mint mUSD from USDC
+     *    - Mint fUSD from USDC
      *    - Send to SavingsManager
      * @param _integration Integration for which to trigger liquidation
      */
@@ -211,26 +211,26 @@ contract PLiquidator is IPLiquidator, ImmutableModule {
             block.timestamp + 1800
         );
 
-        // 3.3. Mint via mUSD
-        uint256 minted = _mint(bAsset, mUSD);
+        // 3.3. Mint via fUSD
+        uint256 minted = _mint(bAsset, fUSD);
 
         // 4.0. Send to SavingsManager
         address savings = _savingsManager();
-        IERC20(mUSD).safeApprove(savings, 0);
-        IERC20(mUSD).safeApprove(savings, minted);
-        ISavingsManager(savings).depositLiquidation(mUSD, minted);
+        IERC20(fUSD).safeApprove(savings, 0);
+        IERC20(fUSD).safeApprove(savings, minted);
+        ISavingsManager(savings).depositLiquidation(fUSD, minted);
 
-        emit Liquidated(sellToken, mUSD, minted, bAsset);
+        emit Liquidated(sellToken, fUSD, minted, bAsset);
     }
 
-    function _mint(address _bAsset, address _mUSD) internal returns (uint256 minted) {
+    function _mint(address _bAsset, address _fUSD) internal returns (uint256 minted) {
         uint256 bAssetBal = IERC20(_bAsset).balanceOf(address(this));
-        IERC20(_bAsset).safeApprove(_mUSD, 0);
-        IERC20(_bAsset).safeApprove(_mUSD, bAssetBal);
+        IERC20(_bAsset).safeApprove(_fUSD, 0);
+        IERC20(_bAsset).safeApprove(_fUSD, bAssetBal);
 
         uint256 bAssetDec = IBasicToken(_bAsset).decimals();
         // e.g. 100e6 * 95e16 / 1e6 = 100e18
         uint256 minOut = (bAssetBal * 90e16) / (10**bAssetDec);
-        minted = IMasset(_mUSD).mint(_bAsset, bAssetBal, minOut, address(this));
+        minted = IFasset(_fUSD).mint(_bAsset, bAssetBal, minOut, address(this));
     }
 }

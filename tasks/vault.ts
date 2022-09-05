@@ -10,7 +10,7 @@ import { getBlock } from "./utils/snap-utils"
 
 subtask("vault-snap", "Dumps user data for a vault")
     .addParam("user", "Address or contract name of user", undefined, types.string)
-    .addOptionalParam("asset", "Symbol of the asset that has a mStable vault. eg mUSD, alUSD, MTA", "mUSD", types.string)
+    .addOptionalParam("asset", "Symbol of the asset that has a mStable vault. eg fUSD, alUSD, MTA", "fUSD", types.string)
     .addOptionalParam("block", "Block number to compare rates at. (default: current block)", 0, types.int)
     .setAction(async (taskArgs, hre) => {
         const chain = getChain(hre)
@@ -66,7 +66,7 @@ task("vault-snap").setAction(async (_, __, runSuper) => {
 })
 
 subtask("vault-stake", "Stake into a vault")
-    .addParam("asset", "Symbol of the asset that has a mStable vault. eg mUSD, alUSD, MTA", undefined, types.string)
+    .addParam("asset", "Symbol of the asset that has a mStable vault. eg fUSD, alUSD, MTA", undefined, types.string)
     .addParam("amount", "Amount to be staked", undefined, types.float)
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
@@ -86,7 +86,7 @@ task("vault-stake").setAction(async (_, __, runSuper) => {
 })
 
 subtask("vault-withdraw", "Withdraw from a vault")
-    .addParam("asset", "Symbol of the asset that has a mStable vault. eg mUSD, alUSD, MTA", undefined, types.string)
+    .addParam("asset", "Symbol of the asset that has a mStable vault. eg fUSD, alUSD, MTA", undefined, types.string)
     .addParam("amount", "Amount to be withdrawn", undefined, types.float)
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
@@ -106,7 +106,7 @@ task("vault-withdraw").setAction(async (_, __, runSuper) => {
 })
 
 subtask("vault-exit", "Exit from vault claiming rewards")
-    .addParam("asset", "Symbol of the asset that has a mStable vault. eg mUSD, alUSD, MTA", undefined, types.string)
+    .addParam("asset", "Symbol of the asset that has a mStable vault. eg fUSD, alUSD, MTA", undefined, types.string)
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
         const chain = getChain(hre)
@@ -123,7 +123,7 @@ task("vault-exit").setAction(async (_, __, runSuper) => {
 })
 
 subtask("vault-claim", "Claim rewards from vault")
-    .addParam("asset", "Symbol of the asset that has a mStable vault. eg mUSD, alUSD, MTA", undefined, types.string)
+    .addParam("asset", "Symbol of the asset that has a mStable vault. eg fUSD, alUSD, MTA", undefined, types.string)
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
         const chain = getChain(hre)

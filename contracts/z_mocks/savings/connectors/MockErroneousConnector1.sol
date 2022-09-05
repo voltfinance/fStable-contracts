@@ -7,15 +7,15 @@ import { IConnector } from "../../../savings/peripheral/IConnector.sol";
 // 1. Doesn't withdraw full amount during withdrawal
 contract MockErroneousConnector1 is IConnector {
     address save;
-    address mUSD;
+    address fUSD;
 
     uint256 lastValue;
     uint256 lastAccrual;
     uint256 constant perSecond = 31709791983;
 
-    constructor(address _save, address _mUSD) {
+    constructor(address _save, address _fUSD) {
         save = _save;
-        mUSD = _mUSD;
+        fUSD = _fUSD;
     }
 
     modifier onlySave() {
@@ -38,7 +38,7 @@ contract MockErroneousConnector1 is IConnector {
     function poke() external _accrueValue {}
 
     function deposit(uint256 _amount) external override _accrueValue onlySave {
-        IERC20(mUSD).transferFrom(save, address(this), _amount);
+        IERC20(fUSD).transferFrom(save, address(this), _amount);
         lastValue += _amount;
     }
 
@@ -47,7 +47,7 @@ contract MockErroneousConnector1 is IConnector {
     }
 
     function withdrawAll() external override _accrueValue onlySave {
-        IERC20(mUSD).transfer(save, lastValue);
+        IERC20(fUSD).transfer(save, lastValue);
         lastValue -= lastValue;
     }
 

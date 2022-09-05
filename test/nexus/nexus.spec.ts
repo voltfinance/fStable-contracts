@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import { keccak256, toUtf8Bytes, hexlify } from "ethers/lib/utils"
 import { ethers } from "hardhat"
-import { MassetMachine, StandardAccounts } from "@utils/machines"
+import { FassetMachine, StandardAccounts } from "@utils/machines"
 import { BN } from "@utils/math"
 import { DelayedClaimableGovernor, Nexus, Nexus__factory } from "types/generated"
 import { getTimestamp, increaseTime } from "@utils/time"
@@ -53,8 +53,8 @@ describe("Nexus", () => {
         const ctx: Partial<IGovernableBehaviourContext> = {}
         before(async () => {
             const accounts = await ethers.getSigners()
-            const mAssetMachine = await new MassetMachine().initAccounts(accounts)
-            sa = mAssetMachine.sa
+            const fAssetMachine = await new FassetMachine().initAccounts(accounts)
+            sa = fAssetMachine.sa
             ctx.default = sa.default
             ctx.governor = sa.governor
             ctx.other = sa.other

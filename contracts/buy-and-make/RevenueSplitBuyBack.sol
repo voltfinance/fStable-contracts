@@ -2,7 +2,7 @@
 pragma solidity 0.8.6;
 
 import { IEmissionsController } from "../interfaces/IEmissionsController.sol";
-import { IMasset } from "../interfaces/IMasset.sol";
+import { IFasset } from "../interfaces/IFasset.sol";
 import { IRevenueRecipient } from "../interfaces/IRevenueRecipient.sol";
 import { DialData } from "../emissions/EmissionsController.sol";
 import { ImmutableModule } from "../shared/ImmutableModule.sol";
@@ -21,20 +21,20 @@ import { IUniswapV3SwapRouter } from "../peripheral/Uniswap/IUniswapV3SwapRouter
 contract RevenueSplitBuyBack is IRevenueRecipient, Initializable, ImmutableModule {
     using SafeERC20 for IERC20;
 
-    event RevenueReceived(address indexed mAsset, uint256 amountIn);
+    event RevenueReceived(address indexed fAsset, uint256 amountIn);
     event BuyBackRewards(
-        address indexed mAsset,
-        uint256 mAssetsToTreasury,
-        uint256 mAssetsSold,
+        address indexed fAsset,
+        uint256 fAssetsToTreasury,
+        uint256 fAssetsSold,
         uint256 rewardsAmount
     );
     event DonatedRewards(uint256 totalRewards);
-    event MappedBasset(address indexed mAsset, address indexed bAsset);
+    event MappedBasset(address indexed fAsset, address indexed bAsset);
     event AddedStakingContract(uint16 stakingDialId);
     event TreasuryFeeChanged(uint256 treasuryFee);
     event TreasuryChanged(address treasury);
 
-    /// @notice scale of the `minMasset2BassetPrice` and `minBasset2RewardsPrice` configuration properties.
+    /// @notice scale of the `minFasset2BassetPrice` and `minBasset2RewardsPrice` configuration properties.
     uint256 public constant CONFIG_SCALE = 1e18;
 
     /// @notice address of the rewards token that is being purchased. eg MTA
@@ -44,7 +44,7 @@ contract RevenueSplitBuyBack is IRevenueRecipient, Initializable, ImmutableModul
     /// @notice Uniswap V3 Router address
     IUniswapV3SwapRouter public immutable UNISWAP_ROUTER;
 
-    /// @notice Mapping of mAssets to bAssets
+    /// @notice Mapping of fAssets to bAssets
     mapping(address => address) public bassets;
     /// @notice Emissions Controller dial ids for all staking contracts that will receive reward tokens.
     uint256[] public stakingDialIds;
@@ -105,30 +105,30 @@ contract RevenueSplitBuyBack is IRevenueRecipient, Initializable, ImmutableModul
     ****************************************/
 
     /**
-     * @dev Simply transfers the mAsset from the sender to here
-     * @param _mAsset Address of mAsset
-     * @param _amount Units of mAsset collected
+     * @dev Simply transfers the fAsset from the sender to here
+     * @param _fAsset Address of fAsset
+     * @param _amount Units of fAsset collected
      */
-    function notifyRedistributionAmount(address _mAsset, uint256 _amount) external override {
-        require(bassets[_mAsset] != address(0), "Invalid mAsset");
+    function notifyRedistributionAmount(address _fAsset, uint256 _amount) external override {
+        require(bassets[_fAsset] != address(0), "Invalid fAsset");
 
         // Transfer from sender to here
-        IERC20(_mAsset).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(_fAsset).safeTransferFrom(msg.sender, address(this), _amount);
 
-        emit RevenueReceived(_mAsset, _amount);
+        emit RevenueReceived(_fAsset, _amount);
     }
 
     /**
-     * @notice Buys reward tokens, eg MTA, using mAssets like mUSD or mBTC from protocol governance fees.
-     * @param mAssets Addresses of mAssets that are to be sold for rewards. eg mUSD and mBTC.
-     * @param minBassetsAmounts Minimum amount of bAsset tokens to receive for each redeem of mAssets.
+     * @notice Buys reward tokens, eg MTA, using fAssets like fUSD or mBTC from protocol governance fees.
+     * @param fAssets Addresses of fAssets that are to be sold for rewards. eg fUSD and mBTC.
+     * @param minBassetsAmounts Minimum amount of bAsset tokens to receive for each redeem of fAssets.
      * The amount uses the decimal places of the bAsset.
-     * Example 1: Redeeming 10,000 mUSD with a min 2% slippage to USDC which has 6 decimal places
-     * minBassetsAmounts = 10,000 mAssets * slippage 0.98 * USDC decimals 1e6 =
+     * Example 1: Redeeming 10,000 fUSD with a min 2% slippage to USDC which has 6 decimal places
+     * minBassetsAmounts = 10,000 fAssets * slippage 0.98 * USDC decimals 1e6 =
      * 1e4 * 0.98 * 1e6 = 1e10 * 0.98 = 98e8
      *
      * Example 2: Redeeming 1 mBTC with a min 5% slippage to WBTC which has 8 decimal places
-     * minBassetsAmounts = 1 mAsset * slippage 0.95 * WBTC decimals 1e8 =
+     * minBassetsAmounts = 1 fAsset * slippage 0.95 * WBTC decimals 1e8 =
      * 0.95 * 1e8 = 95e6
      *
      * @param minRewardsAmounts Minimum amount of reward tokens received from the sale of bAssets.
@@ -144,7 +144,7 @@ contract RevenueSplitBuyBack is IRevenueRecipient, Initializable, ImmutableModul
      * @param uniswapPaths The Uniswap V3 bytes encoded paths.
      */
     function buyBackRewards(
-        address[] calldata mAssets,
+        address[] calldata fAssets,
         uint256[] memory minBassetsAmounts,
         uint256[] memory minRewardsAmounts,
         bytes[] calldata uniswapPaths
@@ -152,46 +152,46 @@ contract RevenueSplitBuyBack is IRevenueRecipient, Initializable, ImmutableModul
         external
         onlyKeeperOrGovernor
         returns (
-            uint256 mAssetToTreasury,
-            uint256 mAssetsSellAmount,
+            uint256 fAssetToTreasury,
+            uint256 fAssetsSellAmount,
             uint256 rewardsAmount
         )
     {
-        uint256 len = mAssets.length;
-        require(len > 0, "Invalid mAssets");
+        uint256 len = fAssets.length;
+        require(len > 0, "Invalid fAssets");
         require(minBassetsAmounts.length == len, "Invalid minBassetsAmounts");
         require(minRewardsAmounts.length == len, "Invalid minRewardsAmounts");
         require(uniswapPaths.length == len, "Invalid uniswapPaths");
 
-        // for each mAsset
+        // for each fAsset
         for (uint256 i = 0; i < len; i++) {
-            // Get bAsset for mAsset
-            address bAsset = bassets[mAssets[i]];
-            require(bAsset != address(0), "Invalid mAsset");
+            // Get bAsset for fAsset
+            address bAsset = bassets[fAssets[i]];
+            require(bAsset != address(0), "Invalid fAsset");
             // Validate Uniswap path
             require(
                 _validUniswapPath(bAsset, address(REWARDS_TOKEN), uniswapPaths[i]),
                 "Invalid uniswap path"
             );
 
-            // Get mAsset revenue
-            uint256 mAssetBal = IERC20(mAssets[i]).balanceOf(address(this));
+            // Get fAsset revenue
+            uint256 fAssetBal = IERC20(fAssets[i]).balanceOf(address(this));
 
             // If a portion of the revenue is being sent to treasury
             if (treasuryFee > 0) {
-                // STEP 1: Send mAsset to treasury
-                mAssetToTreasury = (mAssetBal * treasuryFee) / CONFIG_SCALE;
-                IERC20(mAssets[i]).safeTransfer(treasury, mAssetToTreasury);
+                // STEP 1: Send fAsset to treasury
+                fAssetToTreasury = (fAssetBal * treasuryFee) / CONFIG_SCALE;
+                IERC20(fAssets[i]).safeTransfer(treasury, fAssetToTreasury);
             }
 
             // If some portion of the revenue is used to buy back rewards tokens
             if (treasuryFee < CONFIG_SCALE) {
-                mAssetsSellAmount = mAssetBal - mAssetToTreasury;
+                fAssetsSellAmount = fAssetBal - fAssetToTreasury;
 
-                // STEP 2 - Redeem mAssets for bAssets
-                uint256 bAssetAmount = IMasset(mAssets[i]).redeem(
+                // STEP 2 - Redeem fAssets for bAssets
+                uint256 bAssetAmount = IFasset(fAssets[i]).redeem(
                     bAsset,
-                    mAssetsSellAmount,
+                    fAssetsSellAmount,
                     minBassetsAmounts[i],
                     address(this)
                 );
@@ -209,7 +209,7 @@ contract RevenueSplitBuyBack is IRevenueRecipient, Initializable, ImmutableModul
                 rewardsAmount = UNISWAP_ROUTER.exactInput(param);
             }
 
-            emit BuyBackRewards(mAssets[i], mAssetToTreasury, mAssetsSellAmount, rewardsAmount);
+            emit BuyBackRewards(fAssets[i], fAssetToTreasury, fAssetsSellAmount, rewardsAmount);
         }
     }
 
@@ -256,17 +256,17 @@ contract RevenueSplitBuyBack is IRevenueRecipient, Initializable, ImmutableModul
     ****************************************/
 
     /**
-     * @notice Maps a mAsset to bAsset.
-     * @param _mAsset Address of the meta asset that is received as governance fees.
-     * @param _bAsset Address of the base asset that is redeemed from the mAsset.
+     * @notice Maps a fAsset to bAsset.
+     * @param _fAsset Address of the meta asset that is received as governance fees.
+     * @param _bAsset Address of the base asset that is redeemed from the fAsset.
      */
-    function mapBasset(address _mAsset, address _bAsset) external onlyGovernor {
-        require(_mAsset != address(0), "mAsset token is zero");
+    function mapBasset(address _fAsset, address _bAsset) external onlyGovernor {
+        require(_fAsset != address(0), "fAsset token is zero");
         require(_bAsset != address(0), "bAsset token is zero");
 
-        bassets[_mAsset] = _bAsset;
+        bassets[_fAsset] = _bAsset;
 
-        emit MappedBasset(_mAsset, _bAsset);
+        emit MappedBasset(_fAsset, _bAsset);
     }
 
     /**
@@ -344,7 +344,7 @@ contract RevenueSplitBuyBack is IRevenueRecipient, Initializable, ImmutableModul
      * @dev Abstract override
      */
     function depositToPool(
-        address[] calldata, /* _mAssets */
+        address[] calldata, /* _fAssets */
         uint256[] calldata /* _percentages */
     ) external override {}
 }

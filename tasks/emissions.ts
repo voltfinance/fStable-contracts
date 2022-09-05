@@ -15,7 +15,7 @@ import {
 } from "types/generated"
 import { ONE_HOUR } from "@utils/constants"
 import { simpleToExactAmount } from "@utils/math"
-import { logTxDetails, logger, mUSD, mBTC, usdFormatter } from "./utils"
+import { logTxDetails, logger, fUSD, mBTC, usdFormatter } from "./utils"
 import { getSigner } from "./utils/signerFactory"
 import { getChain, resolveAddress } from "./utils/networkAddressFactory"
 import { getBalancerPolygonReport } from "./utils/emission-disperse-bal"
@@ -111,7 +111,7 @@ task("emission-disperse-bal").setAction(async (_, __, runSuper) => {
 })
 
 subtask("savings-dist-fees", "Distributes governance fees from the Savings Manager to the Revenue Recipient")
-    .addOptionalParam("masset", "Symbol of mAsset that the fees were collected in. eg mUSD or mBTC", "mUSD", types.string)
+    .addOptionalParam("fasset", "Symbol of fAsset that the fees were collected in. eg fUSD or mBTC", "fUSD", types.string)
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
         const signer = await getSigner(hre, taskArgs.speed)
@@ -119,10 +119,10 @@ subtask("savings-dist-fees", "Distributes governance fees from the Savings Manag
 
         const savingsManagerAddress = resolveAddress("SavingsManager", chain)
         const savingsManager = SavingsManager__factory.connect(savingsManagerAddress, signer)
-        const mAssetAddress = resolveAddress(taskArgs.masset, chain)
+        const fAssetAddress = resolveAddress(taskArgs.fasset, chain)
 
-        const tx = await savingsManager.distributeUnallocatedInterest(mAssetAddress)
-        await logTxDetails(tx, `distribute ${taskArgs.masset} gov fees`)
+        const tx = await savingsManager.distributeUnallocatedInterest(fAssetAddress)
+        await logTxDetails(tx, `distribute ${taskArgs.fasset} gov fees`)
 
         const receipt = await tx.wait()
         const event = receipt.events.find((e) => e.event === "RevenueRedistributed")
@@ -132,7 +132,7 @@ task("savings-dist-fees").setAction(async (_, __, runSuper) => {
     await runSuper()
 })
 
-subtask("revenue-forward", "Forwards received revenue. eg Polygon mUSD revenue from SavingsManager")
+subtask("revenue-forward", "Forwards received revenue. eg Polygon fUSD revenue from SavingsManager")
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
         const signer = await getSigner(hre, taskArgs.speed)
@@ -148,7 +148,7 @@ task("revenue-forward").setAction(async (_, __, runSuper) => {
     await runSuper()
 })
 
-subtask("revenue-buy-back", "Buy back MTA from mUSD and mBTC gov fees")
+subtask("revenue-buy-back", "Buy back MTA from fUSD and mBTC gov fees")
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
         const signer = await getSigner(hre, taskArgs.speed)
@@ -159,10 +159,10 @@ subtask("revenue-buy-back", "Buy back MTA from mUSD and mBTC gov fees")
 
         let tx: TransactionResponse
         if (hre.network.name === "hardhat") {
-            tx = await revenueBuyBack.buyBackRewards([mUSD.address, mBTC.address])
+            tx = await revenueBuyBack.buyBackRewards([fUSD.address, mBTC.address])
         } else {
             // Send via Flashbots
-            const populatedTx = await revenueBuyBack.populateTransaction.buyBackRewards([mUSD.address, mBTC.address])
+            const populatedTx = await revenueBuyBack.populateTransaction.buyBackRewards([fUSD.address, mBTC.address])
             tx = await sendPrivateTransaction(populatedTx, signer)
         }
         await logTxDetails(tx, `buy back MTA from gov fees`)
@@ -170,18 +170,18 @@ subtask("revenue-buy-back", "Buy back MTA from mUSD and mBTC gov fees")
 task("revenue-buy-back").setAction(async (_, __, runSuper) => {
     await runSuper()
 })
-subtask("revenue-split-buy-back", "Buy back MTA from mUSD and mBTC gov fees")
+subtask("revenue-split-buy-back", "Buy back MTA from fUSD and mBTC gov fees")
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
         const signer = await getSigner(hre, taskArgs.speed)
         const chain = getChain(hre)
         const revenueSplitBuyBackAddress = resolveAddress("RevenueSplitBuyBack", chain)
         const revenueSplitBuyBack = RevenueSplitBuyBack__factory.connect(revenueSplitBuyBackAddress, signer)
-        const musd = {
-            address: resolveAddress("mUSD", chain),
+        const fusd = {
+            address: resolveAddress("fUSD", chain),
             bAssetMinSlippage: 1, // 1%
             rewardMinSlippage: 1, // 1%
-            mAssetMinBalance: simpleToExactAmount(1000), // 1k USD
+            fAssetMinBalance: simpleToExactAmount(1000), // 1k USD
             // Provide two fees options to the swap, function splitBuyBackRewards will get the best quote.
             swapFees: [
                 [3000, 3000],
@@ -193,12 +193,12 @@ subtask("revenue-split-buy-back", "Buy back MTA from mUSD and mBTC gov fees")
             address: resolveAddress("mBTC", chain),
             bAssetMinSlippage: 3, // 3%
             rewardMinSlippage: 2, // 2%
-            mAssetMinBalance: simpleToExactAmount(10, 14), // 10 wBTC
+            fAssetMinBalance: simpleToExactAmount(10, 14), // 10 wBTC
             swapFees: [[3000, 3000]], // 0.3%, 0.3%
         }
-        const mAssets = [musd, mbtc]
+        const fAssets = [fusd, mbtc]
         const request = {
-            mAssets,
+            fAssets,
             revenueSplitBuyBack,
             blockNumber: "latest",
         }
@@ -275,11 +275,11 @@ task("emissions-process", "Weekly mainnet emissions process")
         // Get to the next epoch
         await increaseTime(ONE_HOUR)
 
-        // Sends any mUSD or mBTC governance fees from the Savings Manager to the RevenueBuyBack contract
-        await hre.run("savings-dist-fees", { masset: "mUSD", speed })
-        await hre.run("savings-dist-fees", { masset: "mBTC", speed })
+        // Sends any fUSD or mBTC governance fees from the Savings Manager to the RevenueBuyBack contract
+        await hre.run("savings-dist-fees", { fasset: "fUSD", speed })
+        await hre.run("savings-dist-fees", { fasset: "mBTC", speed })
 
-        // Buys MTA using mUSD and mBTC governance fees
+        // Buys MTA using fUSD and mBTC governance fees
         await hre.run("revenue-buy-back", { speed })
         // Donates MTA rewards to the staking contract dials in the Emissions Controller
         await hre.run("revenue-donate-rewards", { speed })

@@ -26,8 +26,8 @@ task("SaveWrapper.deploy", "Deploy a new SaveWrapper")
         })
     })
 
-task("SaveWrapper.approveMasset", "Sets approvals for a new mAsset")
-    .addParam("masset", "Token symbol of the mAsset. eg mUSD or mBTC", undefined, types.string, false)
+task("SaveWrapper.approveFasset", "Sets approvals for a new fAsset")
+    .addParam("fasset", "Token symbol of the fAsset. eg fUSD or mBTC", undefined, types.string, false)
     .addParam("bassets", "Comma separated symbols of the base assets. eg USDC,DAI,USDT,sUSD", undefined, types.string, false)
     .addParam("fdAssets", "Comma separated symbols of the Feeder Pool assets. eg GUSD,BUSD,alUSD,FEI,HBTC", undefined, types.string, false)
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
@@ -38,7 +38,7 @@ task("SaveWrapper.approveMasset", "Sets approvals for a new mAsset")
         const wrapperAddress = resolveAddress("SaveWrapper", chain)
         const wrapper = SaveWrapper__factory.connect(wrapperAddress, signer)
 
-        const mAssetToken = resolveToken(taskArgs.masset, chain)
+        const fAssetToken = resolveToken(taskArgs.fasset, chain)
 
         const bAssetSymbols = taskArgs.bassets.split(",")
         const bAssetAddresses = bAssetSymbols.map((symbol) => resolveAddress(symbol, chain))
@@ -48,16 +48,16 @@ task("SaveWrapper.approveMasset", "Sets approvals for a new mAsset")
         const feederPoolAddresses = fdAssetSymbols.map((symbol) => resolveAddress(symbol, chain, "feederPool"))
 
         const tx = await wrapper["approve(address,address[],address[],address[],address,address)"](
-            mAssetToken.address,
+            fAssetToken.address,
             bAssetAddresses,
             feederPoolAddresses,
             fdAssetAddresses,
-            mAssetToken.savings,
-            mAssetToken.vault,
+            fAssetToken.savings,
+            fAssetToken.vault,
         )
         await logTxDetails(
             tx,
-            `SaveWrapper approve mAsset ${taskArgs.masset}, bAssets ${taskArgs.bassets} and feeder pools ${taskArgs.fdAssets}`,
+            `SaveWrapper approve fAsset ${taskArgs.fasset}, bAssets ${taskArgs.bassets} and feeder pools ${taskArgs.fdAssets}`,
         )
     })
 
@@ -71,7 +71,7 @@ task("SaveWrapper.approveMulti", "Sets approvals for multiple tokens/a single sp
     )
     .addParam(
         "spender",
-        "Token symbol of the mAsset or address type. eg mUSD, mBTC, feederPool, savings or vault",
+        "Token symbol of the fAsset or address type. eg fUSD, mBTC, feederPool, savings or vault",
         undefined,
         types.string,
         false,
@@ -88,18 +88,18 @@ task("SaveWrapper.approveMulti", "Sets approvals for multiple tokens/a single sp
         const tokenAddresses = tokenSymbols.map((symbol) => resolveAddress(symbol, chain))
 
         const spenderAddress = ["feederPool", "savings", "vault"].includes(taskArgs.spender)
-            ? resolveAddress(taskArgs.token, chain, taskArgs.spender) // token is mUSD or mBTC
-            : resolveAddress(taskArgs.spender, chain) // spender is mUSD or mBTC
+            ? resolveAddress(taskArgs.token, chain, taskArgs.spender) // token is fUSD or mBTC
+            : resolveAddress(taskArgs.spender, chain) // spender is fUSD or mBTC
 
         const tx = await wrapper["approve(address[],address)"](tokenAddresses, spenderAddress)
         await logTxDetails(tx, "Approve multiple tokens/single spender")
     })
 
 task("SaveWrapper.approve", "Sets approvals for a single token/spender")
-    .addParam("token", "Symbol of the token that is being approved. eg USDC, WBTC, FEI, HBTC, mUSD, imUSD", undefined, types.string, false)
+    .addParam("token", "Symbol of the token that is being approved. eg USDC, WBTC, FEI, HBTC, fUSD, ifUSD", undefined, types.string, false)
     .addParam(
         "spender",
-        "Token symbol of the mAsset or address type. eg mUSD, mBTC, feederPool, savings or vault",
+        "Token symbol of the fAsset or address type. eg fUSD, mBTC, feederPool, savings or vault",
         undefined,
         types.string,
         false,
@@ -107,7 +107,7 @@ task("SaveWrapper.approve", "Sets approvals for a single token/spender")
     .addOptionalParam("speed", "Defender Relayer speed param: 'safeLow' | 'average' | 'fast' | 'fastest'", "fast", types.string)
     .setAction(async (taskArgs, hre) => {
         if (!taskArgs.spender) {
-            throw Error(`spender must be a mAsset symbol, eg mUSD or mBTC, or an address type of a mAsset, eg feederPool, savings or vault`)
+            throw Error(`spender must be a fAsset symbol, eg fUSD or mBTC, or an address type of a fAsset, eg feederPool, savings or vault`)
         }
         const chain = getChain(hre)
         const signer = await getSigner(hre, taskArgs.speed)
@@ -117,8 +117,8 @@ task("SaveWrapper.approve", "Sets approvals for a single token/spender")
 
         const tokenAddress = resolveAddress(taskArgs.token, chain)
         const spenderAddress = ["feederPool", "savings", "vault"].includes(taskArgs.spender)
-            ? resolveAddress(taskArgs.token, chain, taskArgs.spender) // token is mUSD or mBTC
-            : resolveAddress(taskArgs.spender, chain) // spender is mUSD or mBTC
+            ? resolveAddress(taskArgs.token, chain, taskArgs.spender) // token is fUSD or mBTC
+            : resolveAddress(taskArgs.spender, chain) // spender is fUSD or mBTC
 
         const tx = await wrapper["approve(address,address)"](tokenAddress, spenderAddress)
         await logTxDetails(tx, "Approve single token/spender")

@@ -3,17 +3,17 @@ pragma solidity 0.8.6;
 
 // External
 import { IPlatformIntegration } from "../interfaces/IPlatformIntegration.sol";
-import { IMasset } from "../interfaces/IMasset.sol";
+import { IFasset } from "../interfaces/IFasset.sol";
 
 // Internal
-import "../masset/MassetStructs.sol";
+import "../fasset/FassetStructs.sol";
 
 // Libs
 import { Root } from "../shared/Root.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import { MassetHelpers } from "../shared/MassetHelpers.sol";
+import { FassetHelpers } from "../shared/FassetHelpers.sol";
 import { StableMath } from "../shared/StableMath.sol";
 
 /**
@@ -66,7 +66,7 @@ library FeederLogic {
 
     /**
      * @notice Transfers tokens in, updates internal balances and computes the fpToken output.
-     * Only fdAsset & mAsset are supported in this path.
+     * Only fdAsset & fAsset are supported in this path.
      * @param _data                 Feeder pool storage state
      * @param _config               Core config for use in the invariant validator
      * @param _indices              Non-duplicate addresses of the bAssets to deposit for the minted fpToken.
@@ -106,7 +106,7 @@ library FeederLogic {
         // Validate the proposed mint, after token transfer
         mintOutput = computeMintMulti(allBassets, _indices, quantitiesDeposited, _config);
         require(mintOutput >= _minOutputQuantity, "Mint quantity < min qty");
-        require(mintOutput > 0, "Zero mAsset quantity");
+        require(mintOutput > 0, "Zero fAsset quantity");
     }
 
     /***************************************
@@ -114,8 +114,8 @@ library FeederLogic {
     ****************************************/
 
     /**
-     * @notice Swaps two assets - either internally between fdAsset<>mAsset, or between fdAsset<>mpAsset by
-     * first routing through the mAsset pool.
+     * @notice Swaps two assets - either internally between fdAsset<>fAsset, or between fdAsset<>mpAsset by
+     * first routing through the fAsset pool.
      * @param _data              Feeder pool storage state
      * @param _config            Core config for use in the invariant validator
      * @param _input             Data on bAsset to deposit
@@ -144,8 +144,8 @@ library FeederLogic {
             _input,
             _inputQuantity
         );
-        // 1. [f/mAsset ->][ f/mAsset]               : Y - normal in, SWAP, normal out
-        // 3. [mpAsset -> mAsset][ -> fdAsset]        : Y - mint in  , SWAP, normal out
+        // 1. [f/fAsset ->][ f/fAsset]               : Y - normal in, SWAP, normal out
+        // 3. [mpAsset -> fAsset][ -> fdAsset]        : Y - mint in  , SWAP, normal out
         if (_output.exists) {
             (swapOutput, localFee) = _swapLocal(
                 _data,
@@ -157,19 +157,19 @@ library FeederLogic {
                 _recipient
             );
         }
-        // 2. [fdAsset ->][ mAsset][ -> mpAsset]      : Y - normal in, SWAP, mpOut
+        // 2. [fdAsset ->][ fAsset][ -> mpAsset]      : Y - normal in, SWAP, mpOut
         else {
-            address mAsset = _data.bAssetPersonal[0].addr;
+            address fAsset = _data.bAssetPersonal[0].addr;
             (swapOutput, localFee) = _swapLocal(
                 _data,
                 _config,
                 cachedBassetData,
                 inputData,
-                Asset(0, mAsset, true),
+                Asset(0, fAsset, true),
                 0,
                 address(this)
             );
-            swapOutput = IMasset(mAsset).redeem(
+            swapOutput = IFasset(fAsset).redeem(
                 _output.addr,
                 swapOutput,
                 _minOutputQuantity,
@@ -184,7 +184,7 @@ library FeederLogic {
 
     /**
      * @notice Burns a specified quantity of the senders fpToken in return for a bAsset. The output amount is derived
-     * from the invariant. Supports redemption into either the fdAsset, mAsset or assets in the mAsset basket.
+     * from the invariant. Supports redemption into either the fdAsset, fAsset or assets in the fAsset basket.
      * @param _data              Feeder pool storage state
      * @param _config            Core config for use in the invariant validator
      * @param _output            Data on bAsset to withdraw
@@ -212,16 +212,16 @@ library FeederLogic {
                 _recipient
             );
         } else {
-            address mAsset = _data.bAssetPersonal[0].addr;
+            address fAsset = _data.bAssetPersonal[0].addr;
             (outputQuantity, localFee) = _redeemLocal(
                 _data,
                 _config,
-                Asset(0, mAsset, true),
+                Asset(0, fAsset, true),
                 _fpTokenQuantity,
                 0,
                 address(this)
             );
-            outputQuantity = IMasset(mAsset).redeem(
+            outputQuantity = IFasset(fAsset).redeem(
                 _output.addr,
                 outputQuantity,
                 _minOutputQuantity,
@@ -232,7 +232,7 @@ library FeederLogic {
 
     /**
      * @dev Credits a recipient with a proportionate amount of bAssets, relative to current vault
-     * balance levels and desired fpToken quantity. Burns the fpToken as payment. Only fdAsset & mAsset are supported in this path.
+     * balance levels and desired fpToken quantity. Burns the fpToken as payment. Only fdAsset & fAsset are supported in this path.
      * @param _data                 Feeder pool storage state
      * @param _config               Core config for use in the invariant validator
      * @param _inputQuantity        Quantity of fpToken to redeem
@@ -256,7 +256,7 @@ library FeederLogic {
             uint256[] memory outputQuantities
         )
     {
-        // Calculate mAsset redemption quantities
+        // Calculate fAsset redemption quantities
         scaledFee = _inputQuantity.mulTruncate(_data.redemptionFee);
         // cache = (config.supply - inputQuantity) * 0.2
         uint256 maxCache = _getCacheDetails(_data, _config.supply - _inputQuantity);
@@ -292,7 +292,7 @@ library FeederLogic {
 
     /**
      * @dev Credits a recipient with a certain quantity of selected bAssets, in exchange for burning the
-     *      relative fpToken quantity from the sender. Only fdAsset & mAsset (0,1) are supported in this path.
+     *      relative fpToken quantity from the sender. Only fdAsset & fAsset (0,1) are supported in this path.
      * @param _data                 Feeder pool storage state
      * @param _config               Core config for use in the invariant validator
      * @param _indices              Indices of the bAssets to receive
@@ -322,11 +322,11 @@ library FeederLogic {
         );
         fpTokenQuantity = fpTokenRequired.divPrecisely(1e18 - _data.redemptionFee);
         localFee = fpTokenQuantity - fpTokenRequired;
-        require(fpTokenQuantity > 0, "Must redeem some mAssets");
+        require(fpTokenQuantity > 0, "Must redeem some fAssets");
         fpTokenQuantity += 1;
-        require(fpTokenQuantity <= _maxInputQuantity, "Redeem mAsset qty > max quantity");
+        require(fpTokenQuantity <= _maxInputQuantity, "Redeem fAsset qty > max quantity");
 
-        // Burn the full amount of Masset
+        // Burn the full amount of Fasset
         uint256 maxCache = _getCacheDetails(_data, _config.supply - fpTokenQuantity);
         // Transfer the Bassets to the recipient
         for (uint256 i = 0; i < _outputQuantities.length; i++) {
@@ -348,9 +348,9 @@ library FeederLogic {
     ****************************************/
 
     /**
-     * @dev Transfers an asset in and updates vault balance. Supports fdAsset, mAsset and mpAsset.
+     * @dev Transfers an asset in and updates vault balance. Supports fdAsset, fAsset and mpAsset.
      * Transferring an mpAsset requires first a mint in the main pool, and consequent depositing of
-     * the mAsset.
+     * the fAsset.
      */
     function _transferIn(
         FeederData storage _data,
@@ -359,7 +359,7 @@ library FeederLogic {
         Asset memory _input,
         uint256 _inputQuantity
     ) internal returns (AssetData memory inputData) {
-        // fdAsset / mAsset transfers
+        // fdAsset / fAsset transfers
         if (_input.exists) {
             BassetPersonal memory personal = _data.bAssetPersonal[_input.idx];
             uint256 amt = _depositTokens(
@@ -386,7 +386,7 @@ library FeederLogic {
     }
 
     /**
-     * @dev Mints an asset in the main mAsset pool. Input asset must be supported by the mAsset
+     * @dev Mints an asset in the main fAsset pool. Input asset must be supported by the fAsset
      * or else the call will revert. After minting, check if the balance exceeds the cache upper limit
      * and consequently deposit if necessary.
      */
@@ -395,31 +395,31 @@ library FeederLogic {
         Asset memory _input,
         uint256 _inputQuantity,
         uint256 _maxCache
-    ) internal returns (AssetData memory mAssetData) {
-        mAssetData = AssetData(0, 0, _data.bAssetPersonal[0]);
+    ) internal returns (AssetData memory fAssetData) {
+        fAssetData = AssetData(0, 0, _data.bAssetPersonal[0]);
         IERC20(_input.addr).safeTransferFrom(msg.sender, address(this), _inputQuantity);
 
-        address integrator = mAssetData.personal.integrator == address(0)
+        address integrator = fAssetData.personal.integrator == address(0)
             ? address(this)
-            : mAssetData.personal.integrator;
+            : fAssetData.personal.integrator;
 
-        uint256 balBefore = IERC20(mAssetData.personal.addr).balanceOf(integrator);
-        // Mint will revert if the _input.addr is not whitelisted on that mAsset
-        IMasset(mAssetData.personal.addr).mint(_input.addr, _inputQuantity, 0, integrator);
-        uint256 balAfter = IERC20(mAssetData.personal.addr).balanceOf(integrator);
-        mAssetData.amt = balAfter - balBefore;
+        uint256 balBefore = IERC20(fAssetData.personal.addr).balanceOf(integrator);
+        // Mint will revert if the _input.addr is not whitelisted on that fAsset
+        IFasset(fAssetData.personal.addr).mint(_input.addr, _inputQuantity, 0, integrator);
+        uint256 balAfter = IERC20(fAssetData.personal.addr).balanceOf(integrator);
+        fAssetData.amt = balAfter - balBefore;
 
-        // Route the mAsset to platform integration
+        // Route the fAsset to platform integration
         if (integrator != address(this)) {
             if (balAfter > _maxCache) {
                 uint256 delta = balAfter - (_maxCache / 2);
-                IPlatformIntegration(integrator).deposit(mAssetData.personal.addr, delta, false);
+                IPlatformIntegration(integrator).deposit(fAssetData.personal.addr, delta, false);
             }
         }
     }
 
     /**
-     * @dev Performs a swap between fdAsset and mAsset. If the output is an mAsset, do not
+     * @dev Performs a swap between fdAsset and fAsset. If the output is an fAsset, do not
      * charge the swap fee.
      */
     function _swapLocal(
@@ -457,7 +457,7 @@ library FeederLogic {
     }
 
     /**
-     * @dev Performs a local redemption into either fdAsset or mAsset.
+     * @dev Performs a local redemption into either fdAsset or fAsset.
      */
     function _redeemLocal(
         FeederData storage _data,
@@ -507,7 +507,7 @@ library FeederLogic {
     ) internal returns (uint256 quantityDeposited) {
         // 0. If integration is 0, short circuit
         if (_bAsset.integrator == address(0)) {
-            (uint256 received, ) = MassetHelpers.transferReturnBalance(
+            (uint256 received, ) = FassetHelpers.transferReturnBalance(
                 msg.sender,
                 address(this),
                 _bAsset.addr,
@@ -518,7 +518,7 @@ library FeederLogic {
 
         // 1 - Send all to PI, using the opportunity to get the cache balance and net amount transferred
         uint256 cacheBal;
-        (quantityDeposited, cacheBal) = MassetHelpers.transferReturnBalance(
+        (quantityDeposited, cacheBal) = FassetHelpers.transferReturnBalance(
             msg.sender,
             _bAsset.integrator,
             _bAsset.addr,

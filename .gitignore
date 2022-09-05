@@ -66,3 +66,5 @@ _flat
 # test data
 /test-utils/validator-data/*.csv
 testoutput.txt
+
+.DS_Store

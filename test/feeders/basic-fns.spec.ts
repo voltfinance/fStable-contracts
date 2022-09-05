@@ -3,7 +3,7 @@ import { expect } from "chai"
 
 import { assertBNClosePercent } from "@utils/assertions"
 import { BN, simpleToExactAmount } from "@utils/math"
-import { MassetMachine, StandardAccounts, FeederMachine, FeederDetails } from "@utils/machines"
+import { FassetMachine, StandardAccounts, FeederMachine, FeederDetails } from "@utils/machines"
 
 describe("Feeder Pools", () => {
     let sa: StandardAccounts
@@ -14,16 +14,16 @@ describe("Feeder Pools", () => {
         useLendingMarkets = false,
         useInterestValidator = false,
         feederWeights?: Array<BN | number>,
-        mAssetWeights?: Array<BN | number>,
+        fAssetWeights?: Array<BN | number>,
     ): Promise<void> => {
-        feeder = await feederMachine.deployFeeder(feederWeights, mAssetWeights, useLendingMarkets, useInterestValidator)
+        feeder = await feederMachine.deployFeeder(feederWeights, fAssetWeights, useLendingMarkets, useInterestValidator)
     }
 
     before("Init contract", async () => {
         const accounts = await ethers.getSigners()
-        const mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        feederMachine = await new FeederMachine(mAssetMachine)
-        sa = mAssetMachine.sa
+        const fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        feederMachine = await new FeederMachine(fAssetMachine)
+        sa = fAssetMachine.sa
 
         await runSetup()
     })
@@ -48,8 +48,8 @@ describe("Feeder Pools", () => {
             expect(dataEnd.totalSupply.sub(dataStart.totalSupply)).to.eq(simpleToExactAmount(200, 18))
         })
         it("should fail to mintMulti with mpAsset", async () => {
-            const { pool, mAssetDetails } = feeder
-            const { bAssets } = mAssetDetails
+            const { pool, fAssetDetails } = feeder
+            const { bAssets } = fAssetDetails
 
             // fpToken -> mpAsset
             await expect(
@@ -57,22 +57,22 @@ describe("Feeder Pools", () => {
             ).to.be.revertedWith("Invalid asset")
         })
         it("should mint single locally", async () => {
-            const { pool, mAsset, fdAsset } = feeder
+            const { pool, fAsset, fdAsset } = feeder
 
             const dataStart = await feederMachine.getBasketComposition(feeder)
 
-            // Mint with mAsset
-            let approval = await feederMachine.approveFeeder(mAsset, pool.address, 10)
-            await pool.mint(mAsset.address, approval, simpleToExactAmount("9.5"), sa.default.address)
+            // Mint with fAsset
+            let approval = await feederMachine.approveFeeder(fAsset, pool.address, 10)
+            await pool.mint(fAsset.address, approval, simpleToExactAmount("9.5"), sa.default.address)
 
             // Mid checks
             const dataMid = await feederMachine.getBasketComposition(feeder)
             // Total Supply
             assertBNClosePercent(dataMid.totalSupply, dataStart.totalSupply.add(approval), "0.1")
             // Token movements
-            expect(dataMid.bAssets[0].actualBalance, "mAsset should be transferred").eq(dataStart.bAssets[0].actualBalance.add(approval))
+            expect(dataMid.bAssets[0].actualBalance, "fAsset should be transferred").eq(dataStart.bAssets[0].actualBalance.add(approval))
             // Vault balances
-            expect(dataMid.bAssets[0].vaultBalance, "mAsset vault balance should increase").eq(
+            expect(dataMid.bAssets[0].vaultBalance, "fAsset vault balance should increase").eq(
                 dataStart.bAssets[0].vaultBalance.add(approval),
             )
 
@@ -92,8 +92,8 @@ describe("Feeder Pools", () => {
             )
         })
         it("should mint single via main pool", async () => {
-            const { pool, mAssetDetails } = feeder
-            const { bAssets } = mAssetDetails
+            const { pool, fAssetDetails } = feeder
+            const { bAssets } = fAssetDetails
 
             const dataStart = await feederMachine.getBasketComposition(feeder)
 
@@ -110,14 +110,14 @@ describe("Feeder Pools", () => {
                 dataMid.bAssets[0].actualBalance,
                 dataStart.bAssets[0].actualBalance.add(simpleToExactAmount(10)),
                 "0.1",
-                "mAsset should deposit",
+                "fAsset should deposit",
             )
             // Vault balances
             assertBNClosePercent(
                 dataMid.bAssets[0].vaultBalance,
                 dataStart.bAssets[0].vaultBalance.add(simpleToExactAmount(10)),
                 "0.1",
-                "mAsset vaultBalance should increase",
+                "fAsset vaultBalance should increase",
             )
 
             // Mint with mpAsset[1]
@@ -138,14 +138,14 @@ describe("Feeder Pools", () => {
                 dataEnd.bAssets[0].actualBalance,
                 dataMid.bAssets[0].actualBalance.add(simpleToExactAmount(10)),
                 "0.1",
-                "mAsset should deposit",
+                "fAsset should deposit",
             )
             // Vault balances
             assertBNClosePercent(
                 dataEnd.bAssets[0].vaultBalance,
                 dataMid.bAssets[0].vaultBalance.add(simpleToExactAmount(10)),
                 "0.1",
-                "mAsset vaultBalance should increase",
+                "fAsset vaultBalance should increase",
             )
         })
     })
@@ -154,20 +154,20 @@ describe("Feeder Pools", () => {
             await runSetup()
         })
         it("should swap locally", async () => {
-            const { pool, mAsset, fdAsset } = feeder
+            const { pool, fAsset, fdAsset } = feeder
 
             const dataStart = await feederMachine.getBasketComposition(feeder)
 
-            // Swap mAsset -> fdAsset
-            let approval = await feederMachine.approveFeeder(mAsset, pool.address, 10)
-            await pool.swap(mAsset.address, fdAsset.address, approval, simpleToExactAmount("9.5"), sa.default.address)
+            // Swap fAsset -> fdAsset
+            let approval = await feederMachine.approveFeeder(fAsset, pool.address, 10)
+            await pool.swap(fAsset.address, fdAsset.address, approval, simpleToExactAmount("9.5"), sa.default.address)
 
             // Mid checks
             const dataMid = await feederMachine.getBasketComposition(feeder)
             // Total Supply
             expect(dataMid.totalSupply).eq(dataStart.totalSupply)
             // Token movements
-            expect(dataMid.bAssets[0].actualBalance.sub(dataStart.bAssets[0].actualBalance), "mAsset should be transferred").eq(approval)
+            expect(dataMid.bAssets[0].actualBalance.sub(dataStart.bAssets[0].actualBalance), "fAsset should be transferred").eq(approval)
             assertBNClosePercent(
                 dataStart.bAssets[1].actualBalance.sub(dataMid.bAssets[1].actualBalance),
                 approval,
@@ -175,7 +175,7 @@ describe("Feeder Pools", () => {
                 "fdAsset should be transferred",
             )
             // Vault balances
-            expect(dataMid.bAssets[0].vaultBalance, "mAsset vault balance should increase").eq(
+            expect(dataMid.bAssets[0].vaultBalance, "fAsset vault balance should increase").eq(
                 dataStart.bAssets[0].vaultBalance.add(approval),
             )
             assertBNClosePercent(
@@ -185,13 +185,13 @@ describe("Feeder Pools", () => {
                 "fdAsset vaultBalance should decrease",
             )
 
-            // Swap fdAsset -> mAsset
+            // Swap fdAsset -> fAsset
             approval = await feederMachine.approveFeeder(fdAsset, pool.address, 10)
-            await pool.swap(fdAsset.address, mAsset.address, approval, simpleToExactAmount("9.5"), sa.default.address)
+            await pool.swap(fdAsset.address, fAsset.address, approval, simpleToExactAmount("9.5"), sa.default.address)
         })
         it("should swap into mpAsset", async () => {
-            const { pool, fdAsset, mAssetDetails } = feeder
-            const { bAssets } = mAssetDetails
+            const { pool, fdAsset, fAssetDetails } = feeder
+            const { bAssets } = fAssetDetails
 
             const dataStart = await feederMachine.getBasketComposition(feeder)
 
@@ -209,7 +209,7 @@ describe("Feeder Pools", () => {
                 dataStart.bAssets[0].actualBalance.sub(dataMid.bAssets[0].actualBalance),
                 approval,
                 "0.3",
-                "mAsset should be transferred out",
+                "fAsset should be transferred out",
             )
             // Vault balances
             expect(dataMid.bAssets[1].vaultBalance.sub(dataStart.bAssets[1].vaultBalance), "fdAsset vaultBalance should increase").eq(
@@ -219,12 +219,12 @@ describe("Feeder Pools", () => {
                 dataStart.bAssets[0].vaultBalance.sub(dataMid.bAssets[0].vaultBalance),
                 approval,
                 "0.3",
-                "mAsset vault balance should decrease",
+                "fAsset vault balance should decrease",
             )
         })
         it("should swap out of mpAsset", async () => {
-            const { pool, fdAsset, mAssetDetails } = feeder
-            const { bAssets } = mAssetDetails
+            const { pool, fdAsset, fAssetDetails } = feeder
+            const { bAssets } = fAssetDetails
 
             const dataStart = await feederMachine.getBasketComposition(feeder)
 
@@ -241,7 +241,7 @@ describe("Feeder Pools", () => {
                 dataMid.bAssets[0].actualBalance.sub(dataStart.bAssets[0].actualBalance),
                 approval,
                 "0.3",
-                "mAsset should be transferred in",
+                "fAsset should be transferred in",
             )
             assertBNClosePercent(
                 dataStart.bAssets[1].actualBalance.sub(dataMid.bAssets[1].actualBalance),
@@ -254,7 +254,7 @@ describe("Feeder Pools", () => {
                 dataMid.bAssets[0].vaultBalance.sub(dataStart.bAssets[0].vaultBalance),
                 approval,
                 "0.3",
-                "mAsset vault balance should increase",
+                "fAsset vault balance should increase",
             )
             assertBNClosePercent(
                 dataStart.bAssets[1].vaultBalance.sub(dataMid.bAssets[1].vaultBalance),
@@ -263,21 +263,21 @@ describe("Feeder Pools", () => {
                 "fdAsset vault balance should decrease",
             )
         })
-        it("should fail to swap mpAsset <> mAsset", async () => {
-            const { pool, mAsset, mAssetDetails } = feeder
-            const { bAssets } = mAssetDetails
-            // mpAsset -> mAsset
+        it("should fail to swap mpAsset <> fAsset", async () => {
+            const { pool, fAsset, fAssetDetails } = feeder
+            const { bAssets } = fAssetDetails
+            // mpAsset -> fAsset
             await expect(
-                pool.swap(bAssets[0].address, mAsset.address, simpleToExactAmount(1), simpleToExactAmount(1), sa.default.address),
+                pool.swap(bAssets[0].address, fAsset.address, simpleToExactAmount(1), simpleToExactAmount(1), sa.default.address),
             ).to.be.revertedWith("Invalid pair")
-            // mAsset -> mpAsset
+            // fAsset -> mpAsset
             await expect(
-                pool.swap(mAsset.address, bAssets[0].address, simpleToExactAmount(1), simpleToExactAmount(1), sa.default.address),
+                pool.swap(fAsset.address, bAssets[0].address, simpleToExactAmount(1), simpleToExactAmount(1), sa.default.address),
             ).to.be.revertedWith("Invalid pair")
         })
         it("should fail to swap mpAsset <> mpAsset", async () => {
-            const { pool, mAssetDetails } = feeder
-            const { bAssets } = mAssetDetails
+            const { pool, fAssetDetails } = feeder
+            const { bAssets } = fAssetDetails
             // mpAsset -> mpAsset
             await expect(
                 pool.swap(bAssets[1].address, bAssets[0].address, simpleToExactAmount(1), simpleToExactAmount(1), sa.default.address),
@@ -290,14 +290,14 @@ describe("Feeder Pools", () => {
             await runSetup()
         })
         it("should redeem locally", async () => {
-            const { pool, mAsset, fdAsset } = feeder
+            const { pool, fAsset, fdAsset } = feeder
 
             const dataStart = await feederMachine.getBasketComposition(feeder)
 
-            // Redeem fpToken -> mAsset
-            await pool.redeem(mAsset.address, simpleToExactAmount(10), simpleToExactAmount("9.5"), sa.default.address)
+            // Redeem fpToken -> fAsset
+            await pool.redeem(fAsset.address, simpleToExactAmount(10), simpleToExactAmount("9.5"), sa.default.address)
 
-            // Mid checks - should decrease mAsset vb
+            // Mid checks - should decrease fAsset vb
             const dataMid = await feederMachine.getBasketComposition(feeder)
             // Total Supply
             expect(dataMid.totalSupply).eq(dataStart.totalSupply.sub(simpleToExactAmount(10)))
@@ -306,29 +306,29 @@ describe("Feeder Pools", () => {
                 dataStart.bAssets[0].actualBalance.sub(dataMid.bAssets[0].actualBalance),
                 simpleToExactAmount(10),
                 "0.3",
-                "mAsset should be transferred out",
+                "fAsset should be transferred out",
             )
             // Vault balances
             assertBNClosePercent(
                 dataStart.bAssets[0].vaultBalance.sub(dataMid.bAssets[0].vaultBalance),
                 simpleToExactAmount(10),
                 "0.3",
-                "mAsset vault balance should decrease",
+                "fAsset vault balance should decrease",
             )
 
             // Redeem fpToken -> fdAsset
             await pool.redeem(fdAsset.address, simpleToExactAmount(10), simpleToExactAmount("9.5"), sa.default.address)
         })
         it("should redeem into mpAsset", async () => {
-            const { pool, mAssetDetails } = feeder
-            const { bAssets } = mAssetDetails
+            const { pool, fAssetDetails } = feeder
+            const { bAssets } = fAssetDetails
 
             const dataStart = await feederMachine.getBasketComposition(feeder)
 
             // fpToken -> mpAsset
             await pool.redeem(bAssets[0].address, simpleToExactAmount(10), simpleToExactAmount("9.5"), sa.default.address)
 
-            // Mid checks - should decrease mAsset vb
+            // Mid checks - should decrease fAsset vb
             const dataMid = await feederMachine.getBasketComposition(feeder)
             // Total Supply
             expect(dataMid.totalSupply).eq(dataStart.totalSupply.sub(simpleToExactAmount(10)))
@@ -337,14 +337,14 @@ describe("Feeder Pools", () => {
             //     dataStart.bAssets[0].actualBalance.sub(dataMid.bAssets[0].actualBalance),
             //     simpleToExactAmount(10),
             //     "0.3",
-            //     "mAsset should be transferred out",
+            //     "fAsset should be transferred out",
             // )
             // Vault balances
             assertBNClosePercent(
                 dataStart.bAssets[0].vaultBalance.sub(dataMid.bAssets[0].vaultBalance),
                 simpleToExactAmount(10),
                 "0.3",
-                "mAsset vault balance should decrease",
+                "fAsset vault balance should decrease",
             )
         })
     })
@@ -354,39 +354,39 @@ describe("Feeder Pools", () => {
             await runSetup()
         })
         it("should redeem locally", async () => {
-            const { pool, mAsset, fdAsset } = feeder
+            const { pool, fAsset, fdAsset } = feeder
 
             const dataStart = await feederMachine.getBasketComposition(feeder)
 
-            // Redeem fpToken -> mAsset
-            await pool.redeemExactBassets([mAsset.address], [simpleToExactAmount(10)], simpleToExactAmount(11), sa.default.address)
+            // Redeem fpToken -> fAsset
+            await pool.redeemExactBassets([fAsset.address], [simpleToExactAmount(10)], simpleToExactAmount(11), sa.default.address)
 
-            // Mid checks - should decrease mAsset vb
+            // Mid checks - should decrease fAsset vb
             const dataMid = await feederMachine.getBasketComposition(feeder)
             // Total Supply
             assertBNClosePercent(dataMid.totalSupply, dataStart.totalSupply.sub(simpleToExactAmount(10)))
             // Token movements
-            expect(dataStart.bAssets[0].actualBalance.sub(dataMid.bAssets[0].actualBalance), "mAsset should be transferred out").eq(
+            expect(dataStart.bAssets[0].actualBalance.sub(dataMid.bAssets[0].actualBalance), "fAsset should be transferred out").eq(
                 simpleToExactAmount(10),
             )
             // Vault balances
-            expect(dataStart.bAssets[0].vaultBalance.sub(dataMid.bAssets[0].vaultBalance), "mAsset vb should decrease").eq(
+            expect(dataStart.bAssets[0].vaultBalance.sub(dataMid.bAssets[0].vaultBalance), "fAsset vb should decrease").eq(
                 simpleToExactAmount(10),
             )
 
             // Redeem fpToken -> fdAsset
             await pool.redeemExactBassets([fdAsset.address], [simpleToExactAmount(10)], simpleToExactAmount(11), sa.default.address)
-            // Redeem fpToken -> [mAsset,fdAsset]
+            // Redeem fpToken -> [fAsset,fdAsset]
             await pool.redeemExactBassets(
-                [mAsset.address, fdAsset.address],
+                [fAsset.address, fdAsset.address],
                 [simpleToExactAmount(1), simpleToExactAmount(1)],
                 simpleToExactAmount("2.5"),
                 sa.default.address,
             )
         })
         it("should fail to redeem into mpAsset", async () => {
-            const { pool, mAssetDetails } = feeder
-            const { bAssets } = mAssetDetails
+            const { pool, fAssetDetails } = feeder
+            const { bAssets } = fAssetDetails
             // fpToken -> mpAsset
             await expect(
                 pool.redeemExactBassets([bAssets[0].address], [simpleToExactAmount(10)], simpleToExactAmount(11), sa.default.address),

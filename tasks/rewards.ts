@@ -4,7 +4,7 @@ import { subtask, task, types } from "hardhat/config"
 import { Collector__factory, SavingsManager, SavingsManager__factory, Unliquidator__factory } from "types/generated"
 import { Comptroller__factory } from "types/generated/factories/Comptroller__factory"
 import rewardsFiles from "./balancer-mta-rewards/20210817.json"
-import { btcFormatter, COMP, logTxDetails, mBTC, mUSD, stkAAVE, USDC, usdFormatter, USDT } from "./utils"
+import { btcFormatter, COMP, logTxDetails, mBTC, fUSD, stkAAVE, USDC, usdFormatter, USDT } from "./utils"
 import { getAaveTokens, getAlcxTokens, getBlock, getCompTokens } from "./utils/snap-utils"
 import { getSigner } from "./utils/signerFactory"
 import { getChain, resolveAddress, resolveToken } from "./utils/networkAddressFactory"
@@ -42,21 +42,21 @@ task("rewards").setAction(async (_, __, runSuper) => {
     await runSuper()
 })
 
-subtask("collect-interest-dist", "Collects and distributes mAsset interest").setAction(async (taskArgs, hre) => {
+subtask("collect-interest-dist", "Collects and distributes fAsset interest").setAction(async (taskArgs, hre) => {
     const signer = await getSigner(hre, taskArgs.speed)
     const chain = getChain(hre)
 
     const collector = Collector__factory.connect(resolveAddress("Collector", chain), signer)
 
-    const tx = await collector.distributeInterest([mUSD.address, mBTC.address], false)
-    const receipt = await logTxDetails(tx, `collect fees from mUSD and mBTC`)
+    const tx = await collector.distributeInterest([fUSD.address, mBTC.address], false)
+    const receipt = await logTxDetails(tx, `collect fees from fUSD and mBTC`)
     const savingsManagerAddress = resolveAddress("SavingsManager", chain)
     const savingsManagerEvents = receipt.events?.filter((e) => e.address === savingsManagerAddress)
     const savingsManager = SavingsManager__factory.connect(savingsManagerAddress, signer)
     const parsedEvents = savingsManagerEvents?.map((e) => savingsManager.interface.parseLog(e))
-    const musdEvent = parsedEvents.find((e) => e.name === "RevenueRedistributed" && e.args.mAsset === mUSD.address)
-    console.log(`mUSD revenue: ${usdFormatter(musdEvent.args.amount)}`)
-    const mbtcEvent = parsedEvents.find((e) => e.name === "RevenueRedistributed" && e.args.mAsset === mBTC.address)
+    const fusdEvent = parsedEvents.find((e) => e.name === "RevenueRedistributed" && e.args.fAsset === fUSD.address)
+    console.log(`fUSD revenue: ${usdFormatter(fusdEvent.args.amount)}`)
+    const mbtcEvent = parsedEvents.find((e) => e.name === "RevenueRedistributed" && e.args.fAsset === mBTC.address)
     console.log(`mBTC revenue: ${btcFormatter(mbtcEvent.args.amount)}`)
 })
 task("collect-interest-dist").setAction(async (_, __, runSuper) => {

@@ -3,9 +3,9 @@ import { ethers, network } from "hardhat"
 
 import { assertBNSlightlyGTPercent } from "@utils/assertions"
 import { BN, simpleToExactAmount } from "@utils/math"
-import { MassetDetails, MassetMachine, StandardAccounts } from "@utils/machines"
+import { FassetDetails, FassetMachine, StandardAccounts } from "@utils/machines"
 import { ONE_DAY } from "@utils/constants"
-import { ExposedMassetLogic, MassetLogic__factory } from "types/generated"
+import { ExposedFassetLogic, FassetLogic__factory } from "types/generated"
 import { getTimestamp, increaseTime } from "@utils/time"
 
 const one = simpleToExactAmount(1)
@@ -28,39 +28,39 @@ const revert = async (id: number): Promise<void> => {
 
 describe("Recol functions", () => {
     let sa: StandardAccounts
-    let mAssetMachine: MassetMachine
+    let fAssetMachine: FassetMachine
 
-    let details: MassetDetails
-    let validator: ExposedMassetLogic
+    let details: FassetDetails
+    let validator: ExposedFassetLogic
 
     const runSetup = async (): Promise<void> => {
-        details = await mAssetMachine.deployMasset()
-        await mAssetMachine.seedWithWeightings(details, [22, 28, 23, 24])
+        details = await fAssetMachine.deployFasset()
+        await fAssetMachine.seedWithWeightings(details, [22, 28, 23, 24])
 
-        const logicLib = await new MassetLogic__factory(sa.default.signer).deploy()
+        const logicLib = await new FassetLogic__factory(sa.default.signer).deploy()
         const linkedAddress = {
             libraries: {
-                MassetLogic: logicLib.address,
+                FassetLogic: logicLib.address,
             },
         }
-        const massetFactory = await ethers.getContractFactory("ExposedMassetLogic", linkedAddress)
-        validator = (await massetFactory.deploy()) as ExposedMassetLogic
+        const fassetFactory = await ethers.getContractFactory("ExposedFassetLogic", linkedAddress)
+        validator = (await fassetFactory.deploy()) as ExposedFassetLogic
     }
 
     before("Init contract", async () => {
         const accounts = await ethers.getSigners()
-        mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        sa = mAssetMachine.sa
+        fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        sa = fAssetMachine.sa
 
         await runSetup()
     })
 
     const changeCollateralisation = async (over: boolean) => {
-        const { mAsset } = details
+        const { fAsset } = details
         const time = await getTimestamp()
-        const currentA = (await mAsset.getConfig()).a
+        const currentA = (await fAsset.getConfig()).a
         const futureA = over ? currentA.mul(4) : currentA.div(4)
-        await mAsset.connect(sa.governor.signer).startRampA(futureA.div(100), time.add(ONE_DAY.add(1)))
+        await fAsset.connect(sa.governor.signer).startRampA(futureA.div(100), time.add(ONE_DAY.add(1)))
         await increaseTime(ONE_DAY.add(1))
     }
 
@@ -69,13 +69,13 @@ describe("Recol functions", () => {
             before(async () => {
                 await runSetup()
                 await changeCollateralisation(true)
-                const price = await details.mAsset.getPrice()
+                const price = await details.fAsset.getPrice()
                 expect(price.price).gt(one)
             })
             it("should not apply fee", async () => {
-                const { mAsset } = details
-                const bAssetData = (await mAsset.getBassets())[1]
-                const config = await mAsset.getConfig()
+                const { fAsset } = details
+                const bAssetData = (await fAsset.getBassets())[1]
+                const config = await fAsset.getConfig()
                 const noRecol = {
                     ...config,
                     recolFee: BN.from(0),
@@ -112,11 +112,11 @@ describe("Recol functions", () => {
 
                 // redeemProportionately
                 const sID = await snapshot()
-                await mAsset.simulateRedeemMasset(one, [0, 0, 0, 0], 0)
-                const vaultsWithNone = (await mAsset.getBassets())[1]
+                await fAsset.simulateRedeemFasset(one, [0, 0, 0, 0], 0)
+                const vaultsWithNone = (await fAsset.getBassets())[1]
                 await revert(sID)
-                await mAsset.simulateRedeemMasset(one, [0, 0, 0, 0], simpleToExactAmount(5, 13))
-                const vaultsWithRecol = (await mAsset.getBassets())[1]
+                await fAsset.simulateRedeemFasset(one, [0, 0, 0, 0], simpleToExactAmount(5, 13))
+                const vaultsWithRecol = (await fAsset.getBassets())[1]
                 vaultsWithRecol.map((v, i) => expect(v.vaultBalance).eq(vaultsWithNone[i].vaultBalance))
             })
         })
@@ -124,13 +124,13 @@ describe("Recol functions", () => {
             before(async () => {
                 await runSetup()
                 await changeCollateralisation(false)
-                const price = await details.mAsset.getPrice()
+                const price = await details.fAsset.getPrice()
                 expect(price.price).lt(one)
             })
             it("should deduct fee if set", async () => {
-                const { mAsset } = details
-                const bAssetData = (await mAsset.getBassets())[1]
-                const config = await mAsset.getConfig()
+                const { fAsset } = details
+                const bAssetData = (await fAsset.getBassets())[1]
+                const config = await fAsset.getConfig()
                 const noRecol = {
                     ...config,
                     recolFee: BN.from(0),
@@ -167,11 +167,11 @@ describe("Recol functions", () => {
 
                 // redeemProportionately
                 const sID = await snapshot()
-                await mAsset.simulateRedeemMasset(one, [0, 0, 0, 0], 0)
-                const vaultsWithNone = (await mAsset.getBassets())[1]
+                await fAsset.simulateRedeemFasset(one, [0, 0, 0, 0], 0)
+                const vaultsWithNone = (await fAsset.getBassets())[1]
                 await revert(sID)
-                await mAsset.simulateRedeemMasset(one, [0, 0, 0, 0], simpleToExactAmount(5, 13))
-                const vaultsWithRecol = (await mAsset.getBassets())[1]
+                await fAsset.simulateRedeemFasset(one, [0, 0, 0, 0], simpleToExactAmount(5, 13))
+                const vaultsWithRecol = (await fAsset.getBassets())[1]
                 vaultsWithRecol.map((v, i) => assertBNSlightlyGTPercent(v.vaultBalance, vaultsWithNone[i].vaultBalance, "0.006", true))
             })
         })
@@ -181,27 +181,27 @@ describe("Recol functions", () => {
             before(async () => {
                 await runSetup()
                 await changeCollateralisation(true)
-                const price = await details.mAsset.getPrice()
+                const price = await details.fAsset.getPrice()
                 expect(price.price).gt(one)
             })
             it("should fail to burnSurplus", async () => {
-                await expect(details.mAsset.connect(sa.governor.signer).burnSurplus()).to.be.revertedWith("No surplus")
+                await expect(details.fAsset.connect(sa.governor.signer).burnSurplus()).to.be.revertedWith("No surplus")
             })
             it("should distribute surplus to savers", async () => {
-                const { mAsset } = details
+                const { fAsset } = details
 
-                const { surplus } = await mAsset.data()
-                let supply = await mAsset.totalSupply()
-                const { k } = await mAsset.getPrice()
+                const { surplus } = await fAsset.data()
+                let supply = await fAsset.totalSupply()
+                const { k } = await fAsset.getPrice()
 
                 const diff = await k.sub(supply.add(surplus))
 
-                const tx = mAsset.connect(sa.governor.signer).mintDeficit()
-                await expect(tx).to.emit(mAsset, "DeficitMinted").withArgs(diff)
+                const tx = fAsset.connect(sa.governor.signer).mintDeficit()
+                await expect(tx).to.emit(fAsset, "DeficitMinted").withArgs(diff)
 
-                const { surplus: surplusAfter } = await mAsset.data()
-                supply = await mAsset.totalSupply()
-                const { price, k: kAfter } = await mAsset.getPrice()
+                const { surplus: surplusAfter } = await fAsset.data()
+                supply = await fAsset.totalSupply()
+                const { price, k: kAfter } = await fAsset.getPrice()
 
                 expect(k).eq(kAfter)
                 expect(price).eq(simpleToExactAmount(1))
@@ -209,37 +209,37 @@ describe("Recol functions", () => {
                 expect(k).eq(supply.add(surplusAfter))
             })
             it("should do nothing if called again", async () => {
-                await expect(details.mAsset.connect(sa.governor.signer).mintDeficit()).to.be.revertedWith("No deficit")
+                await expect(details.fAsset.connect(sa.governor.signer).mintDeficit()).to.be.revertedWith("No deficit")
             })
         })
         context("when under collateralised", () => {
             before(async () => {
                 await runSetup()
                 await changeCollateralisation(false)
-                const price = await details.mAsset.getPrice()
+                const price = await details.fAsset.getPrice()
                 expect(price.price).lt(one)
             })
             it("should fail to mintDeficit", async () => {
-                await expect(details.mAsset.connect(sa.governor.signer).mintDeficit()).to.be.revertedWith("No deficit")
+                await expect(details.fAsset.connect(sa.governor.signer).mintDeficit()).to.be.revertedWith("No deficit")
             })
             it("should deduct deficit from sender and reset", async () => {
-                const { mAsset } = details
+                const { fAsset } = details
 
-                const balBefore = await mAsset.balanceOf(sa.default.address)
+                const balBefore = await fAsset.balanceOf(sa.default.address)
 
-                const { surplus } = await mAsset.data()
-                const supplyBefore = await mAsset.totalSupply()
-                const { k } = await mAsset.getPrice()
+                const { surplus } = await fAsset.data()
+                const supplyBefore = await fAsset.totalSupply()
+                const { k } = await fAsset.getPrice()
 
                 const diff = await supplyBefore.add(surplus).sub(k)
 
-                const tx = mAsset.connect(sa.default.signer).burnSurplus()
-                await expect(tx).to.emit(mAsset, "SurplusBurned").withArgs(sa.default.address, diff)
+                const tx = fAsset.connect(sa.default.signer).burnSurplus()
+                await expect(tx).to.emit(fAsset, "SurplusBurned").withArgs(sa.default.address, diff)
 
-                const balAfter = await mAsset.balanceOf(sa.default.address)
-                const { surplus: surplusAfter } = await mAsset.data()
-                const supplyafter = await mAsset.totalSupply()
-                const { price, k: kAfter } = await mAsset.getPrice()
+                const balAfter = await fAsset.balanceOf(sa.default.address)
+                const { surplus: surplusAfter } = await fAsset.data()
+                const supplyafter = await fAsset.totalSupply()
+                const { price, k: kAfter } = await fAsset.getPrice()
 
                 expect(k).eq(kAfter)
                 expect(price).eq(simpleToExactAmount(1))
@@ -248,7 +248,7 @@ describe("Recol functions", () => {
                 expect(supplyafter).eq(supplyBefore.sub(diff))
             })
             it("should do nothing if called again", async () => {
-                await expect(details.mAsset.connect(sa.default.signer).burnSurplus()).to.be.revertedWith("No surplus")
+                await expect(details.fAsset.connect(sa.default.signer).burnSurplus()).to.be.revertedWith("No surplus")
             })
         })
     })

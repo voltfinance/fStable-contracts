@@ -2,7 +2,7 @@ import { ethers } from "hardhat"
 import { expect } from "chai"
 
 import { simpleToExactAmount } from "@utils/math"
-import { MassetMachine, StandardAccounts } from "@utils/machines"
+import { FassetMachine, StandardAccounts } from "@utils/machines"
 
 import {
     MockBPool__factory,
@@ -17,7 +17,7 @@ import { MAX_UINT256, ZERO_ADDRESS } from "@utils/constants"
 
 describe("RevenueRecipient", () => {
     let sa: StandardAccounts
-    let mAssetMachine: MassetMachine
+    let fAssetMachine: FassetMachine
     let nexus: MockNexus
     let revenueRecipient: RevenueRecipient
     let mXYZ: MockERC20
@@ -25,8 +25,8 @@ describe("RevenueRecipient", () => {
     let bPool: MockBPool
 
     const runSetup = async (): Promise<void> => {
-        mXYZ = await mAssetMachine.loadBassetProxy("mStable XYZ", "mXYZ", 18)
-        BAL = await mAssetMachine.loadBassetProxy("Balance Gov Token", "BAL", 18)
+        mXYZ = await fAssetMachine.loadBassetProxy("mStable XYZ", "mXYZ", 18)
+        BAL = await fAssetMachine.loadBassetProxy("Balance Gov Token", "BAL", 18)
 
         nexus = await new MockNexus__factory(sa.default.signer).deploy(
             sa.governor.address,
@@ -45,8 +45,8 @@ describe("RevenueRecipient", () => {
 
     before("Init contract", async () => {
         const accounts = await ethers.getSigners()
-        mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        sa = mAssetMachine.sa
+        fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        sa = fAssetMachine.sa
 
         await runSetup()
     })
@@ -62,7 +62,7 @@ describe("RevenueRecipient", () => {
             expect(arg2).eq(BAL.address)
             expect(arg3).eq(simpleToExactAmount(99, 15))
         })
-        it("should give bPool permission to spend mAssets", async () => {
+        it("should give bPool permission to spend fAssets", async () => {
             const allowance = await mXYZ.allowance(revenueRecipient.address, bPool.address)
             expect(allowance).eq(MAX_UINT256)
         })
@@ -80,7 +80,7 @@ describe("RevenueRecipient", () => {
 
             const senderBalAfter = await mXYZ.balanceOf(sa.default.address)
             const revenueRecipientBalAfter = await mXYZ.balanceOf(revenueRecipient.address)
-            // check output balances: mAsset sender/recipient
+            // check output balances: fAsset sender/recipient
             expect(senderBalAfter).eq(senderBalBefore.sub(notificationAmount))
             expect(revenueRecipientBalAfter).eq(revenueRecipientBalBefore.add(notificationAmount))
         })
@@ -117,7 +117,7 @@ describe("RevenueRecipient", () => {
             const revenueRecipientBalAfter = await bPool.balanceOf(revenueRecipient.address)
             const bPoolSupplyAfter = await bPool.totalSupply()
             // check output balances
-            // 1. mAsset sender/recipient
+            // 1. fAsset sender/recipient
             expect(rawBalAfter).eq(rawBalBefore.div(2))
             expect(bPoolBalAfter).eq(bPoolBalBefore.add(expectedDeposit))
             // 2. bPool sender/receipient
@@ -141,7 +141,7 @@ describe("RevenueRecipient", () => {
             const revenueRecipientBalAfter = await bPool.balanceOf(revenueRecipient.address)
             const bPoolSupplyAfter = await bPool.totalSupply()
             // check output balances
-            // 1. mAsset sender/recipient
+            // 1. fAsset sender/recipient
             expect(rawBalAfter).eq(0)
             expect(bPoolBalAfter).eq(bPoolBalBefore.add(rawBalBefore))
             // 2. bPool sender/receipient
@@ -162,13 +162,13 @@ describe("RevenueRecipient", () => {
                 await expect(revenueRecipient.depositToPool([mXYZ.address], [simpleToExactAmount(9, 14)])).to.be.revertedWith("Invalid pct")
             })
             it("asset does not have minOut", async () => {
-                const mZZZ = await mAssetMachine.loadBassetProxy("mStable ZZZ", "mZZZ", 18)
+                const mZZZ = await fAssetMachine.loadBassetProxy("mStable ZZZ", "mZZZ", 18)
                 await expect(revenueRecipient.depositToPool([mZZZ.address], [simpleToExactAmount(8, 17)])).to.be.revertedWith(
                     "Invalid minout",
                 )
             })
-            it("mAsset does not exist (no approval for bPool)", async () => {
-                const mZZZ = await mAssetMachine.loadBassetProxy("mStable ZZZ", "mZZZ", 18)
+            it("fAsset does not exist (no approval for bPool)", async () => {
+                const mZZZ = await fAssetMachine.loadBassetProxy("mStable ZZZ", "mZZZ", 18)
                 await mZZZ.approve(revenueRecipient.address, simpleToExactAmount(100, 18))
                 await revenueRecipient.connect(sa.governor.signer).updateAmountOut(mZZZ.address, simpleToExactAmount(1))
                 await expect(revenueRecipient.depositToPool([mZZZ.address], [simpleToExactAmount(1, 18)])).to.be.revertedWith(
@@ -188,13 +188,13 @@ describe("RevenueRecipient", () => {
     describe("testing asset management", () => {
         describe("approving assets", () => {
             it("should approve assets for spending", async () => {
-                const mZZZ = await mAssetMachine.loadBassetProxy("mStable ZZZ", "mZZZ", 18)
+                const mZZZ = await fAssetMachine.loadBassetProxy("mStable ZZZ", "mZZZ", 18)
                 expect(await mZZZ.allowance(revenueRecipient.address, bPool.address)).eq(0)
                 await revenueRecipient.connect(sa.governor.signer).approveAsset(mZZZ.address)
                 expect(await mZZZ.allowance(revenueRecipient.address, bPool.address)).eq(MAX_UINT256)
             })
             it("should only allow gov to call", async () => {
-                const mZZZ = await mAssetMachine.loadBassetProxy("mStable ZZZ", "mZZZ", 18)
+                const mZZZ = await fAssetMachine.loadBassetProxy("mStable ZZZ", "mZZZ", 18)
                 await expect(revenueRecipient.connect(sa.default.signer).approveAsset(mZZZ.address)).to.be.revertedWith("Only governor")
             })
         })
@@ -240,8 +240,8 @@ describe("RevenueRecipient", () => {
             let weth: MockERC20
             let bPool2: MockBPool
             beforeEach(async () => {
-                mXYZ = await mAssetMachine.loadBassetProxy("mStable XYZ", "mXYZ", 18)
-                weth = await mAssetMachine.loadBassetProxy("mStable ZZZ", "weth", 18)
+                mXYZ = await fAssetMachine.loadBassetProxy("mStable XYZ", "mXYZ", 18)
+                weth = await fAssetMachine.loadBassetProxy("mStable ZZZ", "weth", 18)
 
                 // bPool takes weth and mXYZ and gives out mBPT
                 bPool = await new MockBPool__factory(sa.default.signer).deploy(
@@ -290,7 +290,7 @@ describe("RevenueRecipient", () => {
                 const revenueRecipientBalAfter = await bPool.balanceOf(revenueRecipient.address)
                 const bPoolSupplyAfter = await bPool.totalSupply()
                 // check output balances
-                // 1. mAsset sender/recipient
+                // 1. fAsset sender/recipient
                 expect(rawBalAfter).eq(0)
                 expect(bPoolBalAfter).eq(bPoolBalBefore.add(expectedWeth))
                 // 2. bPool sender/receipient
@@ -300,7 +300,7 @@ describe("RevenueRecipient", () => {
 
             describe("should fail if", () => {
                 it("asset does not have minOut", async () => {
-                    const mZZZ = await mAssetMachine.loadBassetProxy("mStable ZZZ", "mZZZ", 18)
+                    const mZZZ = await fAssetMachine.loadBassetProxy("mStable ZZZ", "mZZZ", 18)
                     await expect(
                         revenueRecipient
                             .connect(sa.governor.signer)

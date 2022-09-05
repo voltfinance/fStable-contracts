@@ -29,7 +29,7 @@ export interface BassetIntegrationDetails {
 
 export interface BassetDetails extends Basset {
     address: EthAddress
-    mAssetUnits: BN
+    fAssetUnits: BN
     actualBalance: BN
     rawBalance?: BN
     platformBalance?: BN

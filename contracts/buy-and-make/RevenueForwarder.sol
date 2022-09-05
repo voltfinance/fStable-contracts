@@ -16,49 +16,49 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 contract RevenueForwarder is IRevenueRecipient, ImmutableModule {
     using SafeERC20 for IERC20;
 
-    event RevenueReceived(address indexed mAsset, uint256 amountIn);
+    event RevenueReceived(address indexed fAsset, uint256 amountIn);
     event Withdrawn(uint256 amountOut);
     event SetForwarder(address indexed newForwarder);
 
-    IERC20 public immutable mAsset;
+    IERC20 public immutable fAsset;
 
     address public forwarder;
 
     constructor(
         address _nexus,
-        address _mAsset,
+        address _fAsset,
         address _forwarder
     ) ImmutableModule(_nexus) {
-        require(_mAsset != address(0), "mAsset is zero");
+        require(_fAsset != address(0), "fAsset is zero");
         require(_forwarder != address(0), "Forwarder is zero");
 
-        mAsset = IERC20(_mAsset);
+        fAsset = IERC20(_fAsset);
         forwarder = _forwarder;
     }
 
     /**
-     * @dev Simply transfers the mAsset from the sender to here
-     * @param _mAsset Address of mAsset
-     * @param _amount Units of mAsset collected
+     * @dev Simply transfers the fAsset from the sender to here
+     * @param _fAsset Address of fAsset
+     * @param _amount Units of fAsset collected
      */
-    function notifyRedistributionAmount(address _mAsset, uint256 _amount) external override {
-        require(_mAsset == address(mAsset), "Recipient is not mAsset");
+    function notifyRedistributionAmount(address _fAsset, uint256 _amount) external override {
+        require(_fAsset == address(fAsset), "Recipient is not fAsset");
         // Transfer from sender to here
-        IERC20(_mAsset).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(_fAsset).safeTransferFrom(msg.sender, address(this), _amount);
 
-        emit RevenueReceived(_mAsset, _amount);
+        emit RevenueReceived(_fAsset, _amount);
     }
 
     /**
      * @dev Withdraws to forwarder
      */
     function forward() external onlyKeeperOrGovernor {
-        uint256 amt = mAsset.balanceOf(address(this));
+        uint256 amt = fAsset.balanceOf(address(this));
         if (amt == 0) {
             return;
         }
 
-        mAsset.safeTransfer(forwarder, amt);
+        fAsset.safeTransfer(forwarder, amt);
 
         emit Withdrawn(amt);
     }
@@ -78,7 +78,7 @@ contract RevenueForwarder is IRevenueRecipient, ImmutableModule {
      * @dev Abstract override
      */
     function depositToPool(
-        address[] calldata, /* _mAssets */
+        address[] calldata, /* _fAssets */
         uint256[] calldata /* _percentages */
     ) external override {}
 }

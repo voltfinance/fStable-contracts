@@ -11,7 +11,7 @@ library YieldValidator {
     /**
      * @dev Validates that an interest collection does not exceed a maximum APY. If last collection
      * was under 30 mins ago, simply check it does not exceed 10bps
-     * @param _newSupply               New total supply of the mAsset
+     * @param _newSupply               New total supply of the fAsset
      * @param _interest                Increase in total supply since last collection
      * @param _timeSinceLastCollection Seconds since last collection
      */
@@ -27,7 +27,7 @@ library YieldValidator {
     /**
      * @dev Validates that an interest collection does not exceed a maximum APY. If last collection
      * was under 30 mins ago, simply check it does not exceed 10bps
-     * @param _newSupply               New total supply of the mAsset
+     * @param _newSupply               New total supply of the fAsset
      * @param _interest                Increase in total supply since last collection
      * @param _timeSinceLastCollection Seconds since last collection
      * @param _maxApy                  Max APY where 100% == 1e18

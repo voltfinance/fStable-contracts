@@ -10,7 +10,7 @@ import { BN, simpleToExactAmount } from "@utils/math"
 import { currentWeekEpoch, increaseTime } from "@utils/time"
 import { MAX_UINT256, ONE_DAY, ONE_WEEK } from "@utils/constants"
 import { assertBNClose } from "@utils/assertions"
-import { alUSD, BUSD, DAI, FEI, GUSD, mBTC, MTA, mUSD, PmUSD, RAI, USDC, WBTC } from "tasks/utils/tokens"
+import { alUSD, BUSD, DAI, FEI, GUSD, mBTC, MTA, fUSD, PfUSD, RAI, USDC, WBTC } from "tasks/utils/tokens"
 import {
     BridgeForwarder,
     BridgeForwarder__factory,
@@ -42,7 +42,7 @@ const keeperKey = keccak256(toUtf8Bytes("Keeper"))
 console.log(`Keeper ${keeperKey}`)
 
 const uniswapEthToken = resolveAddress("UniswapEthToken")
-const musdUniswapPath = encodeUniswapPath([USDC.address, uniswapEthToken, MTA.address], [3000, 3000])
+const fusdUniswapPath = encodeUniswapPath([USDC.address, uniswapEthToken, MTA.address], [3000, 3000])
 // const mbtcUniswapPath = encodeUniswapPath([WBTC.address, uniswapEthToken, MTA.address], [3000, 3000])
 const mbtcUniswapPath = encodeUniswapPath([WBTC.address, uniswapEthToken, DAI.address, MTA.address], [3000, 3000, 3000])
 
@@ -95,7 +95,7 @@ describe("Fork test Emissions Controller on mainnet", async () => {
 
             expect(await emissionsController.getDialRecipient(0), "dial 0 Staked MTA").to.eq("0x8f2326316eC696F6d023E37A9931c2b2C177a3D7")
             expect(await emissionsController.getDialRecipient(1), "dial 1 Staked mBPT").to.eq("0xeFbe22085D9f29863Cfb77EEd16d3cC0D927b011")
-            expect(await emissionsController.getDialRecipient(2), "dial 2 mUSD Vault").to.eq("0x78BefCa7de27d07DC6e71da295Cc2946681A6c7B")
+            expect(await emissionsController.getDialRecipient(2), "dial 2 fUSD Vault").to.eq("0x78BefCa7de27d07DC6e71da295Cc2946681A6c7B")
             expect(await emissionsController.getDialRecipient(3), "dial 3 mBTC Vault").to.eq("0xF38522f63f40f9Dd81aBAfD2B8EFc2EC958a3016")
             expect(await emissionsController.getDialRecipient(4), "dial 4 GUSD Vault").to.eq("0xAdeeDD3e5768F7882572Ad91065f93BA88343C99")
             expect(await emissionsController.getDialRecipient(5), "dial 5 BUSD Vault").to.eq("0xD124B55f70D374F58455c8AEdf308E52Cf2A6207")
@@ -146,7 +146,7 @@ describe("Fork test Emissions Controller on mainnet", async () => {
             expect(dial9Data.cap, "dial 10 cap").to.eq(0)
             expect(dial9Data.notify, "dial 10 notify").to.eq(true)
         })
-        it("Deploy bridgeForwarder for Polygon mUSD Vault", async () => {
+        it("Deploy bridgeForwarder for Polygon fUSD Vault", async () => {
             emissionsController = await deployEmissionsController(ops, hre)
             const bridgeRecipient = Wallet.createRandom()
             const bridgeForwarder = await deployBridgeForwarder(ops, hre, bridgeRecipient.address, true, emissionsController.address)
@@ -252,28 +252,28 @@ describe("Fork test Emissions Controller on mainnet", async () => {
             savingsManager = SavingsManager__factory.connect(resolveAddress("SavingsManager"), governor)
 
             revenueBuyBack = await RevenueBuyBack__factory.connect(resolveAddress("RevenueBuyBack"), ops)
-            await savingsManager.setRevenueRecipient(mUSD.address, revenueBuyBack.address)
+            await savingsManager.setRevenueRecipient(fUSD.address, revenueBuyBack.address)
             await savingsManager.setRevenueRecipient(mBTC.address, revenueBuyBack.address)
         })
-        context("buy back MTA using mUSD and mBTC", () => {
-            let musdToken: IERC20
+        context("buy back MTA using fUSD and mBTC", () => {
+            let fusdToken: IERC20
             let mbtcToken: IERC20
             let purchasedMTA: BN
 
             before(async () => {
-                musdToken = IERC20__factory.connect(mUSD.address, ops)
+                fusdToken = IERC20__factory.connect(fUSD.address, ops)
                 mbtcToken = IERC20__factory.connect(mBTC.address, ops)
 
-                await revenueBuyBack.connect(governor).setMassetConfig(
-                    mUSD.address,
+                await revenueBuyBack.connect(governor).setFassetConfig(
+                    fUSD.address,
                     USDC.address,
                     simpleToExactAmount(98, 4),
                     simpleToExactAmount(5, 29), // 2 MTA/USDC = 0.5 USDC/MTA
-                    musdUniswapPath.encoded,
+                    fusdUniswapPath.encoded,
                 )
                 await revenueBuyBack
                     .connect(governor)
-                    .setMassetConfig(
+                    .setFassetConfig(
                         mBTC.address,
                         WBTC.address,
                         simpleToExactAmount(98, 6),
@@ -281,12 +281,12 @@ describe("Fork test Emissions Controller on mainnet", async () => {
                         mbtcUniswapPath.encoded,
                     )
             })
-            it("Distribute unallocated mUSD in Savings Manager", async () => {
-                expect(await musdToken.balanceOf(revenueBuyBack.address), "mUSD bal before").to.eq(0)
+            it("Distribute unallocated fUSD in Savings Manager", async () => {
+                expect(await fusdToken.balanceOf(revenueBuyBack.address), "fUSD bal before").to.eq(0)
 
-                await savingsManager.distributeUnallocatedInterest(mUSD.address)
+                await savingsManager.distributeUnallocatedInterest(fUSD.address)
 
-                expect(await musdToken.balanceOf(revenueBuyBack.address), "mUSD bal after").to.gt(0)
+                expect(await fusdToken.balanceOf(revenueBuyBack.address), "fUSD bal after").to.gt(0)
             })
             it("Distribute unallocated mBTC in Savings Manager", async () => {
                 expect(await mbtcToken.balanceOf(revenueBuyBack.address), "mBTC bal before").to.eq(0)
@@ -295,12 +295,12 @@ describe("Fork test Emissions Controller on mainnet", async () => {
 
                 expect(await mbtcToken.balanceOf(revenueBuyBack.address), "mBTC bal after").to.gt(0)
             })
-            it("Buy back MTA using mUSD and mBTC", async () => {
+            it("Buy back MTA using fUSD and mBTC", async () => {
                 expect(await mta.balanceOf(revenueBuyBack.address), "RBB MTA bal before").to.lte(0)
 
-                await revenueBuyBack.buyBackRewards([mUSD.address, mBTC.address])
+                await revenueBuyBack.buyBackRewards([fUSD.address, mBTC.address])
 
-                expect(await musdToken.balanceOf(revenueBuyBack.address), "mUSD bal after").to.eq(0)
+                expect(await fusdToken.balanceOf(revenueBuyBack.address), "fUSD bal after").to.eq(0)
                 expect(await mbtcToken.balanceOf(revenueBuyBack.address), "mBTC bal after").to.eq(0)
 
                 purchasedMTA = await mta.balanceOf(revenueBuyBack.address)
@@ -319,7 +319,7 @@ describe("Fork test Emissions Controller on mainnet", async () => {
     })
     describe("calculate rewards", async () => {
         let savingsManager: SavingsManager
-        let musdToken: IERC20
+        let fusdToken: IERC20
         let mbtcToken: IERC20
         let purchasedMTA: BN
 
@@ -327,28 +327,28 @@ describe("Fork test Emissions Controller on mainnet", async () => {
             await setup(13811580)
 
             savingsManager = SavingsManager__factory.connect(resolveAddress("SavingsManager"), governor)
-            await savingsManager.collectAndDistributeInterest(mUSD.address)
+            await savingsManager.collectAndDistributeInterest(fUSD.address)
             await savingsManager.collectAndDistributeInterest(mBTC.address)
 
-            musdToken = IERC20__factory.connect(mUSD.address, ops)
+            fusdToken = IERC20__factory.connect(fUSD.address, ops)
             mbtcToken = IERC20__factory.connect(mBTC.address, ops)
         })
-        // context("buy back MTA using mUSD", () => {
-        it("Distribute unallocated mUSD in Savings Manager", async () => {
-            expect(await musdToken.balanceOf(revenueBuyBack.address), "mUSD bal before").to.eq(0)
+        // context("buy back MTA using fUSD", () => {
+        it("Distribute unallocated fUSD in Savings Manager", async () => {
+            expect(await fusdToken.balanceOf(revenueBuyBack.address), "fUSD bal before").to.eq(0)
 
-            await savingsManager.distributeUnallocatedInterest(mUSD.address)
+            await savingsManager.distributeUnallocatedInterest(fUSD.address)
 
-            const musdBalAfter = await musdToken.balanceOf(revenueBuyBack.address)
-            console.log(`mUSD to sell ${usdFormatter(musdBalAfter)}`)
-            expect(musdBalAfter, "mUSD bal after").to.gt(0)
+            const fusdBalAfter = await fusdToken.balanceOf(revenueBuyBack.address)
+            console.log(`fUSD to sell ${usdFormatter(fusdBalAfter)}`)
+            expect(fusdBalAfter, "fUSD bal after").to.gt(0)
         })
-        it("Buy back MTA using mUSD", async () => {
+        it("Buy back MTA using fUSD", async () => {
             expect(await mta.balanceOf(revenueBuyBack.address), "RBB MTA bal before").to.eq(0)
 
-            await revenueBuyBack.buyBackRewards([mUSD.address])
+            await revenueBuyBack.buyBackRewards([fUSD.address])
 
-            expect(await musdToken.balanceOf(revenueBuyBack.address), "mUSD bal after").to.eq(0)
+            expect(await fusdToken.balanceOf(revenueBuyBack.address), "fUSD bal after").to.eq(0)
             purchasedMTA = await mta.balanceOf(revenueBuyBack.address)
             expect(purchasedMTA, "RBB MTA bal after").to.gt(0)
         })
@@ -407,10 +407,10 @@ describe("Fork test Emissions Controller on mainnet", async () => {
             const distributionAmounts: BN[] = receipt.events[0].args.amounts
             console.log(`MTA staking amount: ${usdFormatter(distributionAmounts[0])}`)
             console.log(`mBPT staking amount: ${usdFormatter(distributionAmounts[1])}`)
-            console.log(`mUSD Vault amount: ${usdFormatter(distributionAmounts[2])}`)
+            console.log(`fUSD Vault amount: ${usdFormatter(distributionAmounts[2])}`)
             console.log(`mBTC Vault amount: ${usdFormatter(distributionAmounts[3])}`)
             console.log(`GUSD FP Vault amount: ${usdFormatter(distributionAmounts[4])}`)
-            console.log(`Polygon mUSD Vault amount: ${usdFormatter(distributionAmounts[11])}`)
+            console.log(`Polygon fUSD Vault amount: ${usdFormatter(distributionAmounts[11])}`)
             console.log(`Polygon FRAX amount: ${usdFormatter(distributionAmounts[12])}`)
             console.log(`Polygon Balancer amount: ${usdFormatter(distributionAmounts[13])}`)
             console.log(`Treasury amount: ${usdFormatter(distributionAmounts[14])}`)
@@ -543,7 +543,7 @@ describe("Fork test Emissions Controller on mainnet", async () => {
                         simpleToExactAmount(16000),
                     ],
                 )
-            bridgeForwarder = BridgeForwarder__factory.connect(PmUSD.bridgeForwarder, ops)
+            bridgeForwarder = BridgeForwarder__factory.connect(PfUSD.bridgeForwarder, ops)
         })
         it("distribute rewards to staking contracts", async () => {
             const tx = await emissionsController.distributeRewards([0, 1])
@@ -582,11 +582,11 @@ describe("Fork test Emissions Controller on mainnet", async () => {
             expect(await mta.balanceOf(bridgeForwarder.address), "bridge forwarder MAT bal after").to.eq(0)
         })
     })
-    describe("Buy back MTA using mUSD and mBTC revenue", () => {
+    describe("Buy back MTA using fUSD and mBTC revenue", () => {
         let savingsManager: SavingsManager
 
-        // mUSD using the USDC ETH MTA path
-        // mUSD 21,053.556530642849297881
+        // fUSD using the USDC ETH MTA path
+        // fUSD 21,053.556530642849297881
         // USDC 21,057.018162
         // MTA  11,189.215231409728410490
         // 11,189e18 MTA / 21,057e6 USDC = 1.88e-12 MTA/USDC * 1e18 = 1.88e6
@@ -603,14 +603,14 @@ describe("Fork test Emissions Controller on mainnet", async () => {
             await setup(13808130)
 
             savingsManager = SavingsManager__factory.connect(resolveAddress("SavingsManager"), governor)
-            await savingsManager.setRevenueRecipient(mUSD.address, revenueBuyBack.address)
+            await savingsManager.setRevenueRecipient(fUSD.address, revenueBuyBack.address)
             await savingsManager.setRevenueRecipient(mBTC.address, revenueBuyBack.address)
         })
         it("check Uniswap USDC to MTA price", async () => {
             const uniswapQuoterAddress = resolveAddress("UniswapQuoterV3")
             const uniswapQuoter = IUniswapV3Quoter__factory.connect(uniswapQuoterAddress, ops)
             const mtaAmount = await uniswapQuoter.callStatic.quoteExactInput(
-                musdUniswapPath.encoded,
+                fusdUniswapPath.encoded,
                 simpleToExactAmount(10000, USDC.decimals),
             )
             console.log(`${usdFormatter(mtaAmount)} MTA (${usdFormatter(mtaAmount.div(10000))} USDC/MTA)`)
@@ -628,16 +628,16 @@ describe("Fork test Emissions Controller on mainnet", async () => {
             before(async () => {
                 await revenueBuyBack
                     .connect(governor)
-                    .setMassetConfig(
-                        mUSD.address,
+                    .setFassetConfig(
+                        fUSD.address,
                         USDC.address,
                         simpleToExactAmount(98, 4),
                         simpleToExactAmount(5, 29),
-                        musdUniswapPath.encoded,
+                        fusdUniswapPath.encoded,
                     )
                 await revenueBuyBack
                     .connect(governor)
-                    .setMassetConfig(
+                    .setFassetConfig(
                         mBTC.address,
                         WBTC.address,
                         simpleToExactAmount(98, 6),
@@ -645,31 +645,31 @@ describe("Fork test Emissions Controller on mainnet", async () => {
                         mbtcUniswapPath.encoded,
                     )
             })
-            context("mUSD", () => {
+            context("fUSD", () => {
                 before(async () => {
-                    await savingsManager.distributeUnallocatedInterest(mUSD.address)
+                    await savingsManager.distributeUnallocatedInterest(fUSD.address)
                 })
-                it("as minMasset2BassetPrice is too high", async () => {
-                    await revenueBuyBack.connect(governor).setMassetConfig(
-                        mUSD.address,
+                it("as minFasset2BassetPrice is too high", async () => {
+                    await revenueBuyBack.connect(governor).setFassetConfig(
+                        fUSD.address,
                         USDC.address,
                         simpleToExactAmount(102, 4), // min 1.02 USDC from 1 MTA
                         simpleToExactAmount(8, 29),
-                        musdUniswapPath.encoded,
+                        fusdUniswapPath.encoded,
                     )
-                    const tx = revenueBuyBack.buyBackRewards([mUSD.address])
+                    const tx = revenueBuyBack.buyBackRewards([fUSD.address])
                     await expect(tx).to.revertedWith("bAsset qty < min qty")
                     expect(await mta.balanceOf(revenueBuyBack.address), "RevenueBuyBack MTA bal after").to.eq(0)
                 })
                 it("as minBasset2RewardsPrice is too high", async () => {
-                    await revenueBuyBack.connect(governor).setMassetConfig(
-                        mUSD.address,
+                    await revenueBuyBack.connect(governor).setFassetConfig(
+                        fUSD.address,
                         USDC.address,
                         simpleToExactAmount(98, 4),
                         simpleToExactAmount(12, 29), // min 1.2 MTA for 1 USDC to 30 decimal places
-                        musdUniswapPath.encoded,
+                        fusdUniswapPath.encoded,
                     )
-                    const tx = revenueBuyBack.buyBackRewards([mUSD.address])
+                    const tx = revenueBuyBack.buyBackRewards([fUSD.address])
                     await expect(tx).to.revertedWith("Too little received")
                     expect(await mta.balanceOf(revenueBuyBack.address), "RevenueBuyBack MTA bal after").to.eq(0)
                 })
@@ -678,8 +678,8 @@ describe("Fork test Emissions Controller on mainnet", async () => {
                 before(async () => {
                     await savingsManager.distributeUnallocatedInterest(mBTC.address)
                 })
-                it("as minMasset2BassetPrice is too high", async () => {
-                    await revenueBuyBack.connect(governor).setMassetConfig(
+                it("as minFasset2BassetPrice is too high", async () => {
+                    await revenueBuyBack.connect(governor).setFassetConfig(
                         mBTC.address,
                         WBTC.address,
                         simpleToExactAmount(101, 6), // 1.01
@@ -691,7 +691,7 @@ describe("Fork test Emissions Controller on mainnet", async () => {
                     expect(await mta.balanceOf(revenueBuyBack.address), "RevenueBuyBack MTA bal after").to.eq(0)
                 })
                 it("as minBasset2RewardsPrice is too high", async () => {
-                    await revenueBuyBack.connect(governor).setMassetConfig(
+                    await revenueBuyBack.connect(governor).setFassetConfig(
                         mBTC.address,
                         WBTC.address,
                         simpleToExactAmount(98, 6),
@@ -708,16 +708,16 @@ describe("Fork test Emissions Controller on mainnet", async () => {
             before(async () => {
                 await revenueBuyBack
                     .connect(governor)
-                    .setMassetConfig(
-                        mUSD.address,
+                    .setFassetConfig(
+                        fUSD.address,
                         USDC.address,
                         simpleToExactAmount(98, 4),
                         simpleToExactAmount(5, 29),
-                        musdUniswapPath.encoded,
+                        fusdUniswapPath.encoded,
                     )
                 await revenueBuyBack
                     .connect(governor)
-                    .setMassetConfig(
+                    .setFassetConfig(
                         mBTC.address,
                         WBTC.address,
                         simpleToExactAmount(98, 6),
@@ -726,14 +726,14 @@ describe("Fork test Emissions Controller on mainnet", async () => {
                     )
 
                 savingsManager = SavingsManager__factory.connect(resolveAddress("SavingsManager"), governor)
-                await savingsManager.setRevenueRecipient(mUSD.address, revenueBuyBack.address)
+                await savingsManager.setRevenueRecipient(fUSD.address, revenueBuyBack.address)
                 await savingsManager.setRevenueRecipient(mBTC.address, revenueBuyBack.address)
             })
-            it("buy rewards from mUSD", async () => {
-                const tx = await savingsManager.distributeUnallocatedInterest(mUSD.address)
+            it("buy rewards from fUSD", async () => {
+                const tx = await savingsManager.distributeUnallocatedInterest(fUSD.address)
                 await expect(tx).to.emit(revenueBuyBack, "RevenueReceived")
 
-                const tx2 = await revenueBuyBack.buyBackRewards([mUSD.address])
+                const tx2 = await revenueBuyBack.buyBackRewards([fUSD.address])
                 await expect(tx2).to.emit(revenueBuyBack, "BuyBackRewards")
                 expect(await mta.balanceOf(revenueBuyBack.address), "RevenueBuyBack MTA bal after").to.gt(0)
             })
@@ -756,13 +756,13 @@ describe("Fork test Emissions Controller on mainnet", async () => {
             savingsManager = SavingsManager__factory.connect(resolveAddress("SavingsManager"), governor)
             revenueBuyBack = await RevenueBuyBack__factory.connect(resolveAddress("RevenueBuyBack"), ops)
         })
-        context("buy back MTA using mUSD and mBTC", () => {
-            let musdToken: IERC20
+        context("buy back MTA using fUSD and mBTC", () => {
+            let fusdToken: IERC20
             let mbtcToken: IERC20
             let purchasedMTA: BN
 
             before(async () => {
-                musdToken = IERC20__factory.connect(mUSD.address, ops)
+                fusdToken = IERC20__factory.connect(fUSD.address, ops)
                 mbtcToken = IERC20__factory.connect(mBTC.address, ops)
             })
             it.skip("collect Feeder Pool gov fees", async () => {
@@ -771,35 +771,35 @@ describe("Fork test Emissions Controller on mainnet", async () => {
             })
             it("Transfer gov fees to revenue buy back", async () => {
                 console.log("After feeder pool gov fees collected")
-                console.log(`mUSD bal in RevenueBuyBack before: ${usdFormatter(await musdToken.balanceOf(revenueBuyBack.address))}`)
+                console.log(`fUSD bal in RevenueBuyBack before: ${usdFormatter(await fusdToken.balanceOf(revenueBuyBack.address))}`)
                 console.log(`mBTC bal in RevenueBuyBack before: ${btcFormatter(await mbtcToken.balanceOf(revenueBuyBack.address))}`)
 
-                await savingsManager.distributeUnallocatedInterest(mUSD.address)
+                await savingsManager.distributeUnallocatedInterest(fUSD.address)
                 await savingsManager.distributeUnallocatedInterest(mBTC.address)
 
-                console.log(`mUSD bal in RevenueBuyBack after: ${usdFormatter(await musdToken.balanceOf(revenueBuyBack.address))}`)
+                console.log(`fUSD bal in RevenueBuyBack after: ${usdFormatter(await fusdToken.balanceOf(revenueBuyBack.address))}`)
                 console.log(`mBTC bal in RevenueBuyBack after: ${btcFormatter(await mbtcToken.balanceOf(revenueBuyBack.address))}`)
             })
             it("Transfer gov fees to revenue buy back", async () => {
-                console.log("After mAsset interest collected and streamed")
-                console.log(`mUSD bal in RevenueBuyBack before: ${usdFormatter(await musdToken.balanceOf(revenueBuyBack.address))}`)
+                console.log("After fAsset interest collected and streamed")
+                console.log(`fUSD bal in RevenueBuyBack before: ${usdFormatter(await fusdToken.balanceOf(revenueBuyBack.address))}`)
                 console.log(`mBTC bal in RevenueBuyBack before: ${btcFormatter(await mbtcToken.balanceOf(revenueBuyBack.address))}`)
 
-                await savingsManager.collectAndStreamInterest(mUSD.address)
+                await savingsManager.collectAndStreamInterest(fUSD.address)
                 await savingsManager.collectAndStreamInterest(mBTC.address)
 
-                await savingsManager.distributeUnallocatedInterest(mUSD.address)
+                await savingsManager.distributeUnallocatedInterest(fUSD.address)
                 await savingsManager.distributeUnallocatedInterest(mBTC.address)
 
-                console.log(`mUSD bal in RevenueBuyBack after: ${usdFormatter(await musdToken.balanceOf(revenueBuyBack.address))}`)
+                console.log(`fUSD bal in RevenueBuyBack after: ${usdFormatter(await fusdToken.balanceOf(revenueBuyBack.address))}`)
                 console.log(`mBTC bal in RevenueBuyBack after: ${btcFormatter(await mbtcToken.balanceOf(revenueBuyBack.address))}`)
             })
-            it("Buy back MTA using mUSD and mBTC", async () => {
+            it("Buy back MTA using fUSD and mBTC", async () => {
                 expect(await mta.balanceOf(revenueBuyBack.address), "RBB MTA bal before").to.lte(1)
 
-                await revenueBuyBack.buyBackRewards([mUSD.address, mBTC.address])
+                await revenueBuyBack.buyBackRewards([fUSD.address, mBTC.address])
 
-                expect(await musdToken.balanceOf(revenueBuyBack.address), "mUSD bal after").to.eq(0)
+                expect(await fusdToken.balanceOf(revenueBuyBack.address), "fUSD bal after").to.eq(0)
                 expect(await mbtcToken.balanceOf(revenueBuyBack.address), "mBTC bal after").to.eq(0)
 
                 purchasedMTA = await mta.balanceOf(revenueBuyBack.address)
@@ -830,10 +830,10 @@ describe("Fork test Emissions Controller on mainnet", async () => {
                 const distributionAmounts: BN[] = receipt.events[0].args.amounts
                 console.log(`MTA staking amount: ${usdFormatter(distributionAmounts[0])}`)
                 console.log(`mBPT staking amount: ${usdFormatter(distributionAmounts[1])}`)
-                console.log(`mUSD Vault amount: ${usdFormatter(distributionAmounts[2])}`)
+                console.log(`fUSD Vault amount: ${usdFormatter(distributionAmounts[2])}`)
                 console.log(`mBTC Vault amount: ${usdFormatter(distributionAmounts[3])}`)
                 console.log(`GUSD FP Vault amount: ${usdFormatter(distributionAmounts[4])}`)
-                console.log(`Polygon mUSD Vault amount: ${usdFormatter(distributionAmounts[11])}`)
+                console.log(`Polygon fUSD Vault amount: ${usdFormatter(distributionAmounts[11])}`)
                 console.log(`Polygon FRAX amount: ${usdFormatter(distributionAmounts[12])}`)
                 console.log(`Polygon Balancer amount: ${usdFormatter(distributionAmounts[13])}`)
                 console.log(`Treasury amount: ${usdFormatter(distributionAmounts[14])}`)

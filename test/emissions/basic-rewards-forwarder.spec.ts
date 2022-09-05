@@ -2,7 +2,7 @@ import { ethers } from "hardhat"
 import { expect } from "chai"
 
 import { simpleToExactAmount } from "@utils/math"
-import { MassetMachine, StandardAccounts } from "@utils/machines"
+import { FassetMachine, StandardAccounts } from "@utils/machines"
 
 import { MockNexus__factory, MockNexus, BasicRewardsForwarder, BasicRewardsForwarder__factory, MockERC20 } from "types/generated"
 import { MAX_UINT256, ZERO_ADDRESS } from "@utils/constants"
@@ -11,7 +11,7 @@ import { Account } from "types/common"
 
 describe("BasicRewardsForwarder", () => {
     let sa: StandardAccounts
-    let mAssetMachine: MassetMachine
+    let fAssetMachine: FassetMachine
     let nexus: MockNexus
     let rewardsToken: MockERC20
     let endRecipientAddress: string
@@ -21,7 +21,7 @@ describe("BasicRewardsForwarder", () => {
 
     /*
         Test Data
-        mAssets: mUSD and mBTC with 18 decimals
+        fAssets: fUSD and mBTC with 18 decimals
      */
     const setup = async (): Promise<void> => {
         // Deploy mock Nexus
@@ -31,7 +31,7 @@ describe("BasicRewardsForwarder", () => {
             sa.mockInterestValidator.address,
         )
 
-        rewardsToken = await mAssetMachine.loadBassetProxy("Rewards Token", "RWD", 18)
+        rewardsToken = await fAssetMachine.loadBassetProxy("Rewards Token", "RWD", 18)
         owner = sa.dummy1
         emissionsController = sa.dummy2
         endRecipientAddress = Wallet.createRandom().address
@@ -46,8 +46,8 @@ describe("BasicRewardsForwarder", () => {
 
     before(async () => {
         const accounts = await ethers.getSigners()
-        mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        sa = mAssetMachine.sa
+        fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        sa = fAssetMachine.sa
 
         await setup()
     })
@@ -87,7 +87,7 @@ describe("BasicRewardsForwarder", () => {
 
             await expect(tx).to.emit(forwarder, "RewardsReceived").withArgs(notificationAmount)
 
-            // check output balances: mAsset sender/recipient
+            // check output balances: fAsset sender/recipient
             expect(await rewardsToken.balanceOf(endRecipientAddress), "end recipient bal after").eq(
                 endRecipientBalBefore.add(notificationAmount),
             )

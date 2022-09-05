@@ -4,7 +4,7 @@ import { expect } from "chai"
 import { assertBNSlightlyGT, assertBNSlightlyGTPercent, assertBNClose } from "@utils/assertions"
 import { simpleToExactAmount, BN } from "@utils/math"
 import { increaseTime } from "@utils/time"
-import { MassetMachine, StandardAccounts } from "@utils/machines"
+import { FassetMachine, StandardAccounts } from "@utils/machines"
 import { MAX_UINT256, ZERO_ADDRESS, TEN_MINS, DEAD_ADDRESS } from "@utils/constants"
 import {
     MockNexus__factory,
@@ -23,10 +23,10 @@ import { shouldBehaveLikeModule, IModuleBehaviourContext } from "../../shared/Mo
 
 describe("AaveIntegration", async () => {
     let sa: StandardAccounts
-    let mAssetMachine: MassetMachine
+    let fAssetMachine: FassetMachine
 
     let nexus: MockNexus
-    let mAsset: Account
+    let fAsset: Account
 
     let integrationDetails: BassetIntegrationDetails
     let aaveIntegration: AaveV2Integration
@@ -42,11 +42,11 @@ describe("AaveIntegration", async () => {
             sa.mockInterestValidator.address,
         )
         // Load network specific integration data
-        integrationDetails = await mAssetMachine.loadBassetsLocal(true, enableUSDTFee, mAsset.address)
+        integrationDetails = await fAssetMachine.loadBassetsLocal(true, enableUSDTFee, fAsset.address)
         // Initialize the proxy
         aaveIntegration = await new AaveV2Integration__factory(sa.default.signer).deploy(
             nexus.address,
-            mAsset.address,
+            fAsset.address,
             integrationDetails.aavePlatformAddress,
             DEAD_ADDRESS,
         )
@@ -59,14 +59,14 @@ describe("AaveIntegration", async () => {
                 await Promise.all(
                     integrationDetails.aTokens.map(async ({ bAsset }) => {
                         // Step 0. Choose tokens
-                        const b1 = await new MockERC20__factory(mAsset.signer).attach(bAsset)
+                        const b1 = await new MockERC20__factory(fAsset.signer).attach(bAsset)
                         const decimals = BN.from(await b1.decimals())
                         const amount = BN.from(enableUSDTFee ? 101 : 100).mul(BN.from(10).pow(decimals.sub(BN.from(1))))
                         const amountD = BN.from(100).mul(BN.from(10).pow(decimals.sub(BN.from(1))))
                         // Step 1. xfer tokens to integration
                         await b1.transfer(aaveIntegration.address, amount.toString())
                         // Step 2. call deposit
-                        return aaveIntegration.connect(mAsset.signer).deposit(bAsset, amountD.toString(), true)
+                        return aaveIntegration.connect(fAsset.signer).deposit(bAsset, amountD.toString(), true)
                     }),
                 )
             }
@@ -75,9 +75,9 @@ describe("AaveIntegration", async () => {
 
     before("Init contract", async () => {
         const accounts = await ethers.getSigners()
-        mAssetMachine = await new MassetMachine().initAccounts(accounts)
-        sa = mAssetMachine.sa
-        mAsset = sa.default
+        fAssetMachine = await new FassetMachine().initAccounts(accounts)
+        sa = fAssetMachine.sa
+        fAsset = sa.default
 
         await runSetup()
     })
@@ -95,14 +95,14 @@ describe("AaveIntegration", async () => {
         it("should properly store valid arguments", async () => {
             // Check for nexus addr
             expect(await aaveIntegration.nexus()).eq(nexus.address)
-            expect(await aaveIntegration.lpAddress()).eq(mAsset.address)
+            expect(await aaveIntegration.lpAddress()).eq(fAsset.address)
             // check for platform addr
             expect(await aaveIntegration.platformAddress()).eq(integrationDetails.aavePlatformAddress) // check for pTokens added & events
             expect(integrationDetails.aTokens[0].aToken).eq(await aaveIntegration.bAssetToPToken(integrationDetails.aTokens[0].bAsset))
             expect(integrationDetails.aTokens[1].aToken).eq(await aaveIntegration.bAssetToPToken(integrationDetails.aTokens[1].bAsset))
         })
 
-        it("should fail when mAsset address invalid", async () => {
+        it("should fail when fAsset address invalid", async () => {
             await expect(
                 new AaveV2Integration__factory(sa.default.signer).deploy(
                     nexus.address,
@@ -126,7 +126,7 @@ describe("AaveIntegration", async () => {
 
         it("should fail if passed incorrect data", async () => {
             await expect(
-                new AaveV2Integration__factory(sa.default.signer).deploy(nexus.address, mAsset.address, ZERO_ADDRESS, DEAD_ADDRESS),
+                new AaveV2Integration__factory(sa.default.signer).deploy(nexus.address, fAsset.address, ZERO_ADDRESS, DEAD_ADDRESS),
             ).to.be.revertedWith("Invalid platform address")
         })
     })
@@ -250,7 +250,7 @@ describe("AaveIntegration", async () => {
             await bAsset.transfer(aaveIntegration.address, amount.toString())
 
             // Step 2. call deposit
-            const tx = aaveIntegration.connect(mAsset.signer).deposit(bAsset.address, amount.toString(), false)
+            const tx = aaveIntegration.connect(fAsset.signer).deposit(bAsset.address, amount.toString(), false)
 
             // Step 3. Check for things:
             // 3.0 Check that return value is cool (via event)
@@ -308,7 +308,7 @@ describe("AaveIntegration", async () => {
             const expectedDeposit = receivedAmount.sub(receivedAmount.mul(feeRate).div(simpleToExactAmount(1)))
 
             // Step 2. call deposit
-            await aaveIntegration.connect(mAsset.signer).deposit(bAsset.address, receivedAmount.toString(), true)
+            await aaveIntegration.connect(fAsset.signer).deposit(bAsset.address, receivedAmount.toString(), true)
 
             // Step 3. Check for things:
             const aaveIntegrationBalAfter = await aToken.balanceOf(aaveIntegration.address)
@@ -336,7 +336,7 @@ describe("AaveIntegration", async () => {
             const amount = BN.from(10).pow(BN.from(12))
 
             // Step 1. call deposit
-            await expect(aaveIntegration.connect(mAsset.signer).deposit(bAsset.address, amount.toString(), false)).to.be.revertedWith(
+            await expect(aaveIntegration.connect(fAsset.signer).deposit(bAsset.address, amount.toString(), false)).to.be.revertedWith(
                 "aToken does not exist",
             )
         })
@@ -347,7 +347,7 @@ describe("AaveIntegration", async () => {
             await new MockATokenV2__factory(sa.default.signer).attach(integrationDetails.aTokens[0].aToken)
 
             // Step 2. call deposit
-            await expect(aaveIntegration.connect(mAsset.signer).deposit(bAsset.address, amount.toString(), false)).to.be.revertedWith(
+            await expect(aaveIntegration.connect(fAsset.signer).deposit(bAsset.address, amount.toString(), false)).to.be.revertedWith(
                 "ERC20: transfer amount exceeds balance",
             )
         })
@@ -363,7 +363,7 @@ describe("AaveIntegration", async () => {
             await bAsset.transfer(aaveIntegration.address, amount.toString())
             expect(await bAsset.balanceOf(aaveIntegration.address)).lte(amount)
             // Step 2. call deposit with high tokens
-            await expect(aaveIntegration.connect(mAsset.signer).deposit(bAsset.address, amountHigh.toString(), false)).to.be.revertedWith(
+            await expect(aaveIntegration.connect(fAsset.signer).deposit(bAsset.address, amountHigh.toString(), false)).to.be.revertedWith(
                 "ERC20: transfer amount exceeds balance",
             )
         })
@@ -387,15 +387,15 @@ describe("AaveIntegration", async () => {
             await bAsset.transfer(aaveIntegration.address, amount.toString())
 
             // Fails with ZERO bAsset Address
-            await expect(aaveIntegration.connect(mAsset.signer).deposit(ZERO_ADDRESS, amount.toString(), false)).to.be.revertedWith(
+            await expect(aaveIntegration.connect(fAsset.signer).deposit(ZERO_ADDRESS, amount.toString(), false)).to.be.revertedWith(
                 "aToken does not exist",
             )
             // Fails with ZERO Amount
-            await expect(aaveIntegration.connect(mAsset.signer).deposit(bAsset.address, "0", false)).to.be.revertedWith(
+            await expect(aaveIntegration.connect(fAsset.signer).deposit(bAsset.address, "0", false)).to.be.revertedWith(
                 "Must deposit something",
             )
             // Succeeds with Incorrect bool (defaults to false)
-            await aaveIntegration.connect(mAsset.signer).deposit(bAsset.address, amount.toString(), undefined)
+            await aaveIntegration.connect(fAsset.signer).deposit(bAsset.address, amount.toString(), undefined)
 
             // Step 3. Check for things:
             // 3.1 Check that lending pool has bAssets
@@ -417,7 +417,7 @@ describe("AaveIntegration", async () => {
             const bAsset = await new MockERC20__factory(sa.default.signer).attach(integrationDetails.aTokens[1].bAsset)
             await bAsset.transfer(aaveIntegration.address, "1")
             // Fails with ZERO Amount
-            await expect(aaveIntegration.connect(mAsset.signer).deposit(bAsset.address, "1", false)).to.be.revertedWith(
+            await expect(aaveIntegration.connect(fAsset.signer).deposit(bAsset.address, "1", false)).to.be.revertedWith(
                 "Lending pool does not exist",
             )
         })
@@ -561,7 +561,7 @@ describe("AaveIntegration", async () => {
         })
         it("should fail if the bAsset is not supported", async () => {
             // Step 0. Choose tokens
-            const bAsset = await mAssetMachine.loadBassetProxy("MK", "MK", 12)
+            const bAsset = await fAssetMachine.loadBassetProxy("MK", "MK", 12)
             const amount = BN.from(10).pow(BN.from(12))
 
             // Step 1. call withdraw
@@ -589,7 +589,7 @@ describe("AaveIntegration", async () => {
                 const aaveIntegrationBalBefore = await bAsset.balanceOf(aaveIntegration.address)
                 const aaveBalanceBefore = await aaveIntegration.callStatic.checkBalance(bAsset.address)
 
-                // fail if called by non Bm or mAsset
+                // fail if called by non Bm or fAsset
                 await expect(
                     aaveIntegration
                         .connect(sa.dummy1.signer)
@@ -650,7 +650,7 @@ describe("AaveIntegration", async () => {
                 aaveIntegration.connect(sa.dummy1.signer).withdrawRaw(sa.dummy3.address, bAsset.address, BN.from(1)),
             ).to.be.revertedWith("Only the LP can execute")
         })
-        it("should allow the mAsset or BM to withdraw a given bAsset", async () => {
+        it("should allow the fAsset or BM to withdraw a given bAsset", async () => {
             const bAsset = await new MockERC20__factory(sa.default.signer).attach(integrationDetails.aTokens[0].bAsset)
             const bAssetDecimals = await bAsset.decimals()
             const amount = simpleToExactAmount(5, bAssetDecimals)
@@ -662,7 +662,7 @@ describe("AaveIntegration", async () => {
             const aaveIntegrationBalBefore = await bAsset.balanceOf(aaveIntegration.address)
             const aaveBalanceBefore = await aaveIntegration.callStatic.checkBalance(bAsset.address)
 
-            await aaveIntegration.connect(mAsset.signer).withdrawRaw(bAssetRecipient, bAsset.address, amount)
+            await aaveIntegration.connect(fAsset.signer).withdrawRaw(bAssetRecipient, bAsset.address, amount)
 
             const bAssetRecipientBalAfter = await bAsset.balanceOf(bAssetRecipient)
             const aaveIntegrationBalAfter = await bAsset.balanceOf(aaveIntegration.address)
@@ -683,13 +683,13 @@ describe("AaveIntegration", async () => {
         it("should fail if there is no balance in a given asset", async () => {
             const bAsset = await new MockERC20__factory(sa.default.signer).attach(integrationDetails.aTokens[0].bAsset)
             await expect(
-                aaveIntegration.connect(mAsset.signer).withdrawRaw(sa.dummy3.address, bAsset.address, BN.from(1)),
+                aaveIntegration.connect(fAsset.signer).withdrawRaw(sa.dummy3.address, bAsset.address, BN.from(1)),
             ).to.be.revertedWith("ERC20: transfer amount exceeds balance")
         })
         it("should fail if specified a 0 amount", async () => {
             const bAsset = await new MockERC20__factory(sa.default.signer).attach(integrationDetails.aTokens[0].bAsset)
             await expect(
-                aaveIntegration.connect(mAsset.signer).withdrawRaw(sa.dummy3.address, bAsset.address, BN.from(0)),
+                aaveIntegration.connect(fAsset.signer).withdrawRaw(sa.dummy3.address, bAsset.address, BN.from(0)),
             ).to.be.revertedWith("Must withdraw something")
         })
     })
@@ -707,7 +707,7 @@ describe("AaveIntegration", async () => {
         })
 
         it("should fail if called with inactive token", async () => {
-            const bAsset = await mAssetMachine.loadBassetProxy("MK", "MK1", 12)
+            const bAsset = await fAssetMachine.loadBassetProxy("MK", "MK1", 12)
 
             await expect(aaveIntegration.checkBalance(bAsset.address)).to.be.revertedWith("aToken does not exist")
         })
